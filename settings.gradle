@@ -1,0 +1,6 @@
+rootProject.name = 'FIXYou'
+include 'api'
+include 'fix_commons'
+include 'commons'
+include 'netty'
+include 'parser'

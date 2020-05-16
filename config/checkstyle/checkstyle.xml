@@ -1,0 +1,152 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+        "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+        "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<module name="Checker">
+    <property name="severity" value="error"/>
+    <property name="fileExtensions" value="java, properties"/>
+    <module name="SuppressionFilter">
+        <property name="file" value="${config_loc}/suppressions.xml"/>
+    </module>
+    <module name="BeforeExecutionExclusionFileFilter">
+        <property name="fileNamePattern" value="FixSpec.*java$"/>
+    </module>
+    <module name="FileLength">
+        <property name="max" value="400"/>
+    </module>
+    <module name="UniqueProperties">
+        <property name="fileExtensions" value="properties"/>
+    </module>
+    <module name="OrderedProperties"/>
+    <module name="LineLength">
+        <property name="max" value="240"/>
+    </module>
+    <module name="TreeWalker">
+        <module name="AbbreviationAsWordInName"/>
+        <module name="AbstractClassName"/>
+        <module name="AnonInnerLength"/>
+        <module name="ArrayTrailingComma"/>
+        <module name="ArrayTypeStyle"/>
+        <module name="AvoidEscapedUnicodeCharacters">
+            <property name="allowEscapesForControlCharacters" value="true"/>
+        </module>
+        <module name="AvoidNestedBlocks"/>
+        <module name="BooleanExpressionComplexity"/>
+        <module name="CatchParameterName"/>
+        <module name="ClassDataAbstractionCoupling"/>
+        <module name="ClassFanOutComplexity"/>
+        <module name="ClassMemberImpliedModifier"/>
+        <module name="ClassTypeParameterName"/>
+        <module name="CommentsIndentation"/>
+        <module name="ConstantName"/>
+        <module name="CovariantEquals"/>
+        <module name="CyclomaticComplexity"/>
+        <module name="DeclarationOrder"/>
+        <module name="DefaultComesLast"/>
+        <module name="EmptyBlock">
+            <property name="option" value="text"/>
+        </module>
+        <module name="EmptyCatchBlock">
+            <property name="exceptionVariableName" value="expected|ignore"/>
+        </module>
+        <module name="EmptyLineSeparator">
+            <property name="allowNoEmptyLineBetweenFields" value="true"/>
+        </module>
+        <module name="EmptyStatement"/>
+        <module name="EqualsAvoidNull"/>
+        <module name="EqualsHashCode"/>
+        <module name="ExplicitInitialization"/>
+        <module name="FallThrough"/>
+        <module name="FinalClass"/>
+        <module name="FinalLocalVariable">
+            <property name="validateEnhancedForLoopVariable" value="true"/>
+        </module>
+        <module name="GenericWhitespace"/>
+        <module name="HiddenField">
+            <property name="ignoreConstructorParameter" value="true"/>
+            <property name="ignoreSetter" value="true"/>
+            <property name="setterCanReturnItsClass" value="true"/>
+        </module>
+        <module name="HideUtilityClassConstructor"/>
+        <module name="IllegalThrows"/>
+        <module name="InnerAssignment"/>
+        <module name="InnerTypeLast"/>
+        <module name="InterfaceTypeParameterName"/>
+        <module name="JavaNCSS"/>
+        <module name="LambdaParameterName"/>
+        <module name="LocalFinalVariableName"/>
+        <module name="LocalVariableName"/>
+        <module name="MagicNumber">
+            <property name="ignoreAnnotation" value="true"/>
+        </module>
+        <module name="MemberName"/>
+        <module name="MethodLength">
+            <property name="tokens" value="METHOD_DEF"/>
+            <property name="max" value="50"/>
+        </module>
+        <module name="MethodName"/>
+        <module name="MethodTypeParameterName"/>
+        <module name="MissingOverride"/>
+        <module name="MissingSwitchDefault"/>
+        <module name="ModifiedControlVariable"/>
+        <module name="ModifierOrder"/>
+        <module name="MultipleStringLiterals"/>
+        <module name="MultipleVariableDeclarations"/>
+        <module name="MutableException"/>
+        <module name="NeedBraces"/>
+        <module name="NestedForDepth">
+            <property name="max" value="2"/>
+        </module>
+        <module name="NestedIfDepth">
+            <property name="max" value="3"/>
+        </module>
+        <module name="NestedTryDepth"/>
+        <module name="NoClone"/>
+        <module name="NoFinalizer"/>
+        <module name="NoLineWrap"/>
+        <module name="NonEmptyAtclauseDescription"/>
+        <module name="NoWhitespaceAfter"/>
+        <module name="NoWhitespaceBefore"/>
+        <module name="NPathComplexity"/>
+        <module name="OneStatementPerLine"/>
+        <module name="OneTopLevelClass"/>
+        <module name="OuterTypeFilename"/>
+        <module name="OuterTypeNumber"/>
+        <module name="OverloadMethodsDeclarationOrder"/>
+        <module name="PackageDeclaration"/>
+        <module name="ParameterAssignment"/>
+        <module name="ParameterName"/>
+        <module name="ParameterNumber"/>
+        <module name="RedundantImport"/>
+        <module name="ReturnCount">
+            <property name="max" value="3"/>
+        </module>
+        <module name="SimplifyBooleanReturn"/>
+        <module name="StaticVariableName"/>
+        <module name="StringLiteralEquality"/>
+        <module name="ThrowsCount">
+            <property name="max" value="2"/>
+        </module>
+        <module name="TypeName"/>
+        <module name="UncommentedMain"/>
+        <module name="UnusedImports"/>
+        <module name="UpperEll"/>
+        <module name="VariableDeclarationUsageDistance">
+            <property name="allowedDistance" value="4"/>
+            <property name="validateBetweenScopes" value="true"/>
+            <property name="ignoreFinal" value="false"/>
+        </module>
+        <module name="VisibilityModifier">
+            <property name="protectedAllowed" value="true"/>
+        </module>
+        <module name="WhitespaceAfter"/>
+        <module name="WhitespaceAround"/>
+        <!--suppression to let checkstyle know that lombok's @UtilityClass or @NoArgsConstructor is enough-->
+        <module name="SuppressionXpathSingleFilter">
+            <property name="checks" value="HideUtilityClassConstructor"/>
+            <property name="query"
+                      value="//*[MODIFIERS//*[@text = 'UtilityClass' or @text='NoArgsConstructor']]/descendant-or-self::node()"/>
+        </module>
+    </module>
+</module>

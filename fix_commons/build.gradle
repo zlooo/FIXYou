@@ -1,0 +1,8 @@
+dependencies {
+    api project(":parser")
+    api project(":commons")
+    api project(":api")
+    api "com.google.dagger:dagger:$daggerVersion"
+    implementation group: 'javax.inject', name: 'javax.inject', version: "$javaxInjectVersion"
+    implementation group: 'org.agrona', name: 'agrona', version: "$agronaVersion"
+}

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE suppressions PUBLIC
+        "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+        "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<suppressions>
+    <suppress checks="MagicNumber" files="FieldUtils\.java"/>
+    <suppress checks="MagicNumber" files="FixMessageReader\.java"/>
+    <suppress checks="ReturnCount" files="pl.zlooo.fixyou.commons.pool.DefaultObjectPool\.java" lines="49" />
+    <suppress checks="ReturnCount" files="pl.zlooo.fixyou.netty.handler.MutableIdleStateHandler\.java" lines="374" />
+    <suppress checks="FileLength" files="pl.zlooo.fixyou.netty.handler.MutableIdleStateHandler\.java" />
+    <suppress checks="" files="ObjectFactory\.java" />
+</suppressions>

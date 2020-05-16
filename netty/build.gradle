@@ -1,0 +1,12 @@
+dependencies {
+    api project(":api")
+    api project(":fix_commons")
+    api project(":parser")
+    implementation project(":commons")
+    implementation group: 'io.netty', name: 'netty-handler', version: "$nettyVersion"
+    implementation group: 'javax.inject', name: 'javax.inject', version: "$javaxInjectVersion"
+    implementation group: 'org.agrona', name: 'agrona', version: "$agronaVersion"
+
+    integrationTestImplementation group: 'org.quickfixj', name: 'quickfixj-core', version: "$quickfixVersion"
+    integrationTestImplementation group: 'org.quickfixj', name: 'quickfixj-messages-all', version: "$quickfixVersion"
+}

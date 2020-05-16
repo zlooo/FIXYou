@@ -1,0 +1,3 @@
+dependencies {
+    api group: 'io.netty', name: 'netty-buffer', version: "$nettyVersion"
+}
