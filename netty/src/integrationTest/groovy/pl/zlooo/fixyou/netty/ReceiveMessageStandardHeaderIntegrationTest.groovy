@@ -81,7 +81,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         when:
         Session.sendToTarget(FixMessages.createNewOrderSingle(), sessionID)
         pollingConditions.eventually {
-            testFixMessageListener.messagesReceived.size() >= 1
+            testQuickfixApplication.adminMessagesReceived.size() >= 2
         }
 
         then:
