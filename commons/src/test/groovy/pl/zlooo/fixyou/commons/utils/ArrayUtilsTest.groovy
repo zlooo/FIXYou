@@ -42,4 +42,15 @@ class ArrayUtilsTest extends Specification {
         ["e1", "e2", "e3"] as String[] | "e3"           | true
         ["e1", "e2", "e3"] as String[] | "e4"           | false
     }
+
+    def "should compare char arrays"() {
+        expect:
+        ArrayUtils.compare(array1, array2) == result
+
+        where:
+        array1               | array2              | result
+        "abc".toCharArray()  | "abc".toCharArray() | 0
+        "abcd".toCharArray() | "abc".toCharArray() | 1
+        "abcd".toCharArray() | "abd".toCharArray() | -1
+    }
 }
