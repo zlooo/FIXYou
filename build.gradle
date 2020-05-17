@@ -52,16 +52,6 @@ subprojects {
         integrationTestRuntimeOnly.extendsFrom runtimeOnly
     }
 
-    jacocoTestReport {
-        println "${buildDir}"
-        if (new File("${buildDir}/jacoco/integrationTest.exec").exists()) {
-            executionData("${buildDir}/jacoco/integrationTest.exec")
-        }
-        reports {
-            xml.enabled true
-        }
-    }
-
     dependencies {
         compileOnly group: 'com.google.code.findbugs', name: 'jsr305', version: "$findbugsJsr305Version"
         compileOnly "org.projectlombok:lombok:$lombokVersion"
@@ -86,6 +76,17 @@ subprojects {
         testClassesDirs = sourceSets.integrationTest.output.classesDirs
         classpath = sourceSets.integrationTest.runtimeClasspath
         shouldRunAfter test
+    }
+
+    jacocoTestReport {
+        doFirst {
+            if (new File("${buildDir}/jacoco/integrationTest.exec").exists()) {
+                executionData("${buildDir}/jacoco/integrationTest.exec")
+            }
+        }
+        reports {
+            xml.enabled true
+        }
     }
 
     checkstyle {
