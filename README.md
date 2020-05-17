@@ -1,4 +1,4 @@
-# FIXYou [![Build Status](https://travis-ci.org/zlooo/FIXYou.svg?branch=master)](https://travis-ci.org/zlooo/FIXYou.svg?branch=master) [![codecov](https://codecov.io/gh/zlooo/FIXYou/branch/master/graph/badge.svg)](https://codecov.io/gh/zlooo/FIXYou)
+# FIXYou [![Build Status](https://travis-ci.org/zlooo/FIXYou.svg?branch=master)](https://travis-ci.org/zlooo/FIXYou.svg?branch=master) [![codecov](https://codecov.io/gh/zlooo/FIXYou/branch/master/graph/badge.svg)](https://codecov.io/gh/zlooo/FIXYou) [![Known Vulnerabilities](https://snyk.io/test/github/zlooo/FIXYou/badge.svg?targetFile=build.gradle)](https://snyk.io/test/github/zlooo/FIXYou?targetFile=build.gradle)
 
 ## Overview
 FIXYou is yet another fix engine. The purpose of this project is to create an open source fix engine that will be faster than Quickfix, generate less garbage and become the first choice when searching for free, performant fix engine that is suitable for low latency applications.
