@@ -28,7 +28,7 @@ class ReceiveLogoutMessageIntegrationTest extends AbstractFixYOUAcceptorIntegrat
         pollingConditions.eventually {
             receivedMessages.size() >= 2
             sessionSateListener.sessionState.logoutSent
-            !sessionSateListener.sessionState.channel.isActive()
+            !channel.isActive()
         }
 
         then:
@@ -36,6 +36,7 @@ class ReceiveLogoutMessageIntegrationTest extends AbstractFixYOUAcceptorIntegrat
         sessionSateListener.sessionState.logoutSent
         !sessionSateListener.sessionState.connected.get()
         !sessionSateListener.sessionState.channel.isActive()
+        !channel.isActive()
         receivedMessages.size() == 2
         Logon logon = new Logon()
         logon.fromString(receivedMessages[0], QuickfixTestUtils.FIXT11_DICTIONARY, true)
