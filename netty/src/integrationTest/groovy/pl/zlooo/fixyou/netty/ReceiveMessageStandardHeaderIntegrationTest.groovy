@@ -81,7 +81,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         when:
         Session.sendToTarget(FixMessages.createNewOrderSingle(), sessionID)
         pollingConditions.eventually {
-            testQuickfixApplication.adminMessagesReceived.size() >= 2
+            testQuickfixApplication.adminMessagesReceived.size() >= 1
         }
 
         then:
@@ -105,7 +105,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         sendMessage(channel, "garbage message")
         sendMessage(channel, newOrderSingle)
         pollingConditions.eventually {
-            nextExpectedInboundSequenceNumber() > 2
+            testQuickfixApplication.adminMessagesReceived.size() >= 1
         }
 
         then:

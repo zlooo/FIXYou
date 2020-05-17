@@ -32,7 +32,7 @@ engine.start();
 ```
 Both sessions and dictionaries can be registered after engine is started.
 
-In order to register session you either need id of an already registered dictionary, dictionaryID param of registerSessionAndDictionary method, or register a new dictionary. Each FIX dictionary has a unique ID  and instance of FixSpec class. I've written a simple tool https://github.com/zlooo/FIXYou-tools/tree/master/fix_spec_generator that can generate implementation of FixSpec interface based on Quickfix xml dictionary.
+In order to register session you either need id of an already registered dictionary, `dictionaryID` param of `registerSessionAndDictionary` method, or register a new dictionary. Each FIX dictionary has a unique ID  and instance of FixSpec class. I've written a simple tool https://github.com/zlooo/FIXYou-tools/tree/master/fix_spec_generator that can generate implementation of FixSpec interface based on Quickfix xml dictionary.
 
 `fixMessageListener` that's passed when `Engine` is created is a main entry point to your application. The idea is practically identical to Quickfix's `quickfix.Application`. In FIXYou case each time a new FIX message is received onFixMessage method is invoked.
 
