@@ -9,7 +9,9 @@ This library is still in its infancy stage. By no means it's production ready, n
 You can find FIXYou on https://mvnrepository.com/
 
 Attach netty module as dependency
-* Gradle: `implementation`
+* Gradle: 
+
+`implementation`
 * Maven:
 ```xml
 <dependency></dependency>
@@ -36,11 +38,18 @@ In order to register session you either need id of an already registered diction
 
 `fixMessageListener` that's passed when `Engine` is created is a main entry point to your application. The idea is practically identical to Quickfix's `quickfix.Application`. In FIXYou case each time a new FIX message is received onFixMessage method is invoked.
 
+To send fix message from your application use `FIXYouNetty.sendMessage`, for example
+```java
+FIXYouNetty.sendMessage(FixMessages.createFIXYouNewOrderSingle(clordid), fixYouSessionId, engine)
+```
+First parameter is an `Consumer<FixMessage>` that's supposed to set all fields on a message that you want to send.
+
 ## Limitations
 As mentioned earlier, FIXYou is still work in progress, so it lacks some features you'd normally expect FIX engine to have. The list includes, but is not limited to:
-* message persistence
+* message persistence - only in memory message store implementation is provided. However, you're able to plug in your own implementations
 * session times - currently all sessions are "infinite"
 * message encryption
+* I'm still working on improving documentation, please let me know if you notice anything missing
 
 ## Want to help out?
 There are various ways you can help in development of FIXYou.
