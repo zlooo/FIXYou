@@ -96,6 +96,7 @@ class ReceiveSequenceResetGapFillIntegrationTest extends AbstractFixYOUAcceptorI
         pollingConditions.eventually {
             testQuickfixApplication.adminMessagesReceived.size() >= 2
             sessionSateListener.sessionState.logoutSent
+            !sessionSateListener.sessionState.channel.isActive()
         }
 
         then:
