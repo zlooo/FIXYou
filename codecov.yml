@@ -1,0 +1,6 @@
+ignore:
+  - "**/*Module.java"
+  - "**/LogoutTexts.java"
+  - "**/RejectReasons.java"
+  - "**/FixFieldsTypes.java"
+  - "**/*Exception.java"

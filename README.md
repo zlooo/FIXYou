@@ -1,4 +1,4 @@
-# FIXYou
+# FIXYou [![Build Status](https://travis-ci.org/zlooo/FIXYou.svg?branch=master)](https://travis-ci.org/zlooo/FIXYou.svg?branch=master) [![codecov](https://codecov.io/gh/zlooo/FIXYou/branch/master/graph/badge.svg)](https://codecov.io/gh/zlooo/FIXYou)
 
 ## Overview
 FIXYou is yet another fix engine. The purpose of this project is to create an open source fix engine that will be faster than Quickfix, generate less garbage and become the first choice when searching for free, performant fix engine that is suitable for low latency applications.
@@ -47,6 +47,15 @@ First parameter is an `Consumer<FixMessage>` that's supposed to set all fields o
 ## Performance - Yeah right, performance my ass
 I have to be honest with you I've done only preliminary performance tests, and they only consist of 1 scenario, `newOrderSingleSending` described [here](https://github.com/zlooo/FIXYou-tools#probe-test-scenarios). However those initial results are pretty encouraging, they say that FIXYou is not slower than Quickfix, and in same cases, can be up to **50% faster**.
 
+To send fix message from your application use `FIXYouNetty.sendMessage`, for example
+```java
+FIXYouNetty.sendMessage(FixMessages.createFIXYouNewOrderSingle(clordid), fixYouSessionId, engine)
+```
+First parameter is an `Consumer<FixMessage>` that's supposed to set all fields on a message that you want to send.
+
+## Performance - Yeah right, performance my ass
+I have to be honest with you I've done only preliminary performance tests, and they only consist of 1 scenario, `newOrderSingleSending` described [here](https://github.com/zlooo/FIXYou-tools#probe-test-scenarios). However, those initial results are pretty encouraging, they say that FIXYou is not slower than Quickfix, and in same cases, can be up to **50% faster**. The best thing is I haven't done any profiling or special code optimizations. In other words it may turn out it's even faster :).
+
 ## Limitations
 As mentioned earlier, FIXYou is still work in progress, so it lacks some features you'd normally expect FIX engine to have. The list includes, but is not limited to:
 * message persistence - only in memory message store implementation is provided. However, you're able to plug in your own implementations
@@ -63,5 +72,5 @@ There are various ways you can help in development of FIXYou.
 5. Let me know what features are important to you, I'll try to implement them
 6. Just let me know you've used it. Knowing that somebody actually tried FIXYou out is a great motivation to keep going
 
-## Contact info
+## Contact info [![HitCount](http://hits.dwyl.com/zlooo/FIXYou.svg)](http://hits.dwyl.com/zlooo/FIXYou)
 zlooo.inc[you know what goes here]gmail.com
