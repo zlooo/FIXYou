@@ -72,7 +72,9 @@ public class FIXYouNetty {
                                                .addListener(FixChannelListeners.LOGOUT_SENT)
                                                .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE));
         } else {
-            return CompletableFuture.failedFuture(new FIXYouException("Cannot log out session that has not been started"));
+            final CompletableFuture<Object> future = new CompletableFuture<>();
+            future.completeExceptionally(new FIXYouException("Cannot log out session that has not been started"));
+            return future;
         }
     }
 }

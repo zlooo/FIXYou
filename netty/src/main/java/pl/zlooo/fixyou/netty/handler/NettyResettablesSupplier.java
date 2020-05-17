@@ -10,6 +10,7 @@ import pl.zlooo.fixyou.session.SessionConfig;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -49,6 +50,6 @@ public class NettyResettablesSupplier implements Function<NettyHandlerAwareSessi
         if (sessionConfig.isConsolidateFlushes()) {
             resetables.put(NettyResettablesNames.FLUSH_CONSOLIDATION_HANDLER, new ResettableFlushConsolidationHandler());
         }
-        return Map.copyOf(resetables);
+        return Collections.unmodifiableMap(resetables);
     }
 }

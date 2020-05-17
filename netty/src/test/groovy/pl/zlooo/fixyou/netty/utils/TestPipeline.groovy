@@ -2,6 +2,7 @@ package pl.zlooo.fixyou.netty.utils
 
 import io.netty.channel.*
 import io.netty.util.concurrent.EventExecutorGroup
+import org.assertj.core.api.Assertions
 
 class TestPipeline implements ChannelPipeline {
 
@@ -9,7 +10,7 @@ class TestPipeline implements ChannelPipeline {
 
     @Override
     ChannelPipeline addFirst(String name, ChannelHandler handler) {
-        handlers.add(0, Map.entry(name, handler))
+        handlers.add(0, Assertions.entry(name, handler))
         return this
     }
 
@@ -20,7 +21,7 @@ class TestPipeline implements ChannelPipeline {
 
     @Override
     ChannelPipeline addLast(String name, ChannelHandler handler) {
-        handlers.add(Map.entry(name, handler))
+        handlers.add(Assertions.entry(name, handler))
         return this
     }
 
@@ -31,7 +32,7 @@ class TestPipeline implements ChannelPipeline {
 
     @Override
     ChannelPipeline addBefore(String baseName, String name, ChannelHandler handler) {
-        handlers.add(indexOf(baseName), Map.entry(name, handler))
+        handlers.add(indexOf(baseName), Assertions.entry(name, handler))
         return this
     }
 
@@ -42,7 +43,7 @@ class TestPipeline implements ChannelPipeline {
 
     @Override
     ChannelPipeline addAfter(String baseName, String name, ChannelHandler handler) {
-        handlers.add(indexOf(baseName) + 1, Map.entry(name, handler))
+        handlers.add(indexOf(baseName) + 1, Assertions.entry(name, handler))
         return this
     }
 
@@ -105,7 +106,7 @@ class TestPipeline implements ChannelPipeline {
     ChannelHandler replace(String oldName, String newName, ChannelHandler newHandler) {
         def index = indexOf(oldName)
         def removedHandler = handlers.remove(index)
-        handlers.add(index, Map.entry(newName, newHandler))
+        handlers.add(index, Assertions.entry(newName, newHandler))
         return removedHandler.value
     }
 

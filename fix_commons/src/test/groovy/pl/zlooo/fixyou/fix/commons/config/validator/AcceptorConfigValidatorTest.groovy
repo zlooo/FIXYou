@@ -13,7 +13,7 @@ class AcceptorConfigValidatorTest extends Specification {
 
     def "should validate FIXYou configuration"() {
         expect:
-        Assertions.assertThat(configValidator.validateConfig(config)).containsOnly(errorMessages.<String> toArray({ size -> new String[size] }))
+        Assertions.assertThat(configValidator.validateConfig(config)).containsOnly(errorMessages.<String> toArray([] as String[]))
 
         where:
         config                                                                                             | errorMessages
@@ -28,7 +28,7 @@ class AcceptorConfigValidatorTest extends Specification {
 
     def "should validate session config"() {
         expect:
-        Assertions.assertThat(configValidator.validateSessionConfig(config)).containsOnly(errorMessages.<String> toArray({ size -> new String[size] }))
+        Assertions.assertThat(configValidator.validateSessionConfig(config)).containsOnly(errorMessages.<String> toArray([] as String[]))
 
         where:
         config                                                                       | errorMessages

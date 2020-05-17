@@ -33,7 +33,7 @@ class DictionaryRepositoryTest extends Specification {
         dictionaryRepository.registerDictionary("testDictionary2", TestSpec.INSTANCE)
 
         then:
-        Assertions.assertThat(dictionaryRepository.@dictionaries).contains(Map.entry("testDictionary1", testDictionary1)).hasSize(2).containsKey("testDictionary2")
+        Assertions.assertThat(dictionaryRepository.@dictionaries).contains(Assertions.entry("testDictionary1", testDictionary1)).hasSize(2).containsKey("testDictionary2")
         Assertions.assertThat(dictionaryRepository.@dictionaries["testDictionary2"]).isEqualToComparingOnlyGivenFields(dictionary2, "fixSpec")
     }
 
@@ -43,6 +43,6 @@ class DictionaryRepositoryTest extends Specification {
 
         then:
         thrown(FIXYouException)
-        Assertions.assertThat(dictionaryRepository.@dictionaries).containsOnly(Map.entry("testDictionary1", testDictionary1))
+        Assertions.assertThat(dictionaryRepository.@dictionaries).containsOnly(Assertions.entry("testDictionary1", testDictionary1))
     }
 }

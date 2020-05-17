@@ -129,7 +129,7 @@ class SessionHandlerTest extends Specification {
         fixMessage.refCnt() == 1
         3 * channelHandlerContext.fireChannelRead(fixMessage)
         sessionHandler.@nextExpectedInboundSequenceNumber == 4L
-        Assertions.assertThat(sessionHandler.@sequenceNumberToQueuedFixMessages).containsOnly(Map.entry(5L, fixMessage))
+        Assertions.assertThat(sessionHandler.@sequenceNumberToQueuedFixMessages).containsOnly(Assertions.entry(5L, fixMessage))
         0 * _
     }
 
@@ -241,7 +241,7 @@ class SessionHandlerTest extends Specification {
         1 * channelHandlerContext.fireChannelRead(queuedFixMessage)
         sessionHandler.@nextExpectedInboundSequenceNumber == 3L
         sessionHandler.@lastOutboundSequenceNumber == SessionHandler.DEFAULT_OUTBOUND_SEQUENCE_NUMBER
-        Assertions.assertThat(sessionHandler.@sequenceNumberToQueuedFixMessages).containsOnly(Map.entry(3L, FixMessageUtils.EMPTY_FAKE_MESSAGE))
+        Assertions.assertThat(sessionHandler.@sequenceNumberToQueuedFixMessages).containsOnly(Assertions.entry(3L, FixMessageUtils.EMPTY_FAKE_MESSAGE))
         0 * _
     }
 

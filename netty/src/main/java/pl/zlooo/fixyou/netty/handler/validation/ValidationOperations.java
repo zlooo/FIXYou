@@ -3,12 +3,11 @@ package pl.zlooo.fixyou.netty.handler.validation;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import pl.zlooo.fixyou.FixConstants;
+import pl.zlooo.fixyou.commons.utils.ArrayUtils;
 import pl.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
 import pl.zlooo.fixyou.parser.model.CharArrayField;
 import pl.zlooo.fixyou.parser.model.FixMessage;
 import pl.zlooo.fixyou.parser.model.LongField;
-
-import java.util.Arrays;
 
 @Slf4j
 @UtilityClass
@@ -18,7 +17,7 @@ public class ValidationOperations {
         final CharArrayField origSendingTime = msg.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER);
         if (origSendingTime != null && origSendingTime.isValueSet()) {
             final CharArrayField sendingTime = msg.getField(FixConstants.SENDING_TIME_FIELD_NUMBER);
-            return Arrays.compare(origSendingTime.getValue(), sendingTime.getValue()) < 0;
+            return ArrayUtils.compare(origSendingTime.getValue(), sendingTime.getValue()) < 0;
         }
         return true;
     }
