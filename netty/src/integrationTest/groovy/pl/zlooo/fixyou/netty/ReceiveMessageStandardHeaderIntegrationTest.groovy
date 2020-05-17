@@ -83,6 +83,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         pollingConditions.eventually {
             testQuickfixApplication.adminMessagesReceived.size() >= 2
             sessionSateListener.sessionState.logoutSent
+            !sessionSateListener.sessionState.channel.isActive()
         }
 
         then:
@@ -177,6 +178,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         pollingConditions.eventually {
             receivedMessages.size() >= 3
             sessionSateListener.sessionState.logoutSent
+            !sessionSateListener.sessionState.channel.isActive()
         }
 
         then:
