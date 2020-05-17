@@ -17,7 +17,7 @@ class TestFixMessageListener implements FixMessageListener {
         FixMessage msg = new FixMessage(TestSpec.INSTANCE)
         copyTo(fixMessage, msg)
         messagesReceived << msg
-        LOGGER.info("Session with id {} received a message", sessionID, msg)
+        LOGGER.info("Session with id {} received a message {}", sessionID, msg)
     }
 
     private static void copyTo(FixMessage from, FixMessage to) {
