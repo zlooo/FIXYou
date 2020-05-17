@@ -79,13 +79,11 @@ subprojects {
     }
 
     jacocoTestReport {
-        doFirst {
-            println "===============${buildDir}/jacoco/integrationTest.exec"
-            println new File("${buildDir}/jacoco/integrationTest.exec").exists()
+        executionData.from({
             if (new File("${buildDir}/jacoco/integrationTest.exec").exists()) {
                 executionData("${buildDir}/jacoco/integrationTest.exec")
             }
-        }
+        })
         reports {
             xml.enabled true
         }
