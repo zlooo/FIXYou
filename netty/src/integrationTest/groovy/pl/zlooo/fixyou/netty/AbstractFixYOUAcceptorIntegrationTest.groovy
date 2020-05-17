@@ -159,8 +159,8 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
         if (!inUseFixMessages.isEmpty()) {
             Assert.fail("Not all FixMessages have been returned to the pool!!!! In use messages " + inUseFixMessages)
         }
-        group?.shutdownGracefully()
-        engine?.stop()
+        group?.shutdownGracefully()?.sync()
+        engine?.stop()?.get()
         initiator?.stop(true)
         receivedMessages?.clear()
         LOGGER.info("Cleanup done")
