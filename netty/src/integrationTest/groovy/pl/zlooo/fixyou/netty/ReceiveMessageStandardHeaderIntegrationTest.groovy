@@ -82,6 +82,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         Session.sendToTarget(FixMessages.createNewOrderSingle(), sessionID)
         pollingConditions.eventually {
             testQuickfixApplication.adminMessagesReceived.size() >= 2
+            sessionSateListener.sessionState.logoutSent
         }
 
         then:
@@ -175,6 +176,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         sendMessage(channel, resend)
         pollingConditions.eventually {
             receivedMessages.size() >= 3
+            sessionSateListener.sessionState.logoutSent
         }
 
         then:
@@ -230,6 +232,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         sendMessage(channel, message)
         pollingConditions.eventually {
             receivedMessages.size() >= 2
+            sessionSateListener.sessionState.logoutSent
         }
 
         then:
@@ -258,6 +261,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         sendMessage(channel, message)
         pollingConditions.eventually {
             receivedMessages.size() >= 3
+            sessionSateListener.sessionState.logoutSent
         }
 
         then:
@@ -290,6 +294,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         sendMessage(channel, message)
         pollingConditions.eventually {
             receivedMessages.size() >= 3
+            sessionSateListener.sessionState.logoutSent
         }
 
         then:
@@ -339,6 +344,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         sendMessage(channel, message)
         pollingConditions.eventually {
             receivedMessages.size() >= 3
+            sessionSateListener.sessionState.logoutSent
         }
 
         then:

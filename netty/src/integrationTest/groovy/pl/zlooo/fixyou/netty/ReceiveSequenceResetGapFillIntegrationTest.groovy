@@ -94,7 +94,8 @@ class ReceiveSequenceResetGapFillIntegrationTest extends AbstractFixYOUAcceptorI
         when:
         Session.sendToTarget(sequenceReset, sessionID)
         pollingConditions.eventually {
-            nextExpectedInboundSequenceNumber() == 3
+            testQuickfixApplication.adminMessagesReceived.size() >= 2
+            sessionSateListener.sessionState.logoutSent
         }
 
         then:
