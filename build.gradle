@@ -53,6 +53,7 @@ subprojects {
     }
 
     jacocoTestReport {
+        println "${buildDir}"
         if (new File("${buildDir}/jacoco/integrationTest.exec").exists()) {
             executionData("${buildDir}/jacoco/integrationTest.exec")
         }
