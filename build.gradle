@@ -80,6 +80,8 @@ subprojects {
 
     jacocoTestReport {
         doFirst {
+            println "===============${buildDir}/jacoco/integrationTest.exec"
+            println new File("${buildDir}/jacoco/integrationTest.exec").exists()
             if (new File("${buildDir}/jacoco/integrationTest.exec").exists()) {
                 executionData("${buildDir}/jacoco/integrationTest.exec")
             }
