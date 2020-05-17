@@ -14,7 +14,7 @@ class InitiateLogoutProcessIntegrationTest extends AbstractFixYOUAcceptorIntegra
         when:
         FIXYouNetty.logoutSession(engine, fixYouSessionId).sync()
         pollingConditions.eventually {
-            !sessionSateListener.sessionState.channel.isActive()
+            testQuickfixApplication.adminMessagesReceived.size() >= 2
         }
 
         then:

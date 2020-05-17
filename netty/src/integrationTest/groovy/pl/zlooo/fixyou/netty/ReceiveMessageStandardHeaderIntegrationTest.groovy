@@ -229,7 +229,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         when:
         sendMessage(channel, message)
         pollingConditions.eventually {
-            !sessionSateListener.sessionState.channel.isActive()
+            receivedMessages.size() >= 2
         }
 
         then:
