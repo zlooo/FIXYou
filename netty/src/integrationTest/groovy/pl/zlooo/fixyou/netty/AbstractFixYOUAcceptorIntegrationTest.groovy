@@ -54,7 +54,7 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
                 create(FIXYouConfiguration.builder().acceptorListenPort(acceptorPort).initiator(false).build(), testFixMessageListener).
                 //TODO test spec for now but once we have real one it should be used here instead
                         registerSessionAndDictionary(fixYouSessionId, "dictionaryId", TestSpec.INSTANCE, createConfig())
-        engine.start()
+        engine.start().get()
         LOGGER.debug("Creating quickfix initiator")
         initiator = QuickfixTestUtils.setupInitiator(acceptorPort, sessionID, testQuickfixApplication)
         LOGGER.info("Setup done")

@@ -56,8 +56,8 @@ class SessionRegistryImplTest extends Specification {
         sessionRegistry.registerExpectedSession(existingSessionState, resettableSupplier)
 
         then:
-        Assertions.assertThat(sessionRegistry.@sessions).containsOnly(Map.entry(existingSessionId, existingSessionState))
-        Assertions.assertThat(existingSessionState.resettables).containsOnly(Map.entry("resetable1", resettable1), Map.entry("resetable2", resettable2))
+        Assertions.assertThat(sessionRegistry.@sessions).containsOnly(Assertions.entry(existingSessionId, existingSessionState))
+        Assertions.assertThat(existingSessionState.resettables).containsOnly(Assertions.entry("resetable1", resettable1), Assertions.entry("resetable2", resettable2))
     }
 
     def "should not be able to register session using same id twice"() {
@@ -71,7 +71,7 @@ class SessionRegistryImplTest extends Specification {
 
         then:
         thrown(FIXYouException)
-        Assertions.assertThat(sessionRegistry.@sessions).containsOnly(Map.entry(existingSessionId, existingSessionState))
+        Assertions.assertThat(sessionRegistry.@sessions).containsOnly(Assertions.entry(existingSessionId, existingSessionState))
     }
 
     private static final class TestSessionState extends AbstractMessagePoolingSessionState {

@@ -4,6 +4,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
+import pl.zlooo.fixyou.commons.utils.ArrayUtils;
 import pl.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import pl.zlooo.fixyou.netty.handler.admin.AdministrativeMessageHandler;
 import pl.zlooo.fixyou.FixConstants;
@@ -22,7 +23,7 @@ import java.util.TreeMap;
 class AdminMessagesHandler extends SimpleChannelInboundHandler<FixMessage> {
 
     //TODO check the web for fancier collection
-    private final TreeMap<char[], AdministrativeMessageHandler> handlerMap = new TreeMap<>(Arrays::compare);
+    private final TreeMap<char[], AdministrativeMessageHandler> handlerMap = new TreeMap<>(ArrayUtils::compare);
 
     @Inject
     AdminMessagesHandler(Set<AdministrativeMessageHandler> administrativeMessageHandlers) {

@@ -26,6 +26,8 @@ class ReceiveLogoutMessageIntegrationTest extends AbstractFixYOUAcceptorIntegrat
         when:
         sendMessage(channel, FixMessages.logout(sessionID))
         pollingConditions.eventually {
+            receivedMessages.size() >= 2
+            sessionSateListener.sessionState.logoutSent
             !sessionSateListener.sessionState.channel.isActive()
         }
 
@@ -49,6 +51,8 @@ class ReceiveLogoutMessageIntegrationTest extends AbstractFixYOUAcceptorIntegrat
         when:
         session.logout()
         pollingConditions.eventually {
+            testQuickfixApplication.adminMessagesReceived.size() >= 2
+            sessionSateListener.sessionState.logoutSent
             !sessionSateListener.sessionState.channel.isActive()
         }
 

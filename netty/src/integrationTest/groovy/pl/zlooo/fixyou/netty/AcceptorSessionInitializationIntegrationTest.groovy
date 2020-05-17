@@ -31,8 +31,8 @@ class AcceptorSessionInitializationIntegrationTest extends AbstractFixYOUAccepto
     def "should initialize session test case 1S-a-1"() {
         when:
         initiator.start()
-        while (testQuickfixApplication.loggedOnSessions.isEmpty()) {
-            Thread.sleep(500)
+        pollingConditions.eventually {
+            !testQuickfixApplication.loggedOnSessions.isEmpty()
         }
 
         then:
@@ -56,8 +56,8 @@ class AcceptorSessionInitializationIntegrationTest extends AbstractFixYOUAccepto
 
         when:
         initiatorSession.logon()
-        while (testQuickfixApplication.adminMessagesReceived.size() < 2) {
-            Thread.sleep(500)
+        pollingConditions.eventually {
+            testQuickfixApplication.adminMessagesReceived.size() >= 2
         }
 
         then:
@@ -86,11 +86,8 @@ class AcceptorSessionInitializationIntegrationTest extends AbstractFixYOUAccepto
         session2.addStateListener(sessionStateListener)
 
         when:
-        while (session2.logonSent) {
-            Thread.sleep(500)
-        }
-        while (!sessionStateListener.disconnectHappened) {
-            Thread.sleep(500)
+        pollingConditions.eventually {
+            sessionStateListener.disconnectHappened
         }
 
         then:
@@ -116,11 +113,8 @@ class AcceptorSessionInitializationIntegrationTest extends AbstractFixYOUAccepto
         session2.addStateListener(sessionStateListener)
 
         when:
-        while (session2.logonSent) {
-            Thread.sleep(500)
-        }
-        while (!sessionStateListener.disconnectHappened) {
-            Thread.sleep(500)
+        pollingConditions.eventually {
+            sessionStateListener.disconnectHappened
         }
 
         then:
@@ -171,8 +165,8 @@ class AcceptorSessionInitializationIntegrationTest extends AbstractFixYOUAccepto
                                 "8=${sessionID.beginString}\u00019=55\u000135=1\u000149=${sessionID.senderCompID}\u000156=${sessionID.targetCompID}\u000110=087\u0001".getBytes(
                                         StandardCharsets.US_ASCII))).
                 sync()
-        while (channel.isActive()) {
-            Thread.sleep(500)
+        pollingConditions.eventually {
+            !channel.isActive()
         }
 
         then:
@@ -190,7 +184,7 @@ class AcceptorSessionInitializationIntegrationTest extends AbstractFixYOUAccepto
         when:
         sendMessage(channel, FixMessages.logon(sessionID, 1, 30, true)).sync()
         pollingConditions.eventually {
-            sessionSateListener.loggedOn
+            !receivedMessages.empty
         }
 
         then:

@@ -82,6 +82,8 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         Session.sendToTarget(FixMessages.createNewOrderSingle(), sessionID)
         pollingConditions.eventually {
             testQuickfixApplication.adminMessagesReceived.size() >= 2
+            sessionSateListener.sessionState.logoutSent
+            !sessionSateListener.sessionState.channel.isActive()
         }
 
         then:
@@ -105,7 +107,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         sendMessage(channel, "garbage message")
         sendMessage(channel, newOrderSingle)
         pollingConditions.eventually {
-            nextExpectedInboundSequenceNumber() > 2
+            testFixMessageListener.messagesReceived.size() >= 1
         }
 
         then:
@@ -175,6 +177,8 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         sendMessage(channel, resend)
         pollingConditions.eventually {
             receivedMessages.size() >= 3
+            sessionSateListener.sessionState.logoutSent
+            !sessionSateListener.sessionState.channel.isActive()
         }
 
         then:
@@ -229,6 +233,8 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         when:
         sendMessage(channel, message)
         pollingConditions.eventually {
+            receivedMessages.size() >= 2
+            sessionSateListener.sessionState.logoutSent
             !sessionSateListener.sessionState.channel.isActive()
         }
 
@@ -258,6 +264,8 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         sendMessage(channel, message)
         pollingConditions.eventually {
             receivedMessages.size() >= 3
+            sessionSateListener.sessionState.logoutSent
+            !sessionSateListener.sessionState.channel.isActive()
         }
 
         then:
@@ -290,6 +298,8 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         sendMessage(channel, message)
         pollingConditions.eventually {
             receivedMessages.size() >= 3
+            sessionSateListener.sessionState.logoutSent
+            !sessionSateListener.sessionState.channel.isActive()
         }
 
         then:
@@ -339,6 +349,8 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         sendMessage(channel, message)
         pollingConditions.eventually {
             receivedMessages.size() >= 3
+            sessionSateListener.sessionState.logoutSent
+            !sessionSateListener.sessionState.channel.isActive()
         }
 
         then:

@@ -24,7 +24,7 @@ class MemoryMessageStoreTest extends Specification {
         then:
         msg.refCnt() == 1
         Assertions.assertThat(store.@sessionToMessagesMap).containsOnlyKeys(sessionID)
-        Assertions.assertThat(store.@sessionToMessagesMap[sessionID]).containsOnly(Map.entry(666L, msg))
+        Assertions.assertThat(store.@sessionToMessagesMap[sessionID]).containsOnly(Assertions.entry(666L, msg))
     }
 
     def "should load messages"() {
@@ -43,7 +43,7 @@ class MemoryMessageStoreTest extends Specification {
         testSub.subscribeCalled
         testSub.completeCalled
         testSub.error == null
-        Assertions.assertThat(testSub.items).containsOnly(Map.entry(3L, msgs[3]), Map.entry(4L, msgs[4]), Map.entry(5L, msgs[5]))
+        Assertions.assertThat(testSub.items).containsOnly(Assertions.entry(3L, msgs[3]), Assertions.entry(4L, msgs[4]), Assertions.entry(5L, msgs[5]))
     }
 
     def "should load messages even when excessive amount is requested"() {
@@ -62,7 +62,7 @@ class MemoryMessageStoreTest extends Specification {
         testSub.subscribeCalled
         testSub.completeCalled
         testSub.error == null
-        Assertions.assertThat(testSub.items).containsOnly(Map.entry(3L, msgs[3]), Map.entry(4L, msgs[4]), Map.entry(5L, FixMessageUtils.EMPTY_FAKE_MESSAGE))
+        Assertions.assertThat(testSub.items).containsOnly(Assertions.entry(3L, msgs[3]), Assertions.entry(4L, msgs[4]), Assertions.entry(5L, FixMessageUtils.EMPTY_FAKE_MESSAGE))
     }
 
     def "should load all messages subsequent to provided sequence number"() {
@@ -81,7 +81,7 @@ class MemoryMessageStoreTest extends Specification {
         testSub.subscribeCalled
         testSub.completeCalled
         testSub.error == null
-        Assertions.assertThat(testSub.items).containsOnly(Map.entry(3L, msgs[3]), Map.entry(4L, msgs[4]), Map.entry(5L, msgs[5]), Map.entry(6L, msgs[6]))
+        Assertions.assertThat(testSub.items).containsOnly(Assertions.entry(3L, msgs[3]), Assertions.entry(4L, msgs[4]), Assertions.entry(5L, msgs[5]), Assertions.entry(6L, msgs[6]))
     }
 
     def "should notify about exception when it happens during message processing"() {
@@ -103,7 +103,7 @@ class MemoryMessageStoreTest extends Specification {
         testSub.error != null
         testSub.error instanceof RuntimeException
         testSub.error.getMessage() == "Test"
-        Assertions.assertThat(testSub.items).containsOnly(Map.entry(3L, msgs[3]))
+        Assertions.assertThat(testSub.items).containsOnly(Assertions.entry(3L, msgs[3]))
     }
 
     def "should release all for given session messages when store is reset"() {

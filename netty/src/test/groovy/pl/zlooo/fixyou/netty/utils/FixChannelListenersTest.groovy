@@ -4,6 +4,8 @@ import io.netty.channel.Channel
 import io.netty.channel.ChannelFuture
 import io.netty.util.Attribute
 import pl.zlooo.fixyou.netty.NettyHandlerAwareSessionState
+import pl.zlooo.fixyou.session.SessionConfig
+import pl.zlooo.fixyou.session.SessionStateListener
 import spock.lang.Specification
 
 class FixChannelListenersTest extends Specification {
@@ -13,7 +15,12 @@ class FixChannelListenersTest extends Specification {
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
     private NettyHandlerAwareSessionState sessionState = Mock()
 
-    def "should mark logout as sent if future is successful"() {
+    def "should mark logout as sent and notify listeners if future is successful"() {
+        setup:
+        def sessionConfig = new SessionConfig()
+        def stateListener = Mock(SessionStateListener)
+        sessionConfig.addSessionStateListener(stateListener)
+
         when:
         FixChannelListeners.LOGOUT_SENT.operationComplete(channelFuture)
 
@@ -23,6 +30,8 @@ class FixChannelListenersTest extends Specification {
         1 * channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY) >> sessionStateAttribute
         1 * sessionStateAttribute.get() >> sessionState
         1 * sessionState.setLogoutSent(true)
+        1 * sessionState.getSessionConfig() >> sessionConfig
+        1 * stateListener.logOut(sessionState)
         0 * _
     }
 

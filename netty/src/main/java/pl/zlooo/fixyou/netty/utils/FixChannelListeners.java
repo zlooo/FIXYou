@@ -9,7 +9,9 @@ public class FixChannelListeners {
 
     public static final ChannelFutureListener LOGOUT_SENT = future -> {
         if (future.isSuccess()) {
-            NettyHandlerAwareSessionState.getForChannel(future.channel()).setLogoutSent(true);
+            final NettyHandlerAwareSessionState sessionState = NettyHandlerAwareSessionState.getForChannel(future.channel());
+            sessionState.setLogoutSent(true);
+            sessionState.getSessionConfig().getSessionStateListeners().forEach(listener -> listener.logOut(sessionState));
         }
     };
     public static final ChannelFutureListener LOGON_SENT = future -> {
