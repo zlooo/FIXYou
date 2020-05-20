@@ -44,8 +44,10 @@ FIXYouNetty.sendMessage(FixMessages.createFIXYouNewOrderSingle(clordid), fixYouS
 ```
 First parameter is an `Consumer<FixMessage>` that's supposed to set all fields on a message that you want to send.
 
+Nore details on usage and design can be found on [FIXYou wiki](https://github.com/zlooo/FIXYou/wiki)
+
 ## Performance - Yeah right, performance my ass
-I have to be honest with you I've done only preliminary performance tests, and they only consist of 1 scenario, `newOrderSingleSending` described [here](https://github.com/zlooo/FIXYou-tools#probe-test-scenarios). However, those initial results are pretty encouraging, they say that FIXYou is not slower than Quickfix, and in same cases, can be up to **50% faster**. The best thing is I haven't done any profiling or special code optimizations. In other words it may turn out it's even faster :).
+I have to be honest with you I've done only preliminary performance tests, and they only consist of 1 scenario, `newOrderSingleSending` described [here](https://github.com/zlooo/FIXYou-tools#probe-test-scenarios). However, those initial results are pretty encouraging, they say that FIXYou is not slower than Quickfix, and in same cases, can be up to **50% faster**. The best thing is I haven't done any profiling or special code optimizations. In other words it may turn out it's even faster :). More details on this subject, including detailed results, can be found on [FIXYou wiki](https://github.com/zlooo/FIXYou/wiki/Performance-Tests).
 
 ## Limitations
 As mentioned earlier, FIXYou is still work in progress, so it lacks some features you'd normally expect FIX engine to have. The list includes, but is not limited to:
