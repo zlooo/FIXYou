@@ -35,7 +35,7 @@ subprojects {
     apply plugin: 'jacoco'
     apply plugin: 'maven-publish'
 
-    group 'pl.zlooo.fixyou'
+    group 'io.github.zlooo.fixyou'
 
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
