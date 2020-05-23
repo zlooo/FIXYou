@@ -1,4 +1,4 @@
-# FIXYou [![Build Status](https://travis-ci.org/zlooo/FIXYou.svg?branch=master)](https://travis-ci.org/zlooo/FIXYou.svg?branch=master) [![codecov](https://codecov.io/gh/zlooo/FIXYou/branch/master/graph/badge.svg)](https://codecov.io/gh/zlooo/FIXYou) [![Known Vulnerabilities](https://snyk.io/test/github/zlooo/FIXYou/badge.svg?targetFile=build.gradle)](https://snyk.io/test/github/zlooo/FIXYou?targetFile=build.gradle) ![LGTM Alerts](https://img.shields.io/lgtm/alerts/github/zlooo/FIXYou) ![LGTM Grade](https://img.shields.io/lgtm/grade/java/github/zlooo/FIXYou)
+# FIXYou [![Build Status](https://travis-ci.org/zlooo/FIXYou.svg?branch=master)](https://travis-ci.org/zlooo/FIXYou.svg?branch=master) [![codecov](https://codecov.io/gh/zlooo/FIXYou/branch/master/graph/badge.svg)](https://codecov.io/gh/zlooo/FIXYou) [![Known Vulnerabilities](https://snyk.io/test/github/zlooo/FIXYou/badge.svg?targetFile=build.gradle)](https://snyk.io/test/github/zlooo/FIXYou?targetFile=build.gradle) ![LGTM Alerts](https://img.shields.io/lgtm/alerts/github/zlooo/FIXYou) ![LGTM Grade](https://img.shields.io/lgtm/grade/java/github/zlooo/FIXYou) ![Code Climate maintainability](https://img.shields.io/codeclimate/maintainability/zlooo/FIXYou)
 
 ## Overview
 FIXYou is yet another fix engine. The purpose of this project is to create an open source fix engine that will be faster than Quickfix, generate less garbage and become the first choice when searching for free, performant fix engine that is suitable for low latency applications.
@@ -44,7 +44,7 @@ FIXYouNetty.sendMessage(FixMessages.createFIXYouNewOrderSingle(clordid), fixYouS
 ```
 First parameter is an `Consumer<FixMessage>` that's supposed to set all fields on a message that you want to send.
 
-Nore details on usage and design can be found on [FIXYou wiki](https://github.com/zlooo/FIXYou/wiki)
+More details on usage and design can be found on [FIXYou wiki](https://github.com/zlooo/FIXYou/wiki)
 
 ## Performance - Yeah right, performance my ass
 I have to be honest with you I've done only preliminary performance tests, and they only consist of 1 scenario, `newOrderSingleSending` described [here](https://github.com/zlooo/FIXYou-tools#probe-test-scenarios). However, those initial results are pretty encouraging, they say that FIXYou is not slower than Quickfix, and in same cases, can be up to **50% faster**. The best thing is I haven't done any profiling or special code optimizations. In other words it may turn out it's even faster :). More details on this subject, including detailed results, can be found on [FIXYou wiki](https://github.com/zlooo/FIXYou/wiki/Performance-Tests).
