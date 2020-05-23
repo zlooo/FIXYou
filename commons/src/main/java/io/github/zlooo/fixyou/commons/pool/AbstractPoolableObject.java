@@ -15,6 +15,7 @@ public abstract class AbstractPoolableObject implements ReferenceCounted, Closea
     static final int AVAILABLE_STATE = 0;
     static final int IN_USE_STATE = 1;
 
+    protected boolean exceptionOnReferenceCheckFail = true;
     private final AtomicInteger state = new AtomicInteger(AVAILABLE_STATE);
     private final LongAdder referenceCount = new LongAdder();
     private ObjectPool pool;
@@ -64,7 +65,9 @@ public abstract class AbstractPoolableObject implements ReferenceCounted, Closea
             deallocate();
             return true;
         } else if (compareResult < 0) {
-            throw new IllegalStateException("Dude you're releasing object that already has reference count = 0, something is not right with your code");
+            if (exceptionOnReferenceCheckFail) {
+                throw new IllegalStateException("Dude you're releasing object that already has reference count = 0, something is not right with your code");
+            }
         }
         return false;
     }

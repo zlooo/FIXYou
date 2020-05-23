@@ -19,7 +19,7 @@ public interface HandlerModule {
     @NamedHandler(Handlers.AFTER_SESSION_MESSAGE_VALIDATOR)
     static ChannelHandler provideAfterSessionHandlerMessageValidatorHandler(Clock clock) {
         return new MessageValidationHandler(Collections.singletonList(SimpleValidators.ORIG_SENDING_TIME_PRESENT),
-                                            ListUtils.of(SessionAwareValidators.SENDING_TIME_VALIDATOR, SessionAwareValidators.SESSION_ID_VALIDATOR,
+                                            ListUtils.of(SessionAwareValidators.ORIG_SENDING_TIME_VALIDATOR, SessionAwareValidators.SESSION_ID_VALIDATOR,
                                                          SessionAwareValidators.createSendingTimeValidator(clock),
                                                          SessionAwareValidators.MESSAGE_TYPE_VALIDATOR));
     }
