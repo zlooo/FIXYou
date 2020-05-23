@@ -82,7 +82,7 @@ public class DefaultObjectPool<T extends AbstractPoolableObject> extends Abstrac
     @Override
     public void returnObject(T objectToBeReturned) {
         log.debug("Returning object {} to pool {}", objectToBeReturned, this);
-
+        //TODO if pool is closed close this object
         if (!objectToBeReturned.getState().compareAndSet(AbstractPoolableObject.IN_USE_STATE, AbstractPoolableObject.AVAILABLE_STATE)) {
             throw buildIllegalStateException(objectToBeReturned);
         } else {
@@ -101,8 +101,11 @@ public class DefaultObjectPool<T extends AbstractPoolableObject> extends Abstrac
         secondObject.close();
         secondObject.getState().set(AbstractPoolableObject.IN_USE_STATE);
         for (int i = 0; i < objectArray.length; i++) {
-            objectArray[i].close();
-            objectArray[i] = null;
+            final T pooledObject = objectArray[i];
+            if (pooledObject != null) {
+                pooledObject.close();
+                objectArray[i] = null;
+            }
         }
     }
 

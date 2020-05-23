@@ -17,7 +17,7 @@ public class ValidationOperations {
         final CharArrayField origSendingTime = msg.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER);
         if (origSendingTime != null && origSendingTime.isValueSet()) {
             final CharArrayField sendingTime = msg.getField(FixConstants.SENDING_TIME_FIELD_NUMBER);
-            return ArrayUtils.compare(origSendingTime.getValue(), sendingTime.getValue()) < 0;
+            return ArrayUtils.compare(origSendingTime.getValue(), sendingTime.getValue()) <= 0;
         }
         return true;
     }

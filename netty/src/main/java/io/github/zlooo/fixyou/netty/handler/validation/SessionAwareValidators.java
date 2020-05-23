@@ -29,7 +29,7 @@ public class SessionAwareValidators {
 
     public static final int MAX_TIMESTAMP_LENGTH_WITHOUT_MILLIS = 17;
 
-    public static final PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>> SENDING_TIME_VALIDATOR =
+    public static final PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>> ORIG_SENDING_TIME_VALIDATOR =
             new PredicateWithValidator<>(ValidationConfig::isShouldCheckOrigVsSendingTime, (fixMsg, sessionState) -> {
                 if (!ValidationOperations.checkOrigSendingTime(fixMsg)) {
                     log.warn("Original sending time is greater than sending time in session {}. Logging out session, message will be logged on debug level", sessionState.getSessionId());
