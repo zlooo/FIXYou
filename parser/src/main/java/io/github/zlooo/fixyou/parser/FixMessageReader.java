@@ -44,7 +44,7 @@ public class FixMessageReader {
     private static final ByteProcessor FIELD_TERMINATOR_FINDER = new ByteProcessor.IndexOfProcessor(AbstractField.FIELD_TERMINATOR);
     private static final String FIELD_NOT_FOUND_IN_MESSAGE_SPEC_LOG = "Field {} not found in message spec";
     private static final int NOT_FOUND = -1;
-    private ByteBuf parseableBytes = Unpooled.buffer(0, 0);
+    private ByteBuf parseableBytes = Unpooled.EMPTY_BUFFER; //TODO think about custom implementation of CompositeByteBuf, maybe it'll come in handy here? You wouldn't have to copy incoming data
     @Getter
     @Setter
     private FixMessage fixMessage;
@@ -81,7 +81,6 @@ public class FixMessageReader {
                 oldbuffer.release();
             }
             parseableBytes.writeBytes(fixMsgBufBytes);
-            //            fixMsgBufBytes.readerIndex(fixMsgBufBytes.writerIndex());
         }
     }
 
@@ -119,6 +118,10 @@ public class FixMessageReader {
                 log.debug(FIELD_NOT_FOUND_IN_MESSAGE_SPEC_LOG, fieldNum);
             }
             if (fieldNum == FixConstants.CHECK_SUM_FIELD_NUMBER) {
+                if (parseableBytes.writerIndex() == parseableBytes.readerIndex()) {
+                    parseableBytes.release();
+                    parseableBytes = Unpooled.EMPTY_BUFFER;
+                }
                 return;
             }
         }
