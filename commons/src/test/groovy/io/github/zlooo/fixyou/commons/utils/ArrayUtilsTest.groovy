@@ -50,7 +50,10 @@ class ArrayUtilsTest extends Specification {
         where:
         array1               | array2              | result
         "abc".toCharArray()  | "abc".toCharArray() | 0
+        "abc".toCharArray()  | array1              | 0
         "abcd".toCharArray() | "abc".toCharArray() | 1
         "abcd".toCharArray() | "abd".toCharArray() | -1
+        null                 | "abc".toCharArray() | -1
+        "abc".toCharArray()  | null                | 1
     }
 }

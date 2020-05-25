@@ -188,7 +188,7 @@ class FixMessageReaderTest extends Specification {
         dlvyInstGroup instanceof io.github.zlooo.fixyou.parser.model.GroupField
         dlvyInstGroup.@numberOfRepetitionsRead == 2
         dlvyInstGroup.@numberOfRepetitions == 1
-        dlvyInstGroup.getField(0, 787).value =='C' as char
+        dlvyInstGroup.getField(0, 787).value == 'C' as char
         def settlPartiesGroup1 = dlvyInstGroup.getField(0, 781)
         settlPartiesGroup1 instanceof io.github.zlooo.fixyou.parser.model.GroupField
         settlPartiesGroup1.@numberOfRepetitionsRead == 2
@@ -202,5 +202,51 @@ class FixMessageReaderTest extends Specification {
         settlPartiesGroup2.@numberOfRepetitions == 1
         settlPartiesGroup2.getField(0, 782).value == 'ID3'.toCharArray()
         settlPartiesGroup2.getField(1, 782).value == 'ID4'.toCharArray()
+    }
+
+    def "should append fix message bytes when some are left over from previous parsing"() {
+        setup:
+        fixMessageReader.setFixBytes(Unpooled.wrappedBuffer("part1".getBytes(StandardCharsets.US_ASCII)))
+
+        when:
+        fixMessageReader.setFixBytes(Unpooled.wrappedBuffer("|part2".getBytes(StandardCharsets.US_ASCII)))
+
+        then:
+        fixMessageReader.@parseableBytes.toString(StandardCharsets.US_ASCII) == "part1|part2"
+    }
+
+    def "should check if underlying buffer is readable"() {
+        setup:
+        fixMessageReader.setFixBytes(Unpooled.wrappedBuffer("message".getBytes(StandardCharsets.US_ASCII)))
+        fixMessageReader.@parseableBytes.readerIndex(readerIndex)
+        fixMessageReader.@parseableBytes.writerIndex(writerIndex)
+
+        expect:
+        fixMessageReader.isUnderlyingBufferReadable() == expectedResult
+
+        where:
+        readerIndex | writerIndex | expectedResult
+        0           | 1           | true
+        1           | 1           | false
+    }
+
+    def "should parse unfinished message"() {
+        setup:
+        String message = "8=FIX.4.4\u00019=378\u000135=AK\u000134=5\u000149=CCG\u000156=ABC_DEFG01\u000152=20090323-15:40:35"
+        fixMessageReader.setFixBytes(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
+
+        when:
+        fixMessageReader.parseFixMsgBytes()
+
+        then:
+        !fixMessageReader.isDone()
+        fixMessage.getField(8).value == "FIX.4.4".toCharArray()
+        fixMessage.getField(9).value == 378
+        fixMessage.getField(35).value == "AK".toCharArray()
+        fixMessage.getField(34).value == 5
+        fixMessage.getField(49).value == "CCG".toCharArray()
+        fixMessage.getField(56).value == "ABC_DEFG01".toCharArray()
+        !fixMessage.getField(52).isValueSet()
+        !fixMessageReader.@parseable
     }
 }
