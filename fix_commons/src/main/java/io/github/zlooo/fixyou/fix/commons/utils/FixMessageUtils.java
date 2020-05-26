@@ -9,7 +9,7 @@ import lombok.experimental.UtilityClass;
 import java.util.Arrays;
 
 @UtilityClass
-public final class FixMessageUtils { //TODO unit test this class
+public final class FixMessageUtils {
 
     static {
         Arrays.sort(FixConstants.ADMIN_MESSAGE_TYPES);
@@ -72,6 +72,7 @@ public final class FixMessageUtils { //TODO unit test this class
     }
 
     public static FixMessage toLogonMessage(FixMessage fixMessage, char[] defalutApplicationVersionId, long encryptMethod, long heartbeatInterval, boolean resetMsgSeqFlagSet) {
+        fixMessage.resetAllDataFields();
         fixMessage.<CharArrayField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(FixConstants.LOGON);
         fixMessage.<CharArrayField>getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).setValue(defalutApplicationVersionId);
         fixMessage.<LongField>getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).setValue(encryptMethod);

@@ -2,8 +2,10 @@ package io.github.zlooo.fixyou.fix.commons.utils
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.fix.commons.TestSpec
+import io.github.zlooo.fixyou.model.ApplicationVersionID
 import io.github.zlooo.fixyou.parser.model.AbstractField
 import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.session.SessionID
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
@@ -59,6 +61,178 @@ class FixMessageUtilsTest extends Specification {
         result.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.REJECT
         result.getField(FixConstants.TEXT_FIELD_NUMBER).value == "testDescription".toCharArray()
         allFieldsDoNotHaveValueSetExcept(fixMessage, FixConstants.REFERENCED_SEQUENCE_NUMBER_FIELD_NUMBER, FixConstants.SESSION_REJECT_REASON_FIELD_NUMBER, FixConstants.MESSAGE_TYPE_FIELD_NUMBER, FixConstants.TEXT_FIELD_NUMBER)
+    }
+
+    def "should convert to resend request"() {
+        when:
+        def result = FixMessageUtils.toResendRequest(fixMessage, 666, 667)
+
+        then:
+        result.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.RESEND_REQUEST
+        result.getField(FixConstants.BEGIN_SEQUENCE_NUMBER_FIELD_NUMBER).value == 666
+        result.getField(FixConstants.END_SEQUENCE_NUMBER_FIELD_NUMBER).value == 667
+        allFieldsDoNotHaveValueSetExcept(fixMessage, FixConstants.BEGIN_SEQUENCE_NUMBER_FIELD_NUMBER, FixConstants.END_SEQUENCE_NUMBER_FIELD_NUMBER, FixConstants.MESSAGE_TYPE_FIELD_NUMBER)
+    }
+
+    def "should convert to logout message"() {
+        when:
+        def result = FixMessageUtils.toLogoutMessage(fixMessage, "logoutText".toCharArray())
+
+        then:
+        result.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.LOGOUT
+        result.getField(FixConstants.TEXT_FIELD_NUMBER).value == "logoutText".toCharArray()
+        allFieldsDoNotHaveValueSetExcept(fixMessage, FixConstants.TEXT_FIELD_NUMBER, FixConstants.MESSAGE_TYPE_FIELD_NUMBER)
+    }
+
+    def "should convert to logon message with just default application version id set"() {
+        setup:
+        fixMessage.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value = 1L
+        fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value = 2L
+
+        when:
+        def result = FixMessageUtils.toLogonMessage(fixMessage, ApplicationVersionID.FIX50SP2.value)
+
+        then:
+        result.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.LOGON
+        result.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value == 1
+        result.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value == 2
+        result.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value == ApplicationVersionID.FIX50SP2.value
+        allFieldsDoNotHaveValueSetExcept(fixMessage, FixConstants.ENCRYPT_METHOD_FIELD_NUMBER, FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER, FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER, FixConstants.MESSAGE_TYPE_FIELD_NUMBER)
+    }
+
+    def "should convert to logon message"() {
+        when:
+        def result = FixMessageUtils.toLogonMessage(fixMessage, ApplicationVersionID.FIX50SP2.value, 1, 2, true)
+
+        then:
+        result.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.LOGON
+        result.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value == 1
+        result.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value == 2
+        result.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value == ApplicationVersionID.FIX50SP2.value
+        result.getField(FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER).value == true
+        allFieldsDoNotHaveValueSetExcept(fixMessage, FixConstants.ENCRYPT_METHOD_FIELD_NUMBER, FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER, FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER,
+                                         FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER, FixConstants.MESSAGE_TYPE_FIELD_NUMBER)
+    }
+
+    def "should convert to logon message with custom session id"() {
+        setup:
+        SessionID sessionID = new SessionID("beginString".toCharArray(), "senderCompId".toCharArray(), "targetCompId".toCharArray())
+
+        when:
+        def result = FixMessageUtils.toLogonMessage(fixMessage, ApplicationVersionID.FIX50SP2.value, 1, 2, true, sessionID, flip)
+
+        then:
+        result.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.LOGON
+        result.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value == 1
+        result.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value == 2
+        result.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value == ApplicationVersionID.FIX50SP2.value
+        result.getField(FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER).value == true
+        result.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value == expectedSenderCompId
+        result.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value == expectedTargetCompId
+        allFieldsDoNotHaveValueSetExcept(fixMessage, FixConstants.ENCRYPT_METHOD_FIELD_NUMBER, FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER, FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER,
+                                         FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER, FixConstants.MESSAGE_TYPE_FIELD_NUMBER, FixConstants.SENDER_COMP_ID_FIELD_NUMBER, FixConstants.TARGET_COMP_ID_FIELD_NUMBER)
+
+        where:
+        flip  | expectedSenderCompId         | expectedTargetCompId
+        false | "senderCompId".toCharArray() | "targetCompId".toCharArray()
+        true  | "targetCompId".toCharArray() | "senderCompId".toCharArray()
+    }
+
+    def "should convert to sequence reset message"() {
+        when:
+        def result = FixMessageUtils.toSequenceReset(fixMessage, 1, 2, true)
+
+        then:
+        result.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.SEQUENCE_RESET
+        result.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value == 1
+        result.getField(FixConstants.NEW_SEQUENCE_NUMBER_FIELD_NUMBER).value == 2
+        result.getField(FixConstants.GAP_FILL_FLAG_FIELD_NUMBER).value == true
+        allFieldsDoNotHaveValueSetExcept(fixMessage, FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, FixConstants.NEW_SEQUENCE_NUMBER_FIELD_NUMBER, FixConstants.GAP_FILL_FLAG_FIELD_NUMBER,
+                                         FixConstants.MESSAGE_TYPE_FIELD_NUMBER)
+    }
+
+    def "should convert to heartbeat message"() {
+        when:
+        def result = FixMessageUtils.toHeartbeatMessage(fixMessage)
+
+        then:
+        result.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.HEARTBEAT
+        allFieldsDoNotHaveValueSetExcept(fixMessage, FixConstants.MESSAGE_TYPE_FIELD_NUMBER)
+    }
+
+    def "should convert to heartbeat message with test request id"() {
+        when:
+        def result = FixMessageUtils.toHeartbeatMessage(fixMessage, "testRequestId".toCharArray())
+
+        then:
+        result.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.HEARTBEAT
+        result.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER).value == "testRequestId".toCharArray()
+        allFieldsDoNotHaveValueSetExcept(fixMessage, FixConstants.MESSAGE_TYPE_FIELD_NUMBER, FixConstants.TEST_REQ_ID_FIELD_NUMBER)
+    }
+
+    def "should convert to test request"() {
+        when:
+        def result = FixMessageUtils.toTestRequest(fixMessage, "testRequestId".toCharArray())
+
+        then:
+        result.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.TEST_REQUEST
+        result.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER).value == "testRequestId".toCharArray()
+        allFieldsDoNotHaveValueSetExcept(fixMessage, FixConstants.MESSAGE_TYPE_FIELD_NUMBER, FixConstants.TEST_REQ_ID_FIELD_NUMBER)
+    }
+
+    def "should check if message is sequence reset"() {
+        setup:
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = messageType
+
+        expect:
+        FixMessageUtils.isSequenceReset(fixMessage) == expected
+
+        where:
+        messageType                 | expected
+        FixConstants.HEARTBEAT      | false
+        FixConstants.TEST_REQUEST   | false
+        FixConstants.RESEND_REQUEST | false
+        FixConstants.REJECT         | false
+        FixConstants.LOGOUT         | false
+        FixConstants.LOGON          | false
+        FixConstants.SEQUENCE_RESET | true
+        "D".toCharArray()           | false
+        "8".toCharArray()           | false
+        "AJ".toCharArray()          | false
+    }
+
+    def "should check if boolean field is set"() {
+        setup:
+        if (setField) {
+            fixMessage.getField(fieldNumber).value = valueToSet
+        }
+
+        expect:
+        FixMessageUtils.hasBooleanFieldSet(fixMessage, fieldNumber) == expected
+
+        where:
+        setField | fieldNumber                                          | valueToSet | expected
+        false    | FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER | true       | false
+        false    | 1100                                                 | true       | false
+        true     | FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER | true       | true
+        true     | FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER | false      | false
+    }
+
+    def "should check if field is set"() {
+        setup:
+        if (setField) {
+            fixMessage.getField(fieldNumber).value = valueToSet
+        }
+
+        expect:
+        FixMessageUtils.hasField(fixMessage, fieldNumber) == expected
+
+        where:
+        setField | fieldNumber                                          | valueToSet | expected
+        false    | FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER | true       | false
+        false    | 1100                                                 | true       | false
+        true     | FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER | true       | true
+        true     | FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER | false      | true
     }
 
     def "should check if message is administrative"() {
