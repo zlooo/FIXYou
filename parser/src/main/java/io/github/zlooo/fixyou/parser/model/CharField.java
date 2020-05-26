@@ -13,7 +13,7 @@ public class CharField extends AbstractField {
     private char value = Character.MIN_VALUE;
 
     public CharField(int number) {
-        super(number, FIELD_DATA_LENGTH);
+        super(number, FIELD_DATA_LENGTH, false);
     }
 
     @Override

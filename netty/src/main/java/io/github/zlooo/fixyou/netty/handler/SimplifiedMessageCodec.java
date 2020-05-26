@@ -80,6 +80,11 @@ class SimplifiedMessageCodec extends AbstractMessageEncoder implements ChannelIn
     }
 
     @Override
+    protected void bodyTempBufferNotNeeded(ByteBuf bodyTempBuffer) {
+        bodyTempBuffer.release(bodyTempBuffer.refCnt());
+    }
+
+    @Override
     public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
         ctx.fireChannelRegistered();
     }

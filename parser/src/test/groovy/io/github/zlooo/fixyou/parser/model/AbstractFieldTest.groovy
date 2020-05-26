@@ -40,7 +40,7 @@ class AbstractFieldTest extends Specification {
     private static class TestField extends AbstractField {
 
         TestField(int number, int fieldDataLength) {
-            super(number, fieldDataLength)
+            super(number, fieldDataLength, false)
         }
 
         @Override

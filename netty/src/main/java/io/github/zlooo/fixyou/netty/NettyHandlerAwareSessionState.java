@@ -1,7 +1,7 @@
 package io.github.zlooo.fixyou.netty;
 
 import io.github.zlooo.fixyou.FixConstants;
-import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool;
+import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.fix.commons.session.AbstractMessagePoolingSessionState;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.netty.handler.NettyResettablesNames;
@@ -33,7 +33,7 @@ public class NettyHandlerAwareSessionState extends AbstractMessagePoolingSession
 
     private Channel channel;
 
-    public NettyHandlerAwareSessionState(SessionConfig sessionConfig, SessionID sessionId, DefaultObjectPool<FixMessage> fixMessageObjectPool, FixSpec fixSpec) {
+    public NettyHandlerAwareSessionState(SessionConfig sessionConfig, SessionID sessionId, ObjectPool<FixMessage> fixMessageObjectPool, FixSpec fixSpec) {
         super(sessionConfig, sessionId, fixMessageObjectPool, fixSpec);
     }
 

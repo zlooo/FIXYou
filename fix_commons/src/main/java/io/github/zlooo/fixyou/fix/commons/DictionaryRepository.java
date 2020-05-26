@@ -3,6 +3,7 @@ package io.github.zlooo.fixyou.fix.commons;
 import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.FIXYouException;
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool;
+import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import lombok.Value;
@@ -38,6 +39,6 @@ public class DictionaryRepository {
     @Value
     public static final class Dictionary {
         private final FixSpec fixSpec;
-        private final DefaultObjectPool<FixMessage> fixMessageObjectPool;
+        private final ObjectPool<FixMessage> fixMessageObjectPool;
     }
 }

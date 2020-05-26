@@ -1,5 +1,6 @@
 package io.github.zlooo.fixyou.netty.handler
 
+import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import io.netty.channel.Channel
@@ -22,7 +23,7 @@ class SimplifiedMessageCodecTest extends Specification {
         messageDecoder.channelRead(channelHandlerContext, encodedMessage)
 
         then:
-        1 * channelHandlerContext.fireChannelRead(_ as io.github.zlooo.fixyou.parser.model.FixMessage)
+        1 * channelHandlerContext.fireChannelRead(_ as FixMessage)
         0 * _
     }
 
@@ -69,6 +70,18 @@ class SimplifiedMessageCodecTest extends Specification {
 
         then:
         1 * channelHandlerContext.fireChannelWritabilityChanged()
+        0 * _
+    }
+
+    def "should release body temp buffer when it's not needed"() {
+        setup:
+        def byteBuf = Unpooled.buffer(1, 1)
+
+        when:
+        messageDecoder.bodyTempBufferNotNeeded(byteBuf)
+
+        then:
+        byteBuf.refCnt() == 0
         0 * _
     }
 }

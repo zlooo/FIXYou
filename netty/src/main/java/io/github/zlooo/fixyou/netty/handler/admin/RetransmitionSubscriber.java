@@ -2,7 +2,7 @@ package io.github.zlooo.fixyou.netty.handler.admin;
 
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject;
-import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool;
+import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
 import io.github.zlooo.fixyou.parser.model.*;
 import io.github.zlooo.fixyou.session.LongSubscriber;
@@ -22,7 +22,7 @@ class RetransmitionSubscriber extends AbstractPoolableObject implements LongSubs
     @Setter
     private ChannelHandlerContext channelHandlerContext;
     @Setter
-    private DefaultObjectPool<FixMessage> fixMessagePool;
+    private ObjectPool<FixMessage> fixMessagePool;
     private long fromValue = NOT_SET;
     private long toValue = NOT_SET;
 

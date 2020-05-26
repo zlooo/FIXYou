@@ -6,4 +6,6 @@ public interface ObjectPool<T extends AbstractPoolableObject> extends Closeable 
     T getAndRetain();
 
     void returnObject(T objectToBeReturned);
+
+    boolean areAllObjectsReturned();
 }
