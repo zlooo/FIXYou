@@ -9,6 +9,7 @@ import java.util.Arrays;
 public final class FieldUtils {
 
     private static final int MAX_DIGIT_NUMBER_HOLDABLE_BY_LONG = 19;
+    private static final ThreadLocal<ReusableCharArray> REUSABLE_CHAR_ARRAY_THREAD_LOCAL = ThreadLocal.withInitial(ReusableCharArray::new);
 
     public static ReusableCharArray toCharSequence(long valueToWrite) {
         return toCharSequence(valueToWrite, 0);
@@ -22,8 +23,10 @@ public final class FieldUtils {
         final int size = (valueToWrite < 0) ? stringSize(-valueToWrite) + 1 : stringSize(valueToWrite);
         final char[] buf = new char[size + additionalUnderlyingArrayLength];
         getChars(valueToWrite, size, buf);
-        //TODO make this poolable
-        return new ReusableCharArray().setCharArray(buf);
+        //TODO make this poolable instead of using thread local, it's dangerous!!!!
+        final ReusableCharArray reusableCharArray = REUSABLE_CHAR_ARRAY_THREAD_LOCAL.get();
+        reusableCharArray.retain();
+        return reusableCharArray.setCharArray(buf);
     }
 
     public static ReusableCharArray toCharSequenceWithSpecifiedSizeAndDefaultValue(long valueToWrite, int size, char defaultValue) {
@@ -31,7 +34,9 @@ public final class FieldUtils {
         Arrays.fill(buf, defaultValue);
         getChars(valueToWrite, size, buf);
         //TODO make this poolable
-        return new ReusableCharArray().setCharArray(buf);
+        final ReusableCharArray reusableCharArray = REUSABLE_CHAR_ARRAY_THREAD_LOCAL.get();
+        reusableCharArray.retain();
+        return reusableCharArray.setCharArray(buf);
     }
 
     private static int stringSize(long x) {

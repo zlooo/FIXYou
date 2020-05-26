@@ -20,14 +20,14 @@ public class ReusableCharArray extends AbstractReferenceCounted implements CharS
 
     private char[] state;
 
-    public @Nonnull
-    ReusableCharArray setCharArray(@Nonnull char[] array) {
+    @Nonnull
+    public ReusableCharArray setCharArray(@Nonnull char[] array) {
         state = array;
         return this;
     }
 
-    public @Nonnull
-    char[] getCharArray() {
+    @Nonnull
+    public char[] getCharArray() {
         return state;
     }
 
@@ -42,8 +42,8 @@ public class ReusableCharArray extends AbstractReferenceCounted implements CharS
     }
 
     @Override
-    public @Nonnull
-    CharSequence subSequence(int start, int end) {
+    @Nonnull
+    public CharSequence subSequence(int start, int end) {
         return new PortionView(start, end);
     }
 
@@ -53,8 +53,8 @@ public class ReusableCharArray extends AbstractReferenceCounted implements CharS
     }
 
     @Override
-    public @Nonnull
-    ReferenceCounted touch(Object hint) {
+    @Nonnull
+    public ReferenceCounted touch(Object hint) {
         return this;
     }
 

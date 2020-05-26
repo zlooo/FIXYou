@@ -13,7 +13,7 @@ public class BooleanField extends AbstractField {
     private boolean value;
 
     public BooleanField(int number) {
-        super(number, FIELD_DATA_LENGTH);
+        super(number, FIELD_DATA_LENGTH, false);
     }
 
     @Override

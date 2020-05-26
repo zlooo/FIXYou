@@ -5,6 +5,7 @@ import io.github.zlooo.fixyou.commons.utils.ArrayUtils;
 import io.github.zlooo.fixyou.commons.utils.FieldUtils;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.netty.util.AsciiString;
+import io.netty.util.ReferenceCountUtil;
 import lombok.ToString;
 
 import java.nio.charset.StandardCharsets;
@@ -12,7 +13,7 @@ import java.nio.charset.StandardCharsets;
 @ToString(callSuper = true)
 public class DoubleField extends AbstractField {
 
-    public static final long DEFAULT_VALUE = Long.MIN_VALUE;
+    private static final long DEFAULT_VALUE = Long.MIN_VALUE;
     private static final char FRACTION_SEPARATOR = '.';
     private static final int RADIX = 10;
     private static final int ASCII_ZERO_CODE = 48;
@@ -21,7 +22,7 @@ public class DoubleField extends AbstractField {
     private short scale;
 
     public DoubleField(int number) {
-        super(number, FIELD_DATA_LENGTH);
+        super(number, FIELD_DATA_LENGTH, false);
     }
 
     @Override
@@ -70,6 +71,7 @@ public class DoubleField extends AbstractField {
         final int separatorIndex = valueAsChar.length() - newScale - 1;
         ArrayUtils.insertElementAtIndex(valueAsChar.getCharArray(), FRACTION_SEPARATOR, separatorIndex);
         fieldData.writeCharSequence(valueAsChar, StandardCharsets.US_ASCII);
+        ReferenceCountUtil.release(valueAsChar);
     }
 
     @Override

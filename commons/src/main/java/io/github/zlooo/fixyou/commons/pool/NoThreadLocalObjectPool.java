@@ -80,6 +80,19 @@ public class NoThreadLocalObjectPool<T extends AbstractPoolableObject> extends A
         }
     }
 
+    public boolean areAllObjectsReturned() {
+        boolean nonNull = true;
+        boolean available = true;
+        for (final T poolObject : objectArray) {
+            final boolean isPoolObjectNonNull = poolObject != null;
+            nonNull &= isPoolObjectNonNull;
+            if (isPoolObjectNonNull) {
+                available &= poolObject.getState().get() == AbstractPoolableObject.AVAILABLE_STATE;
+            }
+        }
+        return nonNull && available;
+    }
+
     @Override
     public void close() {
         for (int i = 0; i < objectArray.length; i++) {

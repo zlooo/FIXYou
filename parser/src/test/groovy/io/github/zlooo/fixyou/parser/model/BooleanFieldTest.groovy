@@ -48,7 +48,7 @@ class BooleanFieldTest extends Specification {
     def "should cache value once parsed"() {
         setup:
         field.getValue()
-        field.fieldData.clear().writeCharSequence("valueThatShouldBeIgnored", StandardCharsets.US_ASCII);
+        field.fieldData.clear().writeCharSequence("!", StandardCharsets.US_ASCII);
 
         expect:
         field.getValue()

@@ -1,7 +1,7 @@
 package io.github.zlooo.fixyou.netty.handler;
 
 import io.github.zlooo.fixyou.Resettable;
-import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool;
+import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.parser.FixMessageReader;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.netty.buffer.ByteBuf;
@@ -21,9 +21,9 @@ class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable 
 
     private final FixMessageReader fixMessageReader = new FixMessageReader();
     private State state = State.READY_TO_DECODE;
-    private DefaultObjectPool<FixMessage> fixMessagePool;
+    private ObjectPool<FixMessage> fixMessagePool;
 
-    public MessageDecoder(DefaultObjectPool<FixMessage> fixMessagePool) {
+    public MessageDecoder(ObjectPool<FixMessage> fixMessagePool) {
         this.fixMessagePool = fixMessagePool;
     }
 

@@ -15,7 +15,7 @@ public class CharArrayField extends AbstractField {
     private char[] value;
 
     public CharArrayField(int number) {
-        super(number, DefaultConfiguration.FIELD_BUFFER_SIZE);
+        super(number, DefaultConfiguration.FIELD_BUFFER_SIZE, true);
     }
 
     @Override

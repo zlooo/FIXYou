@@ -3,10 +3,12 @@ package io.github.zlooo.fixyou.parser.model
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import spock.lang.Specification
+import spock.lang.Unroll
 
 import java.nio.charset.StandardCharsets
 
 class DoubleFieldTest extends Specification {
+    private static final String VALUE_THATS_SUPPOSED_TO_BE_IGNORED = "!"
     private DoubleField field
 
     void setup() {
@@ -20,6 +22,7 @@ class DoubleFieldTest extends Specification {
         field.scale == 3 as short
     }
 
+    @Unroll
     def "should parse value"() {
         setup:
         field.reset()
@@ -32,16 +35,16 @@ class DoubleFieldTest extends Specification {
         field.scale == expectedScale
 
         where:
-        valueToParse           | expectedValue     | expectedScale
-        "123456"               | 123456L           | 0 as short
-        "-123456"              | -123456L          | 0 as short
-        "123456."              | 123456L           | 0 as short
-        "123456.000"           | 123456000L        | 3 as short
-        "-123456."             | -123456L          | 0 as short
-        "123456.123456789"     | 123456123456789L  | 9 as short
-        "-123456.123456789"    | -123456123456789L | 9 as short
-        "000123456.123456789"  | 123456123456789L  | 9 as short
-        "-000123456.123456789" | -123456123456789L | 9 as short
+        valueToParse        | expectedValue     | expectedScale
+        "123456"            | 123456L           | 0 as short
+        "-123456"           | -123456L          | 0 as short
+        "123456."           | 123456L           | 0 as short
+        "123456.000"        | 123456000L        | 3 as short
+        "-123456."          | -123456L          | 0 as short
+        "123456.123456789"  | 123456123456789L  | 9 as short
+        "-123456.123456789" | -123456123456789L | 9 as short
+        "000123456.123456"  | 123456123456L     | 6 as short
+        "-000123456.123456" | -123456123456L | 6 as short
     }
 
     def "should cache value after first get"() {
@@ -49,7 +52,7 @@ class DoubleFieldTest extends Specification {
         field.value
 
         when:
-        field.fieldData.clear().writeCharSequence("valueThatShouldBeIgnored", StandardCharsets.US_ASCII)
+        field.fieldData.clear().writeCharSequence(VALUE_THATS_SUPPOSED_TO_BE_IGNORED, StandardCharsets.US_ASCII)
 
         then:
         field.value == -123666L
@@ -61,7 +64,7 @@ class DoubleFieldTest extends Specification {
         field.scale
 
         when:
-        field.fieldData.clear().writeCharSequence("valueThatShouldBeIgnored", StandardCharsets.US_ASCII)
+        field.fieldData.clear().writeCharSequence(VALUE_THATS_SUPPOSED_TO_BE_IGNORED, StandardCharsets.US_ASCII)
 
         then:
         field.value == -123666L

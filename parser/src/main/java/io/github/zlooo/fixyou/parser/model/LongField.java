@@ -16,7 +16,7 @@ public class LongField extends AbstractField {
     private long value = DEFAULT_VALUE;
 
     public LongField(int number) {
-        super(number, FIELD_DATA_LENGTH);
+        super(number, FIELD_DATA_LENGTH, false);
     }
 
     @Override

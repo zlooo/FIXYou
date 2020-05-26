@@ -34,6 +34,7 @@ abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
         }
         appendBodyLength(out, bodyTempBuffer.writerIndex());
         out.writeBytes(bodyTempBuffer);
+        bodyTempBufferNotNeeded(bodyTempBuffer);
         appendWithChecksum(out, msg.getField(FixConstants.CHECK_SUM_FIELD_NUMBER), getValueAddingByteProcessor());
         if (log.isDebugEnabled()) {
             log.debug("Encoded message " + out.toString(StandardCharsets.US_ASCII));
@@ -43,6 +44,10 @@ abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
     protected abstract ValueAddingByteProcessor getValueAddingByteProcessor();
 
     protected abstract ByteBuf getBodyTempBuffer();
+
+    protected void bodyTempBufferNotNeeded(ByteBuf bodyTempBuffer) {
+        //nothing to do
+    }
 
     private static void appendWithChecksum(ByteBuf out, AbstractField checksumField, ValueAddingByteProcessor valueAddingByteProcessor) {
         try {

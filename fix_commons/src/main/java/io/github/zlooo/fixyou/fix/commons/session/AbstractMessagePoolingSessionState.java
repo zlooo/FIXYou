@@ -2,7 +2,7 @@ package io.github.zlooo.fixyou.fix.commons.session;
 
 import io.github.zlooo.fixyou.Closeable;
 import io.github.zlooo.fixyou.Resettable;
-import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool;
+import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.session.AbstractSessionState;
@@ -24,9 +24,9 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class AbstractMessagePoolingSessionState extends AbstractSessionState implements Resettable {
 
 
-    private final DefaultObjectPool<FixMessage> fixMessageObjectPool;
+    private final ObjectPool<FixMessage> fixMessageObjectPool;
 
-    public AbstractMessagePoolingSessionState(SessionConfig sessionConfig, SessionID sessionId, DefaultObjectPool<FixMessage> fixMessageObjectPool,
+    public AbstractMessagePoolingSessionState(SessionConfig sessionConfig, SessionID sessionId, ObjectPool<FixMessage> fixMessageObjectPool,
                                               FixSpec fixSpec) {
         super(sessionConfig, sessionId, fixSpec);
         this.fixMessageObjectPool = fixMessageObjectPool;

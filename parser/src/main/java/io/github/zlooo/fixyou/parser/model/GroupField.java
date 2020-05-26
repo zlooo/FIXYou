@@ -35,7 +35,7 @@ public class GroupField extends AbstractField {
     private int numberOfRepetitionsRead;
 
     public GroupField(int number, FixSpec spec) {
-        super(number, DefaultConfiguration.FIELD_BUFFER_SIZE);
+        super(number, DefaultConfiguration.FIELD_BUFFER_SIZE, true);
         this.fieldDataWithoutRepetitionCount = Unpooled.directBuffer(DefaultConfiguration.FIELD_BUFFER_SIZE);
         this.childFields = spec.getChildPairSpec(number);
         if (childFields == null || childFields.length == 0) {

@@ -22,11 +22,12 @@ public abstract class AbstractField implements Closeable {
     protected final ByteBuf fieldData;
     protected final int number;
 
-    public AbstractField(int number, int fieldDataLength) {
-        this.fieldData = Unpooled.directBuffer(fieldDataLength);
+    public AbstractField(int number, int fieldDataLength, boolean resizable) {
+        this.fieldData = Unpooled.directBuffer(fieldDataLength, resizable ? Integer.MAX_VALUE : fieldDataLength);
         this.number = number;
         final ReusableCharArray fieldNumberAsChar = FieldUtils.toCharSequence(number);
-        encodedFieldNumber = Unpooled.directBuffer(fieldNumberAsChar.length() + 1);
+        final int encodedFieldNumberCapacity = fieldNumberAsChar.length() + 1;
+        encodedFieldNumber = Unpooled.directBuffer(encodedFieldNumberCapacity, encodedFieldNumberCapacity);
         encodedFieldNumber.writeCharSequence(fieldNumberAsChar, StandardCharsets.US_ASCII);
         encodedFieldNumber.writeByte(FIELD_VALUE_SEPARATOR);
         ReferenceCountUtil.release(fieldNumberAsChar);
