@@ -9,7 +9,7 @@ import lombok.experimental.UtilityClass;
 import java.util.Arrays;
 
 @UtilityClass
-public final class FixMessageUtils { //TODO unit test this class
+public final class FixMessageUtils {
 
     static {
         Arrays.sort(FixConstants.ADMIN_MESSAGE_TYPES);
@@ -72,6 +72,7 @@ public final class FixMessageUtils { //TODO unit test this class
     }
 
     public static FixMessage toLogonMessage(FixMessage fixMessage, char[] defalutApplicationVersionId, long encryptMethod, long heartbeatInterval, boolean resetMsgSeqFlagSet) {
+        fixMessage.resetAllDataFields();
         fixMessage.<CharArrayField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(FixConstants.LOGON);
         fixMessage.<CharArrayField>getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).setValue(defalutApplicationVersionId);
         fixMessage.<LongField>getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).setValue(encryptMethod);
@@ -103,20 +104,6 @@ public final class FixMessageUtils { //TODO unit test this class
         return fixMessage;
     }
 
-    public static boolean isSequenceReset(FixMessage fixMessage) {
-        return Arrays.equals(FixConstants.SEQUENCE_RESET, fixMessage.<CharArrayField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getValue());
-    }
-
-    public static boolean hasBooleanFieldSet(FixMessage fixMessage, int fieldNumber) {
-        final BooleanField field = fixMessage.getField(fieldNumber);
-        return field != null && field.isValueSet() && field.getValue();
-    }
-
-    public static boolean hasField(FixMessage message, int fieldNumber) {
-        final AbstractField field = message.getField(fieldNumber);
-        return field != null && field.isValueSet();
-    }
-
     public static FixMessage toHeartbeatMessage(FixMessage fixMessage) {
         fixMessage.resetAllDataFields();
         fixMessage.<CharArrayField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(FixConstants.HEARTBEAT);
@@ -130,9 +117,24 @@ public final class FixMessageUtils { //TODO unit test this class
     }
 
     public static FixMessage toTestRequest(FixMessage fixMessage, char[] testReqID) {
+        fixMessage.resetAllDataFields();
         fixMessage.<CharArrayField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(FixConstants.TEST_REQUEST);
         fixMessage.<CharArrayField>getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER).setValue(testReqID);
         return fixMessage;
+    }
+
+    public static boolean isSequenceReset(FixMessage fixMessage) {
+        return Arrays.equals(FixConstants.SEQUENCE_RESET, fixMessage.<CharArrayField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getValue());
+    }
+
+    public static boolean hasBooleanFieldSet(FixMessage fixMessage, int fieldNumber) {
+        final BooleanField field = fixMessage.getField(fieldNumber);
+        return field != null && field.isValueSet() && field.getValue();
+    }
+
+    public static boolean hasField(FixMessage message, int fieldNumber) {
+        final AbstractField field = message.getField(fieldNumber);
+        return field != null && field.isValueSet();
     }
 
     public boolean isAdminMessage(FixMessage fixMessage) {

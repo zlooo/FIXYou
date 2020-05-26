@@ -50,4 +50,25 @@ class SimplifiedMessageCodecTest extends Specification {
         1 * channelHandlerContext.fireChannelRead(message)
         0 * _
     }
+
+    def "should pass user event further"() {
+        setup:
+        def event = "event"
+
+        when:
+        messageDecoder.userEventTriggered(channelHandlerContext, event)
+
+        then:
+        1 * channelHandlerContext.fireUserEventTriggered(event)
+        0 * _
+    }
+
+    def "should pass writability change info"() {
+        when:
+        messageDecoder.channelWritabilityChanged(channelHandlerContext)
+
+        then:
+        1 * channelHandlerContext.fireChannelWritabilityChanged()
+        0 * _
+    }
 }

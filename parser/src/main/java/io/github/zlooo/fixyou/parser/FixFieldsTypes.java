@@ -30,4 +30,5 @@ public class FixFieldsTypes {
     public static final FieldType DEFAULT_APP_VERSION_ID = FieldType.CHAR_ARRAY;
     public static final FieldType APPL_VERSION_ID = FieldType.CHAR_ARRAY;
     public static final FieldType RESET_SEQ_NUMBER_FLAG = FieldType.BOOLEAN;
+    public static final FieldType TEST_REQ_ID = FieldType.CHAR_ARRAY;
 }

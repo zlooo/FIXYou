@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Heavily based on {@link io.netty.handler.timeout.IdleStateHandler}. Differences:
  * 1) It's session aware
- * 2) Wher timeout is hit it just sends heartbeat instead of IdleStateEvent
+ * 2) When timeout is hit it just sends heartbeat instead of IdleStateEvent
  */
 @Slf4j
 @ChannelHandler.Sharable
