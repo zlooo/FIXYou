@@ -1,7 +1,6 @@
 package io.github.zlooo.fixyou.netty.handler;
 
 import io.github.zlooo.fixyou.FixConstants;
-import io.github.zlooo.fixyou.commons.ReusableCharArray;
 import io.github.zlooo.fixyou.commons.utils.FieldUtils;
 import io.github.zlooo.fixyou.netty.utils.ValueAddingByteProcessor;
 import io.github.zlooo.fixyou.parser.model.AbstractField;
@@ -9,13 +8,14 @@ import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
-import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 
 @Slf4j
 abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
+
+    public static final int CHECKSUM_VALUE_LENGTH = 3;
 
     @Override
     protected void encode(ChannelHandlerContext ctx, FixMessage msg, ByteBuf out) {
@@ -52,10 +52,9 @@ abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
     private static void appendWithChecksum(ByteBuf out, AbstractField checksumField, ValueAddingByteProcessor valueAddingByteProcessor) {
         try {
             out.forEachByte(valueAddingByteProcessor);
-            final ReusableCharArray checksumEncoded =
-                    FieldUtils.toCharSequenceWithSpecifiedSizeAndDefaultValue(valueAddingByteProcessor.getResult() % FixConstants.CHECK_SUM_MODULO, 3, '0');
-            out.writeBytes(checksumField.getEncodedFieldNumber()).writeCharSequence(checksumEncoded, StandardCharsets.US_ASCII);
-            ReferenceCountUtil.release(checksumEncoded);
+            out.writeBytes(checksumField.getEncodedFieldNumber());
+            final int checksum = valueAddingByteProcessor.getResult() % FixConstants.CHECK_SUM_MODULO;
+            FieldUtils.writeEncoded(checksum, out, CHECKSUM_VALUE_LENGTH);
             out.writeByte(FixMessage.FIELD_SEPARATOR);
         } finally {
             valueAddingByteProcessor.reset();
@@ -63,9 +62,7 @@ abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
     }
 
     private static void appendBodyLength(ByteBuf out, int restOfBodyLength) {
-        final ReusableCharArray bodyLengthAsCharSeq = FieldUtils.toCharSequence(restOfBodyLength);
-        out.writeCharSequence(bodyLengthAsCharSeq, StandardCharsets.US_ASCII);
-        ReferenceCountUtil.release(bodyLengthAsCharSeq);
+        FieldUtils.writeEncoded(restOfBodyLength, out);
         out.writeByte(FixMessage.FIELD_SEPARATOR);
     }
 }

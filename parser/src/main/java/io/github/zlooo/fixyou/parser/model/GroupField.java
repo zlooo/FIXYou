@@ -9,7 +9,6 @@ import io.github.zlooo.fixyou.parser.utils.FieldTypeUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.AsciiString;
-import io.netty.util.ReferenceCountUtil;
 import lombok.ToString;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
@@ -60,7 +59,6 @@ public class GroupField extends AbstractField {
         this.repetitions = new Repetition[DefaultConfiguration.NUMBER_OF_REPETITIONS_IN_GROUP];
         for (int i = 0; i < repetitions.length; i++) {
             repetitions[i] = repetitionSupplier.get();
-
         }
     }
 
@@ -85,9 +83,7 @@ public class GroupField extends AbstractField {
         }
         fieldDataWithoutRepetitionCount.writerIndex(fieldDataWithoutRepetitionCount.writerIndex() - 1);
         ensureRepetitionsArrayCapacity(++numberOfRepetitions);
-        final CharSequence charSequence = FieldUtils.toCharSequence(numberOfRepetitions);
-        fieldData.clear().writeCharSequence(charSequence, StandardCharsets.US_ASCII);
-        ReferenceCountUtil.release(charSequence);
+        FieldUtils.writeEncoded(numberOfRepetitions, fieldData.clear());
         fieldData.writeBytes(fieldDataWithoutRepetitionCount.readerIndex(0));
         return this;
     }
@@ -111,7 +107,7 @@ public class GroupField extends AbstractField {
     }
 
     @Nullable
-    public <T extends AbstractField> T getFieldAndIncRepetitionIfValueIsSet(int fieldNum) {
+    public <T extends AbstractField> T getFieldAndIncRepetitionIfValueIsSet(int fieldNum) { //TODO this method is not ok, it does not check repetitions.length so it'll potentially throw ArrayIndexOutOfBoundsException
         final AbstractField field = repetitions[numberOfRepetitions].idToField.get(fieldNum);
         if (field.isValueSet()) {
             if (numberOfRepetitions < numberOfRepetitionsRead - 1) {

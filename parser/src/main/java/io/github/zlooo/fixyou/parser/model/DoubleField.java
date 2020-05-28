@@ -16,7 +16,6 @@ public class DoubleField extends AbstractField {
     private static final long DEFAULT_VALUE = Long.MIN_VALUE;
     private static final char FRACTION_SEPARATOR = '.';
     private static final int RADIX = 10;
-    private static final int ASCII_ZERO_CODE = 48;
     private static final int FIELD_DATA_LENGTH = 17; //15 significant digits, optional sign and optional decimal point
     private long value = DEFAULT_VALUE;
     private short scale;
@@ -46,7 +45,7 @@ public class DoubleField extends AbstractField {
         for (int i = negative ? 1 : 0; i < length; i++) {
             final char nextChar = rawValue[i];
             if (nextChar != FRACTION_SEPARATOR) {
-                value = value * RADIX + ((int) nextChar - ASCII_ZERO_CODE);
+                value = value * RADIX + ((int) nextChar - FieldUtils.ASCII_ZERO_CODE);
             } else {
                 scale = (short) (length - i - 1);
             }
@@ -70,7 +69,7 @@ public class DoubleField extends AbstractField {
         fieldData.clear();
         final int separatorIndex = valueAsChar.length() - newScale - 1;
         ArrayUtils.insertElementAtIndex(valueAsChar.getCharArray(), FRACTION_SEPARATOR, separatorIndex);
-        fieldData.writeCharSequence(valueAsChar, StandardCharsets.US_ASCII);
+        fieldData.writeCharSequence(valueAsChar, StandardCharsets.US_ASCII); //TODO could write a method for this case to avoid char[] conversion and write value to buf directly
         ReferenceCountUtil.release(valueAsChar);
     }
 

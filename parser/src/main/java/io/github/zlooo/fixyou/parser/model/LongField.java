@@ -3,7 +3,6 @@ package io.github.zlooo.fixyou.parser.model;
 import io.github.zlooo.fixyou.commons.utils.FieldUtils;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.netty.util.AsciiString;
-import io.netty.util.ReferenceCountUtil;
 import lombok.ToString;
 
 import java.nio.charset.StandardCharsets;
@@ -12,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 public class LongField extends AbstractField {
 
     public static final long DEFAULT_VALUE = Long.MIN_VALUE;
-    public static final int FIELD_DATA_LENGTH = 6; // 5 digits plus optional sign
+    public static final int FIELD_DATA_LENGTH = 8; // 7 digits plus optional sign
     private long value = DEFAULT_VALUE;
 
     public LongField(int number) {
@@ -34,9 +33,7 @@ public class LongField extends AbstractField {
 
     public void setValue(long value) {
         this.value = value;
-        final CharSequence charSequence = FieldUtils.toCharSequence(value);
-        fieldData.clear().writeCharSequence(charSequence, StandardCharsets.US_ASCII);
-        ReferenceCountUtil.release(charSequence);
+        FieldUtils.writeEncoded(value, fieldData.clear());
     }
 
     @Override
