@@ -5,10 +5,11 @@
         "https://checkstyle.org/dtds/suppressions_1_2.dtd">
 
 <suppressions>
-    <suppress checks="MagicNumber" files="FieldUtils\.java"/>
-    <suppress checks="MagicNumber" files="FixMessageReader\.java"/>
-    <suppress checks="ReturnCount" files="io.github.zlooo.fixyou.commons.pool.DefaultObjectPool\.java" lines="49" />
-    <suppress checks="ReturnCount" files="io.github.zlooo.fixyou.netty.handler.MutableIdleStateHandler\.java" lines="374" />
-    <suppress checks="FileLength" files="io.github.zlooo.fixyou.netty.handler.MutableIdleStateHandler\.java" />
-    <suppress checks="" files="ObjectFactory\.java" />
+    <suppress checks="MagicNumber" files="io.github.zlooo.fixyou.commons.utils.FieldUtils\.java"/>
+    <suppress checks="MagicNumber" files="io.github.zlooo.fixyou.parser.FixMessageReader\.java"/>
+    <suppress checks="ReturnCount" files="io.github.zlooo.fixyou.commons.pool.DefaultObjectPool\.java" lines="49"/>
+    <suppress checks="ReturnCount" files="io.github.zlooo.fixyou.netty.handler.MutableIdleStateHandler\.java" lines="374"/>
+    <suppress checks="FileLength" files="io.github.zlooo.fixyou.netty.handler.MutableIdleStateHandler\.java"/>
+    <suppress checks="" files="io.github.zlooo.fixyou.commons.utils.DateUtils\.java"/>
+    <suppress checks="" files="ObjectFactory\.java"/>
 </suppressions>
