@@ -50,12 +50,16 @@ public class DefaultObjectPool<T extends AbstractPoolableObject> extends Abstrac
     public T getAndRetain() {
         if (firstObject.getState().compareAndSet(AbstractPoolableObject.AVAILABLE_STATE, AbstractPoolableObject.IN_USE_STATE)) {
             firstObject.retain();
-            log.debug(GET_OBJECT_LOG, firstObject, this, "local var 1");
+            if (log.isDebugEnabled()) {
+                log.debug(GET_OBJECT_LOG, firstObject, this, "local var 1");
+            }
             return firstObject;
         }
         if (secondObject.getState().compareAndSet(AbstractPoolableObject.AVAILABLE_STATE, AbstractPoolableObject.IN_USE_STATE)) {
             secondObject.retain();
-            log.debug(GET_OBJECT_LOG, firstObject, this, "local var 2");
+            if (log.isDebugEnabled()) {
+                log.debug(GET_OBJECT_LOG, secondObject, this, "local var 2");
+            }
             return secondObject;
         }
 
@@ -68,7 +72,9 @@ public class DefaultObjectPool<T extends AbstractPoolableObject> extends Abstrac
                 if (pooledObject.getState().compareAndSet(AbstractPoolableObject.AVAILABLE_STATE, AbstractPoolableObject.IN_USE_STATE)) {
                     objectArray[index] = null;
                     pooledObject.retain();
-                    log.debug(GET_OBJECT_LOG, pooledObject, this, "object array");
+                    if (log.isDebugEnabled()) {
+                        log.debug(GET_OBJECT_LOG, pooledObject, this, "object array");
+                    }
                     return pooledObject;
                 } else {
                     log.warn("Item is present in array but has unexpected state! Are you sure you're using this class in single thread?");
@@ -81,7 +87,9 @@ public class DefaultObjectPool<T extends AbstractPoolableObject> extends Abstrac
 
     @Override
     public void returnObject(T objectToBeReturned) {
-        log.debug("Returning object {} to pool {}", objectToBeReturned, this);
+        if (log.isDebugEnabled()) {
+            log.debug("Returning object {} to pool {}", objectToBeReturned, this);
+        }
         //TODO if pool is closed close this object
         if (!objectToBeReturned.getState().compareAndSet(AbstractPoolableObject.IN_USE_STATE, AbstractPoolableObject.AVAILABLE_STATE)) {
             throw buildIllegalStateException(objectToBeReturned);

@@ -63,19 +63,14 @@ public class FixMessage extends AbstractPoolableObject {
     }
 
     public void resetAllDataFields() {
-        for (final AbstractField field : fields) { //TODO run JMH and see if there is a difference between fields and fieldsOrdered. Probably not but make sure
-            if (field != null) { //since index in fields table is equal to field number, it's quite possible not all positions in this table will be filled with actual objects
-                field.reset();
-            }
+        for (final AbstractField field : fieldsOrdered) { //TODO run JMH and see if there is a difference between fields and fieldsOrdered. Probably not but make sure
+            field.reset();
         }
     }
 
     public void resetDataFields(int... excludes) {
         fieldLoop:
-        for (final AbstractField field : fields) {
-            if (field == null) { //since index in fields table is equal to field number, it's quite possible not all positions in this table will be filled with actual objects
-                continue;
-            }
+        for (final AbstractField field : fieldsOrdered) {
             final int fieldNumber = field.getNumber();
             for (final int exclude : excludes) {
                 if (exclude == fieldNumber) {
