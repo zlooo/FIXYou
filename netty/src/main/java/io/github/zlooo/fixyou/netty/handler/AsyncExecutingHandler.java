@@ -12,6 +12,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandler;
 import io.netty.util.concurrent.ImmediateEventExecutor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @ChannelHandler.Sharable
-class AsyncExecutingHandler extends ChannelDuplexHandler implements Closeable {
+class AsyncExecutingHandler implements ChannelInboundHandler, Closeable {
 
     private static final int RING_BUFFER_SIZE = 2048;
     private static final int WAIT_METHOD_TIMEOUT = 100;
@@ -59,11 +60,14 @@ class AsyncExecutingHandler extends ChannelDuplexHandler implements Closeable {
         ctx.fireChannelUnregistered();
     }
 
-    private void setExecutorOnDownstreamChannels(ChannelHandlerContext ctx, ImmediateEventExecutor eventExecutor) { //TODO that's quite an evil method, I should refactor this mechanism so that I do not have to use reflection here
-        ChannelHandlerContext currentContext = ctx;
-        while ((currentContext = ReflectionUtils.getFieldValue(currentContext, "next", ChannelHandlerContext.class)) != null) {
-            ReflectionUtils.setFinalField(currentContext, "executor", eventExecutor);
-        }
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+
     }
 
     @Override
@@ -72,13 +76,52 @@ class AsyncExecutingHandler extends ChannelDuplexHandler implements Closeable {
             disruptor.publishEvent((event, sequence, channelChandlerContext, message) -> {
                 event.channelHandlerContext = channelChandlerContext;
                 event.message = message;
+                event.ordinalNumber = ctx.channel().id()
             }, ctx, (ByteBuf) msg);
         }
     }
 
     @Override
+    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+
+    }
+
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+
+    }
+
+    @Override
+    public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
+
+    }
+
+    @Override
+    public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+
+    }
+
+    @Override
+    public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+
+    }
+
+    @Override
     public void close() {
         disruptor.shutdown();
+    }
+
+    //TODO that's quite an unsexy and even evil method, I should refactor this mechanism so that I do not have to use reflection here
+    private static void setExecutorOnDownstreamChannels(ChannelHandlerContext ctx, ImmediateEventExecutor eventExecutor) {
+        ChannelHandlerContext currentContext = ctx;
+        while ((currentContext = ReflectionUtils.getFieldValue(currentContext, "next", ChannelHandlerContext.class)) != null) {
+            ReflectionUtils.setFinalField(currentContext, "executor", eventExecutor);
+        }
     }
 
     @Data

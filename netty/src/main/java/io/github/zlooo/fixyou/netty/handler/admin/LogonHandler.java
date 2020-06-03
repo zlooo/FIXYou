@@ -59,7 +59,7 @@ class LogonHandler implements AdministrativeMessageHandler {
                 final DelegatingChannelHandlerContext notMovingForwardOnReadCtx =
                         (DelegatingChannelHandlerContext) sessionState.getResettables().get(NettyResettablesNames.NOT_MOVING_FORWARD_ON_READ_AND_WRITE_CHANNEL_HANDLER_CONTEXT);
                 //this is to check if logon had expected sequence number and send resend request if necessary
-                sessionHandler.channelRead(notMovingForwardOnReadCtx.setDelegate(ctx), fixMessage);
+                sessionHandler.channelRead(notMovingForwardOnReadCtx.setDelegate(ctx.pipeline().context(Handlers.SESSION.getName())), fixMessage);
             } catch (Exception e) {
                 log.error("Exception happened when triggering read pipeline after session setup, closing connection", e);
                 ctx.close();
