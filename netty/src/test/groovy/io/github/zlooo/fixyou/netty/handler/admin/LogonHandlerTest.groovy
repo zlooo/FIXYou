@@ -30,13 +30,15 @@ class LogonHandlerTest extends Specification {
     private SessionRegistry sessionRegistry = Mock()
     private ChannelHandler preMessageValidatorHandler = Mock()
     private ChannelHandler postMessageValidatorHandler = Mock()
-    private LogonHandler logonHandler = new LogonHandler(authenticator, sessionRegistry, preMessageValidatorHandler, postMessageValidatorHandler)
+    private ChannelInboundHandler asyncExecutingHandler = Mock()
+    private LogonHandler logonHandler = new LogonHandler(authenticator, sessionRegistry, preMessageValidatorHandler, postMessageValidatorHandler, asyncExecutingHandler)
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
     private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
     private SessionID sessionID = new SessionID("beginString".toCharArray(), "senderCompId".toCharArray(), "targetCompId".toCharArray())
     private FixMessage fixMessage = createValidLogonMessage(sessionID)
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)).setConsolidateFlushes(false), sessionID, fixMessageObjectPool,
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)).setConsolidateFlushes(false).setSeparateIoFromAppThread(false),
+                                                                                           sessionID, fixMessageObjectPool,
                                                                                            TestSpec.INSTANCE) {
 
         private boolean resetCalled

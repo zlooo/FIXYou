@@ -10,7 +10,9 @@ import io.github.zlooo.fixyou.netty.handler.SessionAwareChannelInboundHandler;
 import io.github.zlooo.fixyou.session.ValidationConfig;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelInboundHandler;
 import io.netty.channel.ChannelPipeline;
+import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
 import javax.annotation.Nullable;
@@ -22,9 +24,9 @@ public class PipelineUtils {
 
     private static final double TEST_REQUEST_MULTIPLIER = 1.2; //"some reasonable period of time" which according to fix spec is 20% of heartbeat interval
 
-    public static @Nullable
-    SessionAwareChannelInboundHandler addRequiredHandlersToPipeline(Channel channel, NettyHandlerAwareSessionState sessionState, ChannelHandler preSessionValidator, ChannelHandler postSessionValidator, long heartbeatIntervalSeconds,
-                                                                    Handlers... excludes) {
+    @Nullable
+    public static SessionAwareChannelInboundHandler addRequiredHandlersToPipeline(Channel channel, NettyHandlerAwareSessionState sessionState, ChannelHandler preSessionValidator, ChannelHandler postSessionValidator,
+                                                                                  ChannelInboundHandler asyncExecutingHandler, long heartbeatIntervalSeconds, Handlers... excludes) {
         final ChannelPipeline pipeline = channel.pipeline();
         final Map<String, Resettable> resettables = sessionState.getResettables();
         if (canHandlerBeAdded(Handlers.MESSAGE_DECODER, Handlers.GENERIC_DECODER, pipeline, excludes)) {
@@ -47,11 +49,20 @@ public class PipelineUtils {
             idleStateHandler.setWriterIdleTimeNanos(TimeUnit.SECONDS.toNanos(heartbeatIntervalSeconds));
             pipeline.addAfter(Handlers.SESSION.getName(), Handlers.IDLE_STATE_HANDLER.getName(), idleStateHandler);
         }
+        addHandlersBasedOnEncodeHandler(sessionState, pipeline, resettables, asyncExecutingHandler, excludes);
+        channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY).set(sessionState);
+        return sessionHandler;
+    }
+
+    @SneakyThrows
+    private static void addHandlersBasedOnEncodeHandler(NettyHandlerAwareSessionState sessionState, ChannelPipeline pipeline, Map<String, Resettable> resettables, ChannelInboundHandler asyncExecutingHandler, Handlers[] excludes) {
+        if (sessionState.getSessionConfig().isSeparateIoFromAppThread() && canHandlerBeAdded(Handlers.ASYNC_EXECUTING_HANDLER, Handlers.MESSAGE_ENCODER, pipeline, excludes)) {
+            pipeline.addFirst(Handlers.ASYNC_EXECUTING_HANDLER.getName(), asyncExecutingHandler);
+            asyncExecutingHandler.channelRegistered(pipeline.context(asyncExecutingHandler));
+        }
         if (sessionState.getSessionConfig().isConsolidateFlushes() && canHandlerBeAdded(Handlers.FLUSH_CONSOLIDATION_HANDLER, Handlers.MESSAGE_ENCODER, pipeline, excludes)) {
             pipeline.addFirst(Handlers.FLUSH_CONSOLIDATION_HANDLER.getName(), (ChannelHandler) resettables.get(NettyResettablesNames.FLUSH_CONSOLIDATION_HANDLER));
         }
-        channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY).set(sessionState);
-        return sessionHandler;
     }
 
     private static ValidationConfig addHandlersBasedOnGenericHandler(NettyHandlerAwareSessionState sessionState, ChannelHandler preSessionValidator, ChannelPipeline pipeline, Map<String, Resettable> resettables, Handlers[] excludes) {

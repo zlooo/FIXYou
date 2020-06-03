@@ -53,7 +53,7 @@ abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
         try {
             out.forEachByte(valueAddingByteProcessor);
             out.writeBytes(checksumField.getEncodedFieldNumber());
-            final int checksum = valueAddingByteProcessor.getResult() % FixConstants.CHECK_SUM_MODULO;
+            final int checksum = valueAddingByteProcessor.getResult() & FixConstants.CHECK_SUM_MODULO_MASK;
             FieldUtils.writeEncoded(checksum, out, CHECKSUM_VALUE_LENGTH);
             out.writeByte(FixMessage.FIELD_SEPARATOR);
         } finally {

@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets
 
 class StatefulMessageEncoderTest extends Specification {
 
+    private static final int CHECK_SUM_MODULO = 256
     private StatefulMessageEncoder messageEncoder = new StatefulMessageEncoder()
     private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
     private ChannelHandlerContext channelHandlerContext = Mock()
@@ -77,7 +78,7 @@ class StatefulMessageEncoderTest extends Specification {
 
     ByteBuf expectedBuffer(String body) {
         String fixMessage = "8=FIXT.1.1\u00019=${body.length()}\u0001${body}"
-        def checksum = fixMessage.getBytes(StandardCharsets.US_ASCII).collect { it as int }.sum() % FixConstants.CHECK_SUM_MODULO
+        def checksum = fixMessage.getBytes(StandardCharsets.US_ASCII).collect { it as int }.sum() % CHECK_SUM_MODULO
         fixMessage += "10=${checksum.toString().padLeft(3, '0')}\u0001"
         def buffer = Unpooled.copiedBuffer(fixMessage, 0, fixMessage.length(), StandardCharsets.US_ASCII)
         return buffer

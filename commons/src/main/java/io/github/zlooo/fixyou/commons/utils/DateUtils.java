@@ -21,7 +21,8 @@ public class DateUtils {
     private static final long MILLIS_IN_LEAP_YEAR = 31622400000L;
     private static final long BEGINNING_OF_MIN_YEAR = 1577836800000L;
     private static final int MIN_YEAR = 2020;
-    private static final int LEAP_YEAR_MULTIPLE = 4;
+    private static final int MOD_2_MASK = 1;
+    private static final int MOD_4_MASK = 3;
 
     /**
      * This is <B>NOT</B> a general purpose method. It assumes fix timestamp format and <code>timestamp</code> cannot be earlier then 2020-01-01T00:00:00.000Z
@@ -37,25 +38,27 @@ public class DateUtils {
         while (remainingMillis > MILLIS_IN_YEAR) {
             remainingMillis -= isLeapYear ? MILLIS_IN_LEAP_YEAR : MILLIS_IN_YEAR;
             year++;
-            isLeapYear = year % LEAP_YEAR_MULTIPLE == 0;
+            isLeapYear = (year & MOD_4_MASK) == 0;
         }
         int month = 1;
-        while (remainingMillis > MILLIS_IN_MONTH_28) {
+        long monthMillis = MILLIS_IN_MONTH_31;
+        while (remainingMillis >= monthMillis) {
+            remainingMillis-=monthMillis;
+            month++;
             if (month == 2) { //fuck you february
                 if (isLeapYear) {
-                    remainingMillis -= MILLIS_IN_MONTH_29;
+                    monthMillis = MILLIS_IN_MONTH_29;
                 } else {
-                    remainingMillis -= MILLIS_IN_MONTH_28;
+                    monthMillis = MILLIS_IN_MONTH_28;
                 }
-            } else if (month % 2 == 1) {
-                remainingMillis -= MILLIS_IN_MONTH_31;
+            } else if ((month & MOD_2_MASK) == 1) {
+                monthMillis = MILLIS_IN_MONTH_31;
             } else {
-                remainingMillis -= MILLIS_IN_MONTH_30;
+                monthMillis = MILLIS_IN_MONTH_30;
             }
-            month++;
         }
         int day = 1;
-        while (remainingMillis > MILLIS_IN_DAY) {
+        while (remainingMillis >= MILLIS_IN_DAY) {
             remainingMillis -= MILLIS_IN_DAY;
             day++;
         }
