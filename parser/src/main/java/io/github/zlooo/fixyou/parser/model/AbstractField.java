@@ -54,9 +54,9 @@ public abstract class AbstractField implements Closeable {
     public void reset() {
         if (isValueSet()) {
             resetInnerState();
-            this.fieldData.clear();
-            this.encodedFieldNumber.readerIndex(0);
         }
+        this.encodedFieldNumber.readerIndex(0);
+        this.fieldData.clear();
     }
 
     @Override
