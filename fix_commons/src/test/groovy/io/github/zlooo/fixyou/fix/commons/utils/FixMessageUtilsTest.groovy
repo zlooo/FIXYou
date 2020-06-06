@@ -260,6 +260,8 @@ class FixMessageUtilsTest extends Specification {
     FixMessage createFixMessage() {
         FixMessage message = new FixMessage(TestSpec.INSTANCE)
         message.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).value = "FIXT1.1".toCharArray()
+        message.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value = "senderCompId".toCharArray()
+        message.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value = "targetCompId".toCharArray()
         message.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 123L
         return message
     }

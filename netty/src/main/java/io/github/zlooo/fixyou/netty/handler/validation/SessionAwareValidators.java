@@ -46,7 +46,7 @@ public class SessionAwareValidators {
                 }
             });
 
-    public static final PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>> SESSION_ID_VALIDATOR = createSessionIdValidator();
+    public static final PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>> COMP_ID_VALIDATOR = createCompIdValidator();
 
     public static final PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>> BEGIN_STRING_VALIDATOR = createBeginStringValidator();
 
@@ -133,7 +133,7 @@ public class SessionAwareValidators {
         });
     }
 
-    private static PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>> createSessionIdValidator() {
+    private static PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>> createCompIdValidator() {
         return new PredicateWithValidator<>(ValidationConfig::isShouldCheckSessionIDAfterLogon, (fixMsg, sessionState) -> {
             final SessionID sessionId = sessionState.getSessionId();
             if (!SessionIDUtils.checkCompIDs(fixMsg, sessionId, true)) {

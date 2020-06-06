@@ -25,7 +25,7 @@ class SessionAwareValidators_ValidatorsTest extends Specification {
         fixMessage.getField(io.github.zlooo.fixyou.FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value = targetCompID
 
         when:
-        def result = SessionAwareValidators.SESSION_ID_VALIDATOR.validator.apply(fixMessage, sessionState)
+        def result = SessionAwareValidators.COMP_ID_VALIDATOR.validator.apply(fixMessage, sessionState)
 
         then:
         (result == null) == expectedResult

@@ -56,7 +56,7 @@ class SessionAwareValidators_ValidationFailureActionsTest extends Specification 
         io.github.zlooo.fixyou.parser.model.FixMessage logout = new io.github.zlooo.fixyou.parser.model.FixMessage(io.github.zlooo.fixyou.netty.handler.admin.TestSpec.INSTANCE)
 
         when:
-        SessionAwareValidators.SESSION_ID_VALIDATOR.validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectPool)
+        SessionAwareValidators.COMP_ID_VALIDATOR.validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectPool)
 
         then:
         1 * channelHandlerContext.write(fixMessage) >> channelFuture1
