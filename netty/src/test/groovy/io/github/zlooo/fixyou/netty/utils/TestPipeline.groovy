@@ -3,10 +3,13 @@ package io.github.zlooo.fixyou.netty.utils
 import io.netty.channel.*
 import io.netty.util.concurrent.EventExecutorGroup
 import org.assertj.core.api.Assertions
+import org.spockframework.mock.MockUtil
+import spock.mock.DetachedMockFactory
 
 class TestPipeline implements ChannelPipeline {
 
     private List<Map.Entry<String, ChannelHandler>> handlers = new ArrayList<>()
+    ChannelHandlerContext channelHandlerContext = DetachedMockFactory.newInstance().Mock(ChannelHandlerContext)
 
     @Override
     ChannelPipeline addFirst(String name, ChannelHandler handler) {
@@ -148,7 +151,7 @@ class TestPipeline implements ChannelPipeline {
 
     @Override
     ChannelHandlerContext context(ChannelHandler handler) {
-        throw new UnsupportedOperationException()
+        channelHandlerContext
     }
 
     @Override
@@ -343,5 +346,9 @@ class TestPipeline implements ChannelPipeline {
 
     int indexOf(String handlerName) {
         handlers.findIndexOf { it.key == handlerName }
+    }
+
+    int indexOf(ChannelHandler handler) {
+        handlers.findIndexOf { it.value == handler }
     }
 }

@@ -82,7 +82,7 @@ class ReceiveSequenceResetGapFillIntegrationTest extends AbstractFixYOUAcceptorI
         nextExpectedInboundSequenceNumber() == 2
     }
 
-    def "should disconnect session when sequence reset when message sequence number is less then expected and poss dup flag is not set 10-d"() {
+    def "should disconnect session on sequence reset message with sequence number is then expected and poss dup flag is not set 10-d"() {
         setup:
         startQuickfixAndWaitTillLoggedIn()
         SequenceReset sequenceReset = new SequenceReset()

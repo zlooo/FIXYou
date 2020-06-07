@@ -30,13 +30,15 @@ class LogonHandlerTest extends Specification {
     private SessionRegistry sessionRegistry = Mock()
     private ChannelHandler preMessageValidatorHandler = Mock()
     private ChannelHandler postMessageValidatorHandler = Mock()
-    private LogonHandler logonHandler = new LogonHandler(authenticator, sessionRegistry, preMessageValidatorHandler, postMessageValidatorHandler)
+    private ChannelInboundHandler asyncExecutingHandler = Mock()
+    private LogonHandler logonHandler = new LogonHandler(authenticator, sessionRegistry, preMessageValidatorHandler, postMessageValidatorHandler, asyncExecutingHandler)
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
     private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
     private SessionID sessionID = new SessionID("beginString".toCharArray(), "senderCompId".toCharArray(), "targetCompId".toCharArray())
     private FixMessage fixMessage = createValidLogonMessage(sessionID)
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)).setConsolidateFlushes(false), sessionID, fixMessageObjectPool,
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)).setConsolidateFlushes(false).setSeparateIoFromAppThread(false),
+                                                                                           sessionID, fixMessageObjectPool,
                                                                                            TestSpec.INSTANCE) {
 
         private boolean resetCalled
@@ -55,6 +57,7 @@ class LogonHandlerTest extends Specification {
     private MutableIdleStateHandler idleStateHandler = Mock(additionalInterfaces: [Resettable])
     private DelegatingChannelHandlerContext nmfCtx = Mock(additionalInterfaces: [Resettable])
     private SessionStateListener sessionStateListener = Mock()
+    private ChannelHandlerContext sessionHandlerContext = Mock()
 
     void setup() {
         sessionState.resettables.putAll([(NettyResettablesNames.MESSAGE_ENCODER)                                             : messageEncoder,
@@ -153,7 +156,9 @@ class LogonHandlerTest extends Specification {
         logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value == ApplicationVersionID.FIX50SP2.value
         1 * sessionStateListener.logOn(sessionState)
         1 * sessionHandler.getSessionState() >> sessionState
-        1 * nmfCtx.setDelegate(channelHandlerContext) >> nmfCtx
+        1 * channelHandlerContext.pipeline() >> channelPipeline
+        1 * channelPipeline.context(Handlers.SESSION.getName()) >> sessionHandlerContext
+        1 * nmfCtx.setDelegate(sessionHandlerContext) >> nmfCtx
         1 * sessionHandler.channelRead(nmfCtx, fixMessage)
         sessionState.channel == channel
         0 * _
@@ -194,7 +199,9 @@ class LogonHandlerTest extends Specification {
         logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value == ApplicationVersionID.FIX50SP2.value
         1 * sessionStateListener.logOn(sessionState)
         1 * sessionHandler.getSessionState() >> sessionState
-        1 * nmfCtx.setDelegate(channelHandlerContext) >> nmfCtx
+        1 * channelHandlerContext.pipeline() >> channelPipeline
+        1 * channelPipeline.context(Handlers.SESSION.getName()) >> sessionHandlerContext
+        1 * nmfCtx.setDelegate(sessionHandlerContext) >> nmfCtx
         1 * sessionHandler.channelRead(nmfCtx, fixMessage)
         sessionState.channel == channel
         0 * _
@@ -235,7 +242,9 @@ class LogonHandlerTest extends Specification {
         logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value == ApplicationVersionID.FIX50SP2.value
         1 * sessionStateListener.logOn(sessionState)
         1 * sessionHandler.getSessionState() >> sessionState
-        1 * nmfCtx.setDelegate(channelHandlerContext) >> nmfCtx
+        1 * channelHandlerContext.pipeline() >> channelPipeline
+        1 * channelPipeline.context(Handlers.SESSION.getName()) >> sessionHandlerContext
+        1 * nmfCtx.setDelegate(sessionHandlerContext) >> nmfCtx
         1 * sessionHandler.channelRead(nmfCtx, fixMessage) >> { -> throw new RuntimeException() }
         1 * channelHandlerContext.close()
         sessionState.channel == channel
@@ -267,7 +276,9 @@ class LogonHandlerTest extends Specification {
         }
         1 * sessionStateListener.logOn(sessionState)
         1 * sessionHandler.getSessionState() >> sessionState
-        1 * nmfCtx.setDelegate(channelHandlerContext) >> nmfCtx
+        1 * channelHandlerContext.pipeline() >> channelPipeline
+        1 * channelPipeline.context(Handlers.SESSION.getName()) >> sessionHandlerContext
+        1 * nmfCtx.setDelegate(sessionHandlerContext) >> nmfCtx
         1 * sessionHandler.channelRead(nmfCtx, fixMessage)
         sessionState.channel == channel
         0 * _

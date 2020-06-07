@@ -1,15 +1,74 @@
 package io.github.zlooo.fixyou.commons.utils;
 
 import io.github.zlooo.fixyou.commons.ReusableCharArray;
+import io.netty.buffer.ByteBuf;
 import lombok.experimental.UtilityClass;
-
-import java.util.Arrays;
 
 @UtilityClass
 public final class FieldUtils {
 
+    public static final int ASCII_ZERO_CODE = 48;
+    private static final int ASCII_MINUS_CODE = 45; //- in ASCII
     private static final int MAX_DIGIT_NUMBER_HOLDABLE_BY_LONG = 19;
     private static final ThreadLocal<ReusableCharArray> REUSABLE_CHAR_ARRAY_THREAD_LOCAL = ThreadLocal.withInitial(ReusableCharArray::new);
+
+    public static void writeEncoded(long valueToWrite, ByteBuf destinationBuffer) {
+        if (valueToWrite == 0) {
+            destinationBuffer.writeByte(ASCII_ZERO_CODE);
+            return;
+        }
+        long value = valueToWrite;
+        if (valueToWrite < 0) {
+            destinationBuffer.writeByte(ASCII_MINUS_CODE);
+            value = -1 * value;
+        }
+        int powerOfTenIndex = 0;
+        for (; powerOfTenIndex < NumberConstants.POWERS_OF_TEN.length; powerOfTenIndex++) {
+            if (NumberConstants.POWERS_OF_TEN[powerOfTenIndex] > value) {
+                powerOfTenIndex--;
+                break;
+            }
+        }
+        for (; powerOfTenIndex >= 0; powerOfTenIndex--) {
+            final long currentTenPowerValue = NumberConstants.POWERS_OF_TEN[powerOfTenIndex];
+            final long digit = value / currentTenPowerValue;
+            destinationBuffer.writeByte(ASCII_ZERO_CODE + (int) digit);
+            value = value - (digit * currentTenPowerValue);
+        }
+    }
+
+    public static void writeEncoded(long valueToWrite, ByteBuf destinationBuffer, int minLength) {
+        long value = valueToWrite;
+        final boolean writeMinus;
+        if (valueToWrite < 0) {
+            writeMinus = true;
+            value = -1 * value;
+        } else {
+            writeMinus = false;
+        }
+        int powerOfTenIndex = 0;
+        for (; powerOfTenIndex < NumberConstants.POWERS_OF_TEN.length; powerOfTenIndex++) {
+            if (NumberConstants.POWERS_OF_TEN[powerOfTenIndex] > value) {
+                break;
+            }
+        }
+        int numberOfZeros = minLength - powerOfTenIndex;
+        if (writeMinus) {
+            numberOfZeros--;
+        }
+        for (int i = numberOfZeros; i > 0; i--) {
+            destinationBuffer.writeByte(ASCII_ZERO_CODE);
+        }
+        if (writeMinus) {
+            destinationBuffer.writeByte(ASCII_MINUS_CODE);
+        }
+        for (powerOfTenIndex--; powerOfTenIndex >= 0; powerOfTenIndex--) {
+            final long currentTenPowerValue = NumberConstants.POWERS_OF_TEN[powerOfTenIndex];
+            final long digit = value / currentTenPowerValue;
+            destinationBuffer.writeByte(ASCII_ZERO_CODE + (int) digit);
+            value = value - (digit * currentTenPowerValue);
+        }
+    }
 
     public static ReusableCharArray toCharSequence(long valueToWrite) {
         return toCharSequence(valueToWrite, 0);
@@ -24,16 +83,6 @@ public final class FieldUtils {
         final char[] buf = new char[size + additionalUnderlyingArrayLength];
         getChars(valueToWrite, size, buf);
         //TODO make this poolable instead of using thread local, it's dangerous!!!!
-        final ReusableCharArray reusableCharArray = REUSABLE_CHAR_ARRAY_THREAD_LOCAL.get();
-        reusableCharArray.retain();
-        return reusableCharArray.setCharArray(buf);
-    }
-
-    public static ReusableCharArray toCharSequenceWithSpecifiedSizeAndDefaultValue(long valueToWrite, int size, char defaultValue) {
-        final char[] buf = new char[size];
-        Arrays.fill(buf, defaultValue);
-        getChars(valueToWrite, size, buf);
-        //TODO make this poolable
         final ReusableCharArray reusableCharArray = REUSABLE_CHAR_ARRAY_THREAD_LOCAL.get();
         reusableCharArray.retain();
         return reusableCharArray.setCharArray(buf);

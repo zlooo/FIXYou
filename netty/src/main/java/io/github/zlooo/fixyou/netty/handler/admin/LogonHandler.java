@@ -19,10 +19,7 @@ import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.LongField;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.github.zlooo.fixyou.session.SessionRegistry;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelOutboundHandler;
+import io.netty.channel.*;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -41,15 +38,18 @@ class LogonHandler implements AdministrativeMessageHandler {
     private final SessionRegistry<NettyHandlerAwareSessionState> sessionRegistry;
     private final ChannelHandler beforeSessionMessageValidatorHandler;
     private final ChannelHandler afterSessionMessageValidatorHandler;
+    private final ChannelInboundHandler asyncExecutingHandler;
 
     @Inject
     LogonHandler(@Nullable Authenticator authenticator, SessionRegistry sessionRegistry,
                  @NamedHandler(Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR) ChannelHandler beforeSessionMessageValidatorHandler,
-                 @NamedHandler(Handlers.AFTER_SESSION_MESSAGE_VALIDATOR) ChannelHandler afterSessionMessageValidatorHandler) {
+                 @NamedHandler(Handlers.AFTER_SESSION_MESSAGE_VALIDATOR) ChannelHandler afterSessionMessageValidatorHandler,
+                 @NamedHandler(Handlers.ASYNC_EXECUTING_HANDLER) ChannelInboundHandler asyncExecutingHandler) {
         this.authenticator = authenticator;
         this.sessionRegistry = sessionRegistry;
         this.beforeSessionMessageValidatorHandler = beforeSessionMessageValidatorHandler;
         this.afterSessionMessageValidatorHandler = afterSessionMessageValidatorHandler;
+        this.asyncExecutingHandler = asyncExecutingHandler;
     }
 
     @Override
@@ -61,7 +61,7 @@ class LogonHandler implements AdministrativeMessageHandler {
                 final DelegatingChannelHandlerContext notMovingForwardOnReadCtx =
                         (DelegatingChannelHandlerContext) sessionState.getResettables().get(NettyResettablesNames.NOT_MOVING_FORWARD_ON_READ_AND_WRITE_CHANNEL_HANDLER_CONTEXT);
                 //this is to check if logon had expected sequence number and send resend request if necessary
-                sessionHandler.channelRead(notMovingForwardOnReadCtx.setDelegate(ctx), fixMessage);
+                sessionHandler.channelRead(notMovingForwardOnReadCtx.setDelegate(ctx.pipeline().context(Handlers.SESSION.getName())), fixMessage);
             } catch (Exception e) {
                 log.error("Exception happened when triggering read pipeline after session setup, closing connection", e);
                 ctx.close();
@@ -132,7 +132,7 @@ class LogonHandler implements AdministrativeMessageHandler {
 
     private SessionAwareChannelInboundHandler addRequiredHandlersToPipelineIfNeeded(ChannelHandlerContext ctx, NettyHandlerAwareSessionState sessionState, long heartbeatInterval) {
         if (ctx.pipeline().get(Handlers.SESSION.getName()) == null) {
-            return PipelineUtils.addRequiredHandlersToPipeline(ctx.channel(), sessionState, beforeSessionMessageValidatorHandler, afterSessionMessageValidatorHandler, heartbeatInterval);
+            return PipelineUtils.addRequiredHandlersToPipeline(ctx.channel(), sessionState, beforeSessionMessageValidatorHandler, afterSessionMessageValidatorHandler, asyncExecutingHandler, heartbeatInterval);
         } else {
             return null;
         }

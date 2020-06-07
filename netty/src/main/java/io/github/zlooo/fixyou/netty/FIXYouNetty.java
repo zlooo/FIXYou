@@ -27,7 +27,7 @@ public class FIXYouNetty {
 
     @Nonnull
     public static <T extends FixMessageListener> Engine create(@Nonnull FIXYouConfiguration fixYouConfiguration, @Nonnull T fixMessageListener) {
-        final FixYouNettyComponent fixYouNettyComponent = DaggerFixYouNettyComponent.builder().fixMessageListener(fixMessageListener).build();
+        final FixYouNettyComponent fixYouNettyComponent = DaggerFixYouNettyComponent.builder().fixMessageListener(fixMessageListener).fixYouConfiguration(fixYouConfiguration).build();
         final ConfigValidator configValidator =
                 fixYouConfiguration.isInitiator() ? fixYouNettyComponent.initiatorConfigValidator() : fixYouNettyComponent.acceptorConfigValidator();
         final Set<String> errorMessages = configValidator.validateConfig(fixYouConfiguration);

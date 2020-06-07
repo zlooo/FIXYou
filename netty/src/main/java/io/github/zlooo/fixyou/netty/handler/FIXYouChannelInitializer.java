@@ -1,13 +1,17 @@
 package io.github.zlooo.fixyou.netty.handler;
 
+import io.github.zlooo.fixyou.FIXYouConfiguration;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.util.AttributeKey;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 @Singleton
 public class FIXYouChannelInitializer extends ChannelInitializer<NioSocketChannel> {
+
+    public static final AttributeKey<Integer> ORDINAL_NUMBER_KEY = AttributeKey.valueOf("ordinalNumber");
 
     @Inject
     protected GenericHandler genericHandler;
@@ -17,13 +21,16 @@ public class FIXYouChannelInitializer extends ChannelInitializer<NioSocketChanne
     protected SimplifiedMessageCodec simplifiedMessageCodec;
     @Inject
     protected FixMessageListenerInvokingHandler fixMessageListenerInvokingHandler;
+    private final FIXYouConfiguration fixYouConfiguration;
 
     @Inject
-    FIXYouChannelInitializer() {
+    FIXYouChannelInitializer(FIXYouConfiguration fixYouConfiguration) {
+        this.fixYouConfiguration = fixYouConfiguration;
     }
 
     @Override
     protected void initChannel(NioSocketChannel ch) throws Exception {
+        ch.attr(ORDINAL_NUMBER_KEY).set(ch.hashCode() % fixYouConfiguration.getNumberOfAppThreads());
         ch.pipeline()
           .addLast(Handlers.GENERIC_DECODER.getName(), simplifiedMessageCodec)
           .addLast(Handlers.GENERIC.getName(), genericHandler)

@@ -7,7 +7,7 @@ public class DefaultConfiguration { //TODO move to config module and make this c
 
     public static final int FIX_MESSAGE_SUBSCRIBER_POOL_SIZE = 100;
     public static final int AVG_FIELDS_PER_MESSAGE = 50;
-    public static final int FIELD_BUFFER_SIZE = 50;
+    public static final int FIELD_BUFFER_SIZE = 10;
     public static final int NUMBER_OF_REPETITIONS_IN_GROUP = 2;
     public static final int FIX_MESSAGE_POOL_SIZE = 10;
     public static final int QUEUED_MESSAGES_MAP_SIZE = 10_000;

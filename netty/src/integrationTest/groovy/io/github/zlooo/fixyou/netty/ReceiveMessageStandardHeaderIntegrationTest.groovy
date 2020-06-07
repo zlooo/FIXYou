@@ -6,7 +6,9 @@ import io.github.zlooo.fixyou.netty.test.framework.QuickfixTestUtils
 import io.github.zlooo.fixyou.parser.model.CharSequenceField
 import io.github.zlooo.fixyou.parser.model.CharField
 import io.github.zlooo.fixyou.parser.model.FixMessage
+import quickfix.Message
 import quickfix.Session
+import quickfix.SessionID
 import quickfix.field.*
 import quickfix.fix50sp2.NewOrderSingle
 import quickfix.fixt11.Logon
@@ -185,12 +187,15 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         receivedMessages.size() == 3 //should receive logon, reject and logout
         Logon logon = new Logon()
         logon.fromString(receivedMessages[0], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 1, logon.getHeader())
         Reject reject = new Reject()
         reject.fromString(receivedMessages[1], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 2, reject.getHeader())
         reject.getSessionRejectReason().getValue() == SessionRejectReason.SENDINGTIME_ACCURACY_PROBLEM
         nextExpectedInboundSequenceNumber() == 3
         Logout logout = new Logout()
         logout.fromString(receivedMessages[2], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 3, logout.getHeader())
         logout.getText().getValue().contains("SendingTime")
         !channel.isActive()
         sessionSateListener.sessionState.logoutSent
@@ -214,14 +219,20 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         receivedMessages.size() == 2 //should receive logon and reject
         Logon logon = new Logon()
         logon.fromString(receivedMessages[0], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 1, logon.getHeader())
         Reject reject = new Reject()
         reject.fromString(receivedMessages[1], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 2, reject.getHeader())
         reject.getSessionRejectReason().getValue() == SessionRejectReason.REQUIRED_TAG_MISSING
         reject.getRefTagID().getValue() == FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER
         nextExpectedInboundSequenceNumber() == 3
         channel.isActive()
     }
 
+    /**
+     * This case is pretty unclear to me. Should incoming sequence number be incremented? What begin string should outgoing logout message have? Increase outgoing sequence number?
+     * I'm assuming the answers are yes, correct one, yes
+     */
     def "should logout session which sends unexpected BeginString 2-i"() {
         setup:
         def channel = connect()
@@ -242,9 +253,11 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         receivedMessages.size() == 2 //should receive logon and logout
         Logon logon = new Logon()
         logon.fromString(receivedMessages[0], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 1, logon.getHeader())
         Logout logout = new Logout()
         logout.fromString(receivedMessages[1], QuickfixTestUtils.FIXT11_DICTIONARY, true)
-        nextExpectedInboundSequenceNumber() == 2
+        assertHeader(sessionID, 2, logout.getHeader())
+        nextExpectedInboundSequenceNumber() == 3
         !channel.isActive()
         sessionSateListener.sessionState.logoutSent
         !sessionSateListener.sessionState.connected.get()
@@ -272,12 +285,15 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         receivedMessages.size() == 3
         Logon logon = new Logon()
         logon.fromString(receivedMessages[0], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 1, logon.getHeader())
         Reject reject = new Reject()
         reject.fromString(receivedMessages[1], QuickfixTestUtils.FIXT11_DICTIONARY, true)
         reject.getSessionRejectReason().value == SessionRejectReason.COMPID_PROBLEM
+        assertHeader(sessionID, 2, reject.getHeader())
         Logout logout = new Logout()
         logout.fromString(receivedMessages[2], QuickfixTestUtils.FIXT11_DICTIONARY, true)
         logout.getText().getValue().contains("CompID")
+        assertHeader(sessionID, 3, logout.getHeader())
         nextExpectedInboundSequenceNumber() == 3
         !channel.isActive()
         sessionSateListener.sessionState.logoutSent
@@ -306,11 +322,14 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         receivedMessages.size() == 3
         Logon logon = new Logon()
         logon.fromString(receivedMessages[0], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 1, logon.getHeader())
         Reject reject = new Reject()
         reject.fromString(receivedMessages[1], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 2, reject.getHeader())
         reject.getSessionRejectReason().value == SessionRejectReason.COMPID_PROBLEM
         Logout logout = new Logout()
         logout.fromString(receivedMessages[2], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 3, logout.getHeader())
         logout.getText().getValue().contains("CompID")
         nextExpectedInboundSequenceNumber() == 3
         !channel.isActive()
@@ -357,11 +376,14 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         receivedMessages.size() == 3
         Logon logon = new Logon()
         logon.fromString(receivedMessages[0], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 1, logon.getHeader())
         Reject reject = new Reject()
         reject.fromString(receivedMessages[1], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 2, reject.getHeader())
         reject.getSessionRejectReason().value == SessionRejectReason.SENDINGTIME_ACCURACY_PROBLEM
         Logout logout = new Logout()
         logout.fromString(receivedMessages[2], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 3, logout.getHeader())
         logout.getText().getValue().contains("SendingTime")
         nextExpectedInboundSequenceNumber() == 3
         !channel.isActive()
@@ -388,8 +410,10 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         receivedMessages.size() == 2 //should receive logon and reject
         Logon logon = new Logon()
         logon.fromString(receivedMessages[0], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 1, logon.getHeader())
         Reject reject = new Reject()
         reject.fromString(receivedMessages[1], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 2, reject.getHeader())
         reject.getSessionRejectReason().getValue() == SessionRejectReason.INVALID_MSGTYPE
         reject.getRefTagID().getValue() == FixConstants.MESSAGE_TYPE_FIELD_NUMBER
         nextExpectedInboundSequenceNumber() == 3
@@ -424,5 +448,12 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
                 format(DateTimeFormatter.ofPattern("YYYYMMdd-HH:mm:ss.SSS")).
                 toCharArray()
         assert actual.<CharField> getField(OrdType.FIELD).value == expected.getOrdType().value
+    }
+
+    void assertHeader(SessionID sessionID, Integer expectedSequenceNumber, Message.Header header) {
+        assert header.getString(BeginString.FIELD) == sessionID.getBeginString()
+        assert header.getString(SenderCompID.FIELD) == sessionID.getTargetCompID()
+        assert header.getString(TargetCompID.FIELD) == sessionID.getSenderCompID()
+        assert header.getInt(MsgSeqNum.FIELD) == expectedSequenceNumber
     }
 }

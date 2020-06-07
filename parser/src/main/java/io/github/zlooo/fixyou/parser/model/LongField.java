@@ -7,7 +7,7 @@ import lombok.ToString;
 public class LongField extends AbstractField {
 
     public static final long DEFAULT_VALUE = Long.MIN_VALUE;
-    public static final int FIELD_DATA_LENGTH = 6; // 5 digits plus optional sign
+    public static final int FIELD_DATA_LENGTH = 8; // 7 digits plus optional sign
     private long value = DEFAULT_VALUE;
     private byte[] rawValue = new byte[FIELD_DATA_LENGTH];
     private char[] unparsedValue = new char[FIELD_DATA_LENGTH];

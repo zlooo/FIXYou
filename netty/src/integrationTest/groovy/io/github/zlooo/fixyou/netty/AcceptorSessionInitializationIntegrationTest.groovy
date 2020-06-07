@@ -64,8 +64,10 @@ class AcceptorSessionInitializationIntegrationTest extends AbstractFixYOUAccepto
         testQuickfixApplication.adminMessagesReceived.size() == 2
         def message = testQuickfixApplication.adminMessagesReceived[0]
         message instanceof Logon
+        message.getHeader().getInt(MsgSeqNum.FIELD) == 1
         def message2 = testQuickfixApplication.adminMessagesReceived[1]
         message2 instanceof ResendRequest
+        message2.getHeader().getInt(MsgSeqNum.FIELD) == 2
         ((ResendRequest) message2).get(new BeginSeqNo()).value == 1
         ((ResendRequest) message2).get(new EndSeqNo()).value == 9
         sessionSateListener.loggedOn

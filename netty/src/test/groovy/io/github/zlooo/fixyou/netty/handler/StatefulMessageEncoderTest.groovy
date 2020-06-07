@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.netty.handler
 
 import io.github.zlooo.fixyou.FixConstants
+import io.github.zlooo.fixyou.commons.ReusableCharArray
 import io.github.zlooo.fixyou.commons.utils.FieldUtils
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
 import io.github.zlooo.fixyou.parser.model.FixMessage
@@ -14,6 +15,7 @@ import java.nio.charset.StandardCharsets
 
 class StatefulMessageEncoderTest extends Specification {
 
+    private static final int CHECK_SUM_MODULO = 256
     private StatefulMessageEncoder messageEncoder = new StatefulMessageEncoder()
     private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
     private ChannelHandlerContext channelHandlerContext = Mock()
@@ -31,7 +33,7 @@ class StatefulMessageEncoderTest extends Specification {
         messageEncoder.encode(channelHandlerContext, fixMessage, buf)
 
         then:
-        buf.compareTo(expectedBuffer("49=sender\u000156=target\u000158=test\u0001")) == 0
+        buf.toString(StandardCharsets.US_ASCII) == expectedBuffer("49=sender\u000156=target\u000158=test\u0001").toString(StandardCharsets.US_ASCII)
     }
 
     def "should encode message containing repeating group"() {
@@ -50,7 +52,7 @@ class StatefulMessageEncoderTest extends Specification {
         messageEncoder.encode(channelHandlerContext, fixMessage, buf)
 
         then:
-        buf.compareTo(expectedBuffer("49=sender\u000156=target\u000158=test\u0001453=1\u0001448=partyID\u0001")) == 0
+        buf.toString(StandardCharsets.US_ASCII) == expectedBuffer("49=sender\u000156=target\u000158=test\u0001453=1\u0001448=partyID\u0001").toString(StandardCharsets.US_ASCII)
     }
 
     def "should clear buffer and reset processor when handler is reset"() {
@@ -76,8 +78,8 @@ class StatefulMessageEncoderTest extends Specification {
 
     ByteBuf expectedBuffer(String body) {
         String fixMessage = "8=FIXT.1.1\u00019=${body.length()}\u0001${body}"
-        def checksum = fixMessage.getBytes(StandardCharsets.US_ASCII).collect { it as int }.sum() % FixConstants.CHECK_SUM_MODULO
-        fixMessage += "10=${new String(FieldUtils.toCharSequenceWithSpecifiedSizeAndDefaultValue(checksum, 3, '0' as char).charArray)}\u0001"
+        def checksum = fixMessage.getBytes(StandardCharsets.US_ASCII).collect { it as int }.sum() % CHECK_SUM_MODULO
+        fixMessage += "10=${checksum.toString().padLeft(3, '0')}\u0001"
         def buffer = Unpooled.copiedBuffer(fixMessage, 0, fixMessage.length(), StandardCharsets.US_ASCII)
         return buffer
     }
