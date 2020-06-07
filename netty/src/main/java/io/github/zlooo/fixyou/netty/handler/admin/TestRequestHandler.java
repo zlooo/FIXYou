@@ -3,7 +3,7 @@ package io.github.zlooo.fixyou.netty.handler.admin;
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
-import io.github.zlooo.fixyou.parser.model.CharArrayField;
+import io.github.zlooo.fixyou.parser.model.CharSequenceField;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
@@ -18,6 +18,8 @@ import javax.inject.Singleton;
 @ChannelHandler.Sharable
 class TestRequestHandler implements AdministrativeMessageHandler {
 
+    private static final CharSequence SUPPORTED_MESSAGE_TYPE = String.copyValueOf(FixConstants.TEST_REQUEST);
+
     @Inject
     TestRequestHandler() {
     }
@@ -28,11 +30,12 @@ class TestRequestHandler implements AdministrativeMessageHandler {
             log.debug("Test request received for session " + NettyHandlerAwareSessionState.getForChannelContext(ctx).getSessionId() + ", responding with heartbeat");
         }
         fixMessage.retain();
-        ctx.writeAndFlush(FixMessageUtils.toHeartbeatMessage(fixMessage, fixMessage.<CharArrayField>getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER).getValue())).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+        final CharSequenceField testReqID = fixMessage.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER);
+        ctx.writeAndFlush(FixMessageUtils.toHeartbeatMessage(fixMessage, testReqID.getUnderlyingValue(), testReqID.getLength())).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
     }
 
     @Override
-    public char[] supportedMessageType() {
-        return FixConstants.TEST_REQUEST;
+    public CharSequence supportedMessageType() {
+        return SUPPORTED_MESSAGE_TYPE;
     }
 }

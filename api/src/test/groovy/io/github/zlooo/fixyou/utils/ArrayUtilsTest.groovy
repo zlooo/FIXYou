@@ -1,6 +1,6 @@
-package io.github.zlooo.fixyou.commons.utils
+package io.github.zlooo.fixyou.utils
 
-import io.github.zlooo.fixyou.commons.utils.ArrayUtils
+import io.github.zlooo.fixyou.utils.ArrayUtils
 import spock.lang.Specification
 
 class ArrayUtilsTest extends Specification {

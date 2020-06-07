@@ -1,7 +1,7 @@
 package io.github.zlooo.fixyou.netty.utils;
 
 import io.github.zlooo.fixyou.Resettable;
-import io.github.zlooo.fixyou.commons.utils.ArrayUtils;
+import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.netty.handler.Handlers;
 import io.github.zlooo.fixyou.netty.handler.MutableIdleStateHandler;

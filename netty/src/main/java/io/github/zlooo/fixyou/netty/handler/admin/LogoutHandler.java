@@ -14,6 +14,8 @@ import javax.inject.Singleton;
 @Slf4j
 class LogoutHandler implements AdministrativeMessageHandler {
 
+    private static final CharSequence SUPPORTED_MESSAGE_TYPE = String.copyValueOf(FixConstants.LOGOUT);
+
     @Inject
     LogoutHandler() {
     }
@@ -33,8 +35,8 @@ class LogoutHandler implements AdministrativeMessageHandler {
     }
 
     @Override
-    public char[] supportedMessageType() {
-        return FixConstants.LOGOUT;
+    public CharSequence supportedMessageType() {
+        return SUPPORTED_MESSAGE_TYPE;
     }
 }
 

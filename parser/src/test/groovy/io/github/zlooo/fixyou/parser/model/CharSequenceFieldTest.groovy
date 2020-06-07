@@ -6,12 +6,12 @@ import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
 
-class CharArrayFieldTest extends Specification {
+class CharSequenceFieldTest extends Specification {
 
-    private CharArrayField field
+    private CharSequenceField field
 
     void setup() {
-        field = new CharArrayField( 1);
+        field = new CharSequenceField(1);
         field.fieldData.writeCharSequence("test", StandardCharsets.US_ASCII)
     }
 

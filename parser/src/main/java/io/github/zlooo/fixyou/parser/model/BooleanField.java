@@ -8,12 +8,10 @@ public class BooleanField extends AbstractField {
 
     private static final byte Y_IN_ASCII = 89;
     private static final byte N_IN_ASCII = 78;
-    private static final int FIELD_DATA_LENGTH = 1;
-    private boolean parsed;
     private boolean value;
 
     public BooleanField(int number) {
-        super(number, FIELD_DATA_LENGTH, false);
+        super(number);
     }
 
     @Override
@@ -22,8 +20,8 @@ public class BooleanField extends AbstractField {
     }
 
     public boolean getValue() {
-        if (!parsed) {
-            fieldData.readerIndex(0);
+        if (!valueSet) {
+            fieldData.readerIndex(startIndex);
             switch (fieldData.readByte()) {
                 case Y_IN_ASCII:
                     value = true;
@@ -34,19 +32,23 @@ public class BooleanField extends AbstractField {
                 default:
                     throw new IllegalArgumentException("Value " + fieldData.getByte(0) + " is unsupported in boolean field. Expecting either 'Y' or 'N'");
             }
-            parsed = true;
+            valueSet = true;
         }
         return value;
     }
 
     public void setValue(boolean state) {
         this.value = state;
-        this.parsed = true;
-        fieldData.clear().writeByte(state ? Y_IN_ASCII : N_IN_ASCII);
+        this.valueSet = true;
+    }
+
+    @Override
+    public int getLength() {
+        return 1;
     }
 
     @Override
     protected void resetInnerState() {
-        parsed = false;
+        // nothing to do
     }
 }

@@ -3,7 +3,7 @@ package io.github.zlooo.fixyou.netty.handler.validation
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.model.ApplicationVersionID
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
-import io.github.zlooo.fixyou.parser.model.CharArrayField
+import io.github.zlooo.fixyou.parser.model.CharSequenceField
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import spock.lang.Specification
 
@@ -55,10 +55,10 @@ class ValidationOperationsTest extends Specification {
     private static FixMessage createFixMessage(LocalDateTime origSendingTime, LocalDateTime sendingTime) {
         def fixMessage = new FixMessage(TestSpec.INSTANCE)
         if (origSendingTime != null) {
-            fixMessage.<CharArrayField> getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).setValue(FixConstants.UTC_TIMESTAMP_FORMATTER.format(origSendingTime).toCharArray())
+            fixMessage.<CharSequenceField> getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).setValue(FixConstants.UTC_TIMESTAMP_FORMATTER.format(origSendingTime).toCharArray())
         }
         if (sendingTime != null) {
-            fixMessage.<CharArrayField> getField(FixConstants.SENDING_TIME_FIELD_NUMBER).setValue(FixConstants.UTC_TIMESTAMP_FORMATTER.format(sendingTime).toCharArray())
+            fixMessage.<CharSequenceField> getField(FixConstants.SENDING_TIME_FIELD_NUMBER).setValue(FixConstants.UTC_TIMESTAMP_FORMATTER.format(sendingTime).toCharArray())
         }
         return fixMessage
     }

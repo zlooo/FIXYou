@@ -3,7 +3,7 @@ package io.github.zlooo.fixyou.netty.handler.admin
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils
-import io.github.zlooo.fixyou.parser.model.CharArrayField
+import io.github.zlooo.fixyou.parser.model.CharSequenceField
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.parser.model.LongField
 import io.netty.channel.ChannelFuture
@@ -50,7 +50,7 @@ class RetransmitionSubscriberTest extends Specification {
         setup:
         FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
         fixMessage.retain()
-        fixMessage.<CharArrayField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue("D".toCharArray())
+        fixMessage.<CharSequenceField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue("D".toCharArray())
         def sendingTime = FixConstants.UTC_TIMESTAMP_FORMATTER.format(LocalDateTime.now()).toCharArray()
         fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).value = sendingTime
 
@@ -71,7 +71,7 @@ class RetransmitionSubscriberTest extends Specification {
         FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
         fixMessage.retain()
         FixMessage gapFill = new FixMessage(TestSpec.INSTANCE)
-        fixMessage.<CharArrayField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue("D".toCharArray())
+        fixMessage.<CharSequenceField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue("D".toCharArray())
         def sendingTime = FixConstants.UTC_TIMESTAMP_FORMATTER.format(LocalDateTime.now()).toCharArray()
         fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).value = sendingTime
         fixMessageSubscriber.@fromValue = 666
@@ -97,7 +97,7 @@ class RetransmitionSubscriberTest extends Specification {
         setup:
         FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
         fixMessage.retain()
-        fixMessage.<CharArrayField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue("0".toCharArray())
+        fixMessage.<CharSequenceField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue("0".toCharArray())
         fixMessage.<LongField> getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).setValue(666)
 
         when:
@@ -114,7 +114,7 @@ class RetransmitionSubscriberTest extends Specification {
         setup:
         FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
         fixMessage.retain()
-        fixMessage.<CharArrayField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue("0".toCharArray())
+        fixMessage.<CharSequenceField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue("0".toCharArray())
         fixMessage.<LongField> getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).setValue(666)
         fixMessageSubscriber.@fromValue = 665
         fixMessageSubscriber.@toValue = 665
@@ -133,7 +133,7 @@ class RetransmitionSubscriberTest extends Specification {
         setup:
         FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
         fixMessage.retain()
-        fixMessage.<CharArrayField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue("0".toCharArray())
+        fixMessage.<CharSequenceField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue("0".toCharArray())
         fixMessage.<LongField> getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).setValue(666)
 
         when:

@@ -7,5 +7,5 @@ public interface AdministrativeMessageHandler {
 
     void handleMessage(FixMessage fixMessage, ChannelHandlerContext ctx);
 
-    char[] supportedMessageType();
+    CharSequence supportedMessageType();
 }

@@ -11,19 +11,19 @@ public class FIXYouParser {
     private static final String SAMPLE_FIX_MESSAGE = "8=FIX.4.2|9=154|35=6|49=BRKR|56=INVMGR|34=238|52=19980604-07:59:56|23=115686|28=N|55=FIA.MI|54=2|27=250000|44=7900.000000|25=H|10=231|";
 
     private ByteBuf byteBufBytes;
-    private FixMessageReader fixMessageReader;
+    private FixMessageParser fixMessageParser;
 
     @Setup
     public void setUp() {
         final byte[] msgBytes = SAMPLE_FIX_MESSAGE.replace('|', '\u0001').getBytes();
         byteBufBytes = Unpooled.directBuffer(msgBytes.length);
         byteBufBytes.writeBytes(msgBytes);
-        fixMessageReader = new FixMessageReader();
+        fixMessageParser = new FixMessageParser();
     }
 
     @TearDown
     public void tearDown() {
-        final FixMessage fixMessage = fixMessageReader.getFixMessage();
+        final FixMessage fixMessage = fixMessageParser.getFixMessage();
         if (fixMessage != null) {
             fixMessage.release();
         }
@@ -33,7 +33,7 @@ public class FIXYouParser {
     @Benchmark
     @BenchmarkMode({Mode.Throughput, Mode.SampleTime})
     public void fixMessageReaderTest(FIXYouParser parser) throws Exception {
-        fixMessageReader.setFixBytes(parser.byteBufBytes);
-        fixMessageReader.parseFixMsgBytes();
+        fixMessageParser.setFixBytes(parser.byteBufBytes);
+        fixMessageParser.parseFixMsgBytes();
     }
 }

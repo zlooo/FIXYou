@@ -7,56 +7,60 @@ import io.github.zlooo.fixyou.model.FieldType;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
-import lombok.Getter;
-import lombok.ToString;
+import lombok.*;
 
 import java.nio.charset.StandardCharsets;
 
-@Getter
+@EqualsAndHashCode
 @ToString
 public abstract class AbstractField implements Closeable {
-    public static final byte FIELD_TERMINATOR = 1;
-    private static final byte FIELD_VALUE_SEPARATOR = 61;
 
+    @Getter
     protected final ByteBuf encodedFieldNumber;
-    protected final ByteBuf fieldData;
+    @Getter
     protected final int number;
+    @Setter(AccessLevel.PROTECTED)
+    protected ByteBuf fieldData;
+    protected int startIndex;
+    protected int endIndexIndex;
+    protected boolean valueSet;
 
-    public AbstractField(int number, int fieldDataLength, boolean resizable) {
-        this.fieldData = Unpooled.directBuffer(fieldDataLength, resizable ? Integer.MAX_VALUE : fieldDataLength);
+    public AbstractField(int number) {
         this.number = number;
         final ReusableCharArray fieldNumberAsChar = FieldUtils.toCharSequence(number);
         final int encodedFieldNumberCapacity = fieldNumberAsChar.length() + 1;
         encodedFieldNumber = Unpooled.directBuffer(encodedFieldNumberCapacity, encodedFieldNumberCapacity);
         encodedFieldNumber.writeCharSequence(fieldNumberAsChar, StandardCharsets.US_ASCII);
-        encodedFieldNumber.writeByte(FIELD_VALUE_SEPARATOR);
+        encodedFieldNumber.writeByte(FixMessage.FIELD_VALUE_SEPARATOR);
         ReferenceCountUtil.release(fieldNumberAsChar);
+    }
+
+    public void setIndexes(int newStartIndex, int newEndIndexIndex) {
+        this.startIndex = newStartIndex;
+        this.endIndexIndex = newEndIndexIndex;
+        this.valueSet = true;
+    }
+
+    public boolean isValueSet() {
+        return valueSet;
+    }
+
+    public int getLength() {
+        return endIndexIndex - startIndex;
     }
 
     public abstract FieldType getFieldType();
 
     protected abstract void resetInnerState();
 
-    public void setFieldData(ByteBuf fieldData) {
-        this.fieldData.clear();
-        this.fieldData.writeBytes(fieldData.readerIndex(0));
-    }
-
-    public void setFieldData(byte[] bytes) {
-        this.fieldData.clear();
-        this.fieldData.writeBytes(bytes);
-    }
-
-    public boolean isValueSet() {
-        return this.fieldData.writerIndex() > 0;
-    }
-
     public void reset() {
-        if (isValueSet()) {
+        if (valueSet) {
             resetInnerState();
         }
         this.encodedFieldNumber.readerIndex(0);
-        this.fieldData.clear();
+        this.startIndex = 0;
+        this.endIndexIndex = 0;
+        this.valueSet = false;
     }
 
     @Override
@@ -65,9 +69,7 @@ public abstract class AbstractField implements Closeable {
         if (encodedFieldNumberRefCount > 0) {
             encodedFieldNumber.release(encodedFieldNumberRefCount);
         }
-        final int fieldDataRefCount = fieldData.refCnt();
-        if (fieldDataRefCount > 0) {
-            fieldData.release(fieldDataRefCount);
-        }
     }
+
+    public abstract void appendByteBufWithValue(ByteBuf out);
 }

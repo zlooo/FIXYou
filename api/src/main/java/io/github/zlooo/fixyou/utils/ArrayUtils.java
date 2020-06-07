@@ -1,4 +1,4 @@
-package io.github.zlooo.fixyou.commons.utils;
+package io.github.zlooo.fixyou.utils;
 
 import lombok.experimental.UtilityClass;
 
@@ -35,34 +35,28 @@ public final class ArrayUtils {
         return false;
     }
 
-    /**
-     * Simplified and unoptimized version of what can be found in JDK 9+
-     */
-    public static int compare(char[] a, char[] b) { //TODO either backport from JDK 9 or just optimize this method
-        if (a == b) {
-            return 0;
+    public static boolean equals(char[] array, CharSequence sequence) {
+        final int length = array.length;
+        if (length != sequence.length()) {
+            return false;
         }
-        if (a == null || b == null) {
-            return a == null ? -1 : 1;
-        }
-
-        final int i = mismatch(a, b, Math.min(a.length, b.length));
-        final int result;
-        if (i >= 0) {
-            result = Character.compare(a[i], b[i]);
-        } else {
-            result = a.length - b.length;
-        }
-        return result;
-    }
-
-    private static int mismatch(char[] a, char[] b, int length) {
-        int i = 0;
-        for (; i < length; i++) {
-            if (a[i] != b[i]) {
-                return i;
+        for (int i = 0; i < length; i++) {
+            if (array[i] != sequence.charAt(i)) {
+                return false;
             }
         }
-        return -1;
+        return true;
+    }
+
+    public static boolean equals(char[] array, int arrayLength, char[] secondArray) { //TODO JMH if this method makes sense, maybe it ok to just use above equals all the time?
+        if (arrayLength != secondArray.length) {
+            return false;
+        }
+        for (int i = 0; i < arrayLength; i++) {
+            if (array[i] != secondArray[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 }

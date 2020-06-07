@@ -1,7 +1,7 @@
 package io.github.zlooo.fixyou.netty.test.framework
 
 import io.github.zlooo.fixyou.FixConstants
-import io.github.zlooo.fixyou.parser.model.CharArrayField
+import io.github.zlooo.fixyou.parser.model.CharSequenceField
 import io.github.zlooo.fixyou.parser.model.CharField
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import quickfix.SessionID
@@ -79,10 +79,10 @@ class FixMessages {
 
     static Consumer<FixMessage> createFIXYouNewOrderSingle(UUID clordid) {
         return { fixMessage ->
-            fixMessage.<CharArrayField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(NewOrderSingle.MSGTYPE.toCharArray())
-            fixMessage.<CharArrayField> getField(ClOrdID.FIELD).setValue(clordid.toString().toCharArray())
+            fixMessage.<CharSequenceField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(NewOrderSingle.MSGTYPE.toCharArray())
+            fixMessage.<CharSequenceField> getField(ClOrdID.FIELD).setValue(clordid.toString().toCharArray())
             fixMessage.<CharField> getField(Side.FIELD).setValue(Side.BUY)
-            fixMessage.<CharArrayField> getField(TransactTime.FIELD).setValue(FixConstants.UTC_TIMESTAMP_FORMATTER.format(OffsetDateTime.now(ZoneOffset.UTC)).toCharArray())
+            fixMessage.<CharSequenceField> getField(TransactTime.FIELD).setValue(FixConstants.UTC_TIMESTAMP_FORMATTER.format(OffsetDateTime.now(ZoneOffset.UTC)).toCharArray())
             fixMessage.<CharField> getField(OrdType.FIELD).setValue(OrdType.MARKET)
         }
     }

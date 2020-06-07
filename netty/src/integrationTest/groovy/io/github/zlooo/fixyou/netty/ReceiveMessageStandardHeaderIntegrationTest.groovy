@@ -3,7 +3,7 @@ package io.github.zlooo.fixyou.netty
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.netty.test.framework.FixMessages
 import io.github.zlooo.fixyou.netty.test.framework.QuickfixTestUtils
-import io.github.zlooo.fixyou.parser.model.CharArrayField
+import io.github.zlooo.fixyou.parser.model.CharSequenceField
 import io.github.zlooo.fixyou.parser.model.CharField
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import quickfix.Session
@@ -416,9 +416,9 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
     }
 
     void assertMinimalNewOrderSingle(NewOrderSingle expected, FixMessage actual) {
-        assert actual.<CharArrayField> getField(ClOrdID.FIELD).value == expected.getClOrdID().value.toCharArray()
+        assert actual.<CharSequenceField> getField(ClOrdID.FIELD).value == expected.getClOrdID().value.toCharArray()
         assert actual.<CharField> getField(Side.FIELD).value == expected.getSide().value
-        assert actual.<CharArrayField> getField(TransactTime.FIELD).value == expected.
+        assert actual.<CharSequenceField> getField(TransactTime.FIELD).value == expected.
                 getTransactTime().
                 value.
                 format(DateTimeFormatter.ofPattern("YYYYMMdd-HH:mm:ss.SSS")).

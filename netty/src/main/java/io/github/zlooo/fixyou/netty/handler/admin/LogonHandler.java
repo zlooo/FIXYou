@@ -34,6 +34,8 @@ import javax.inject.Singleton;
 @Slf4j
 class LogonHandler implements AdministrativeMessageHandler {
 
+    private static final CharSequence SUPPORTED_MESSAGE_TYPE = String.copyValueOf(FixConstants.LOGON);
+
     @Nullable
     private final Authenticator authenticator;
     private final SessionRegistry<NettyHandlerAwareSessionState> sessionRegistry;
@@ -137,7 +139,7 @@ class LogonHandler implements AdministrativeMessageHandler {
     }
 
     @Override
-    public char[] supportedMessageType() {
-        return FixConstants.LOGON;
+    public CharSequence supportedMessageType() {
+        return SUPPORTED_MESSAGE_TYPE;
     }
 }

@@ -12,6 +12,8 @@ import javax.inject.Singleton;
 @ChannelHandler.Sharable
 class HeartbeatHandler implements AdministrativeMessageHandler {
 
+    private static final CharSequence SUPPORTED_MESSAGE_TYPE = String.copyValueOf(FixConstants.HEARTBEAT);
+
     @Inject
     HeartbeatHandler() {
     }
@@ -22,7 +24,7 @@ class HeartbeatHandler implements AdministrativeMessageHandler {
     }
 
     @Override
-    public char[] supportedMessageType() {
-        return FixConstants.HEARTBEAT;
+    public CharSequence supportedMessageType() {
+        return SUPPORTED_MESSAGE_TYPE;
     }
 }

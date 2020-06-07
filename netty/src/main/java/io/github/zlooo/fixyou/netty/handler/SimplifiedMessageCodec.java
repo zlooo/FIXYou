@@ -2,14 +2,14 @@ package io.github.zlooo.fixyou.netty.handler;
 
 import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.FixConstants;
-import io.github.zlooo.fixyou.commons.utils.ArrayUtils;
+import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.github.zlooo.fixyou.model.ApplicationVersionID;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.netty.utils.ValueAddingByteProcessor;
 import io.github.zlooo.fixyou.parser.FixFieldsTypes;
-import io.github.zlooo.fixyou.parser.FixMessageReader;
+import io.github.zlooo.fixyou.parser.FixMessageParser;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage;
 import io.netty.buffer.ByteBuf;
@@ -30,7 +30,7 @@ import javax.inject.Singleton;
 class SimplifiedMessageCodec extends AbstractMessageEncoder implements ChannelInboundHandler {
 
     private static final SimplifiedSpec SIMPLIFIED_SPEC = new SimplifiedSpec();
-    private final FixMessageReader fixMessageReader = new FixMessageReader();
+    private final FixMessageParser fixMessageParser = new FixMessageParser();
 
     @Inject
     SimplifiedMessageCodec() {
@@ -41,17 +41,17 @@ class SimplifiedMessageCodec extends AbstractMessageEncoder implements ChannelIn
         if (msg instanceof ByteBuf) {
             final ByteBuf in = (ByteBuf) msg;
             try {
-                fixMessageReader.setFixBytes(in);
+                fixMessageParser.setFixBytes(in);
                 /**
                  * This handler should handle 1 message only anyway, first logon, so we can afford invocation of {@link FixMessage#FixMessage(FixSpec)}. After that it's removed
                  * from
                  * pipeline by {@link io.github.zlooo.fixyou.netty.handler.admin.LogonHandler#addRequiredChannelsToPipeline(ChannelHandlerContext, NettyHandlerAwareSessionState)}
                  */
                 final FixMessage fixMessage = new NotPoolableFixMessage(SIMPLIFIED_SPEC);
-                fixMessageReader.setFixMessage(fixMessage);
-                fixMessageReader.parseFixMsgBytes();
-                if (fixMessageReader.isDone()) {
-                    ctx.fireChannelRead(fixMessageReader.getFixMessage());
+                fixMessageParser.setFixMessage(fixMessage);
+                fixMessageParser.parseFixMsgBytes();
+                if (fixMessageParser.isDone()) {
+                    ctx.fireChannelRead(fixMessageParser.getFixMessage());
                 } else {
                     log.error("Incomplete logon message arrived, closing channel {}", ctx.channel());
                     /**

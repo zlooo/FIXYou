@@ -1,9 +1,9 @@
 package io.github.zlooo.fixyou.netty.handler.validation;
 
 import io.github.zlooo.fixyou.FixConstants;
-import io.github.zlooo.fixyou.commons.utils.ArrayUtils;
+import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
-import io.github.zlooo.fixyou.parser.model.CharArrayField;
+import io.github.zlooo.fixyou.parser.model.CharSequenceField;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.LongField;
 import lombok.experimental.UtilityClass;
@@ -14,9 +14,9 @@ import lombok.extern.slf4j.Slf4j;
 public class ValidationOperations {
 
     static boolean checkOrigSendingTime(FixMessage msg) {
-        final CharArrayField origSendingTime = msg.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER);
+        final CharSequenceField origSendingTime = msg.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER);
         if (origSendingTime != null && origSendingTime.isValueSet()) {
-            final CharArrayField sendingTime = msg.getField(FixConstants.SENDING_TIME_FIELD_NUMBER);
+            final CharSequenceField sendingTime = msg.getField(FixConstants.SENDING_TIME_FIELD_NUMBER);
             return ArrayUtils.compare(origSendingTime.getValue(), sendingTime.getValue()) <= 0;
         }
         return true;

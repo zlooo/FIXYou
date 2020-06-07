@@ -24,6 +24,7 @@ import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.parser.model.AbstractField;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.GroupField;
+import io.github.zlooo.fixyou.parser.model.ParsingUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ByteProcessor;
@@ -38,12 +39,13 @@ import java.util.Deque;
 
 @Slf4j
 @NoArgsConstructor
-public class FixMessageReader {
+public class FixMessageParser {
 
-    private static final int RADIX = 10;
-    private static final ByteProcessor FIELD_TERMINATOR_FINDER = new ByteProcessor.IndexOfProcessor(AbstractField.FIELD_TERMINATOR);
+    private static final ByteProcessor FIELD_TERMINATOR_FINDER = new ByteProcessor.IndexOfProcessor(FixMessage.FIELD_SEPARATOR_BYTE);
     private static final String FIELD_NOT_FOUND_IN_MESSAGE_SPEC_LOG = "Field {} not found in message spec";
     private static final int NOT_FOUND = -1;
+    private static final int MAX_CAPACITY_REACHED = 3;
+    private static final int NOT_ENOUGH_BYTES_IN_BUFFER = 1;
     private ByteBuf parseableBytes = Unpooled.EMPTY_BUFFER; //TODO think about custom implementation of CompositeByteBuf, maybe it'll come in handy here? You wouldn't have to copy incoming data
     @Getter
     @Setter
@@ -53,18 +55,10 @@ public class FixMessageReader {
     private boolean parsingRepeatingGroup;
     private final Deque<GroupField> groupFieldsStack = new ArrayDeque<>(DefaultConfiguration.NESTED_REPEATING_GROUPS);
 
-    /**
-     * @param fixMessage FixMessage object to be read/parsed by the object of this class, at the time of initialization.
-     */
-    public FixMessageReader(FixMessage fixMessage) {
+    public FixMessageParser(FixMessage fixMessage) {
         this.fixMessage = fixMessage;
     }
 
-    /**
-     * Accepts a new Fix Message ByteBufferBytes. This method is a precursor to parseFixMsgBytes()
-     *
-     * @param fixMsgBufBytes - Fix message from client in bytes
-     */
     public void setFixBytes(@Nonnull ByteBuf fixMsgBufBytes) {
         parseable = true;
         if (parseableBytes.writerIndex() == 0) {
@@ -74,7 +68,7 @@ public class FixMessageReader {
         } else {
             final int ensureWritableResult = parseableBytes.ensureWritable(fixMsgBufBytes.readableBytes(), true);
             log.debug("Ensure writable result is {}", ensureWritableResult);
-            if (ensureWritableResult == 1 || ensureWritableResult == 3) {
+            if (ensureWritableResult == NOT_ENOUGH_BYTES_IN_BUFFER || ensureWritableResult == MAX_CAPACITY_REACHED) {
                 final ByteBuf oldbuffer = this.parseableBytes;
                 this.parseableBytes =
                         fixMsgBufBytes.alloc().directBuffer(parseableBytes.readableBytes() + fixMsgBufBytes.writerIndex()).writeBytes(this.parseableBytes, this.parseableBytes.readerIndex(), this.parseableBytes.readableBytes());
@@ -92,7 +86,7 @@ public class FixMessageReader {
         int closestFieldTerminatorIndex;
 
         while ((closestFieldTerminatorIndex = parseableBytes.forEachByte(FIELD_TERMINATOR_FINDER)) != NOT_FOUND) {
-            final int fieldNum = parseFieldNumer(parseableBytes);
+            final int fieldNum = ParsingUtils.parseInteger(parseableBytes, FixMessage.FIELD_SEPARATOR_BYTE);
             AbstractField field = null;
             if (!parsingRepeatingGroup) {
                 field = fixMessage.getField(fieldNum);
@@ -107,11 +101,10 @@ public class FixMessageReader {
             final int start = parseableBytes.readerIndex();
             parseableBytes.readerIndex(closestFieldTerminatorIndex + 1);
             if (field != null) {
-                field.getFieldData().writeBytes(parseableBytes, start, closestFieldTerminatorIndex - start);
+                field.setIndexes(start, closestFieldTerminatorIndex);
                 if (field.getFieldType() == FieldType.GROUP) {
                     parsingRepeatingGroup = true;
                     final GroupField groupField = (GroupField) field;
-                    groupField.parseRepetitionsNumber();
                     groupFieldsStack.addFirst(groupField);
                 }
             } else {
@@ -122,12 +115,11 @@ public class FixMessageReader {
                     parseableBytes.release();
                     parseableBytes = Unpooled.EMPTY_BUFFER;
                 }
+                fixMessage.setMessageByteSource(parseableBytes);
                 return;
             }
         }
-        if (closestFieldTerminatorIndex == NOT_FOUND) {
-            parseable = false;
-        }
+        parseable = false;
     }
 
     private AbstractField handleNestedRepeatingGroup(int fieldNum) {
@@ -141,22 +133,6 @@ public class FixMessageReader {
         }
         parsingRepeatingGroup = false;
         return fixMessage.getField(fieldNum);
-    }
-
-    private int parseFieldNumer(ByteBuf message) {
-        int num = 0;
-        boolean negative = false;
-        while (true) {
-            final short b = message.readUnsignedByte();
-            if ((b - ('0' + Integer.MIN_VALUE)) <= 9 + Integer.MIN_VALUE) {
-                num = num * RADIX + b - '0';
-            } else if (b == '-') {
-                negative = true;
-            } else if (b == '=') {
-                break;
-            }
-        }
-        return negative ? -num : num;
     }
 
     public boolean isDone() {

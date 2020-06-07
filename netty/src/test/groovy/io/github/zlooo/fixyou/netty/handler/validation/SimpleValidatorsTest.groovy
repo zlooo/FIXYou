@@ -1,5 +1,6 @@
 package io.github.zlooo.fixyou.netty.handler.validation
 
+import io.github.zlooo.fixyou.parser.model.CharSequenceField
 import io.netty.channel.ChannelFuture
 import io.netty.channel.ChannelFutureListener
 import io.netty.channel.ChannelHandlerContext
@@ -56,7 +57,7 @@ class SimpleValidatorsTest extends Specification {
     private static io.github.zlooo.fixyou.parser.model.FixMessage createFixMessage(LocalDateTime origSendingTime, Boolean possDupFlag) {
         def fixMessage = new io.github.zlooo.fixyou.parser.model.FixMessage(io.github.zlooo.fixyou.netty.handler.admin.TestSpec.INSTANCE)
         if (origSendingTime != null) {
-            fixMessage.<io.github.zlooo.fixyou.parser.model.CharArrayField> getField(io.github.zlooo.fixyou.FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).setValue(io.
+            fixMessage.<CharSequenceField> getField(io.github.zlooo.fixyou.FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).setValue(io.
                     github.
                     zlooo.
                     fixyou.

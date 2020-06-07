@@ -9,11 +9,10 @@ import lombok.extern.slf4j.Slf4j;
 @ToString(callSuper = true)
 public class CharField extends AbstractField {
 
-    private static final int FIELD_DATA_LENGTH = 1;
     private char value = Character.MIN_VALUE;
 
     public CharField(int number) {
-        super(number, FIELD_DATA_LENGTH, false);
+        super(number);
     }
 
     @Override
@@ -23,7 +22,7 @@ public class CharField extends AbstractField {
 
     public char getValue() {
         if (value == Character.MIN_VALUE) {
-            fieldData.readerIndex(0);
+            fieldData.readerIndex(startIndex);
             value = AsciiString.b2c(fieldData.readByte());
         }
         return value;
@@ -31,7 +30,12 @@ public class CharField extends AbstractField {
 
     public void setValue(char value) {
         this.value = value;
-        fieldData.clear().writeByte(AsciiString.c2b(value));
+        this.valueSet = true;
+    }
+
+    @Override
+    public int getLength() {
+        return 1;
     }
 
     @Override

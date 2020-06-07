@@ -2,7 +2,7 @@ package io.github.zlooo.fixyou.netty.handler;
 
 import io.github.zlooo.fixyou.Resettable;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
-import io.github.zlooo.fixyou.parser.FixMessageReader;
+import io.github.zlooo.fixyou.parser.FixMessageParser;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
@@ -19,7 +19,7 @@ class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable 
         DECODING
     }
 
-    private final FixMessageReader fixMessageReader = new FixMessageReader();
+    private final FixMessageParser fixMessageParser = new FixMessageParser();
     private State state = State.READY_TO_DECODE;
     private ObjectPool<FixMessage> fixMessagePool;
 
@@ -32,15 +32,15 @@ class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable 
         if (msg instanceof ByteBuf) {
             final ByteBuf in = (ByteBuf) msg;
             try {
-                fixMessageReader.setFixBytes(in);
-                while (fixMessageReader.isParseable() && fixMessageReader.isUnderlyingBufferReadable()) {
+                fixMessageParser.setFixBytes(in);
+                while (fixMessageParser.isParseable() && fixMessageParser.isUnderlyingBufferReadable()) {
                     if (state == State.READY_TO_DECODE) {
                         final FixMessage fixMessage = fixMessagePool.getAndRetain();
-                        fixMessageReader.setFixMessage(fixMessage);
+                        fixMessageParser.setFixMessage(fixMessage);
                     }
-                    fixMessageReader.parseFixMsgBytes();
-                    if (fixMessageReader.isDone()) {
-                        final FixMessage fixMessage = fixMessageReader.getFixMessage();
+                    fixMessageParser.parseFixMsgBytes();
+                    if (fixMessageParser.isDone()) {
+                        final FixMessage fixMessage = fixMessageParser.getFixMessage();
                         log.trace("Message after decoding {}", fixMessage);
                         ctx.fireChannelRead(fixMessage);
                         state = State.READY_TO_DECODE;

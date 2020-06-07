@@ -20,6 +20,8 @@ import javax.inject.Singleton;
 @Singleton
 class ResendRequestHandler implements AdministrativeMessageHandler {
 
+    private static final CharSequence SUPPORTED_MESSAGE_TYPE = String.copyValueOf(FixConstants.RESEND_REQUEST);
+
     private final ObjectPool<RetransmitionSubscriber> retransmissionSubscriberPool;
 
     @Inject
@@ -46,7 +48,7 @@ class ResendRequestHandler implements AdministrativeMessageHandler {
     }
 
     @Override
-    public char[] supportedMessageType() {
-        return FixConstants.RESEND_REQUEST;
+    public CharSequence supportedMessageType() {
+        return SUPPORTED_MESSAGE_TYPE;
     }
 }

@@ -24,7 +24,7 @@ public class FieldTypeUtils {
                 newField = (T) new BooleanField(fieldNumber);
                 break;
             case CHAR_ARRAY:
-                newField = (T) new CharArrayField(fieldNumber);
+                newField = (T) new CharSequenceField(fieldNumber);
                 break;
             case CHAR:
                 newField = (T) new CharField(fieldNumber);

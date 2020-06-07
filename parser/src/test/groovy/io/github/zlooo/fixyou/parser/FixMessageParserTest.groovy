@@ -6,12 +6,12 @@ import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
 
-class FixMessageReaderTest extends Specification {
+class FixMessageParserTest extends Specification {
 
     private static final FixSpec50SP2 fixSpec50SP2 = new FixSpec50SP2()
     @AutoCleanup("close")
     private io.github.zlooo.fixyou.parser.model.FixMessage fixMessage = new io.github.zlooo.fixyou.parser.model.FixMessage(fixSpec50SP2)
-    private FixMessageReader fixMessageReader = new FixMessageReader(fixMessage)
+    private FixMessageParser fixMessageReader = new FixMessageParser(fixMessage)
 
     def "should parse new order single message, simple message case"() {
         setup:

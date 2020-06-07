@@ -13,7 +13,7 @@ import io.github.zlooo.fixyou.netty.handler.SessionAwareChannelInboundHandler
 import io.github.zlooo.fixyou.netty.utils.DelegatingChannelHandlerContext
 import io.github.zlooo.fixyou.netty.utils.FixChannelListeners
 import io.github.zlooo.fixyou.netty.utils.PipelineUtils
-import io.github.zlooo.fixyou.parser.model.CharArrayField
+import io.github.zlooo.fixyou.parser.model.CharSequenceField
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.*
 import io.netty.channel.*
@@ -113,8 +113,8 @@ class LogonHandlerTest extends Specification {
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
         1 * channelFuture.addListener(FixChannelListeners.LOGOUT_SENT) >> channelFuture
         fixMessage.refCnt() == 1
-        fixMessage.<CharArrayField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getValue() == ['5'] as char[]
-        fixMessage.<CharArrayField> getField(FixConstants.TEXT_FIELD_NUMBER).getValue() == LogoutTexts.BAD_CREDENTIALS
+        fixMessage.<CharSequenceField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getValue() == ['5'] as char[]
+        fixMessage.<CharSequenceField> getField(FixConstants.TEXT_FIELD_NUMBER).getValue() == LogoutTexts.BAD_CREDENTIALS
         sessionState.channel == null
         0 * _
     }

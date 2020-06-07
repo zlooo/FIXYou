@@ -45,11 +45,11 @@ class RetransmitionSubscriber extends AbstractPoolableObject implements LongSubs
             if (!FixMessageUtils.isAdminMessage(fixMessage)) {
                 sendGapFillIfNecessary();
                 fixMessage.<BooleanField>getField(FixConstants.POSSIBLE_DUPLICATE_FLAG_FIELD_NUMBER).setValue(true);
-                final CharArrayField origSendingTimeField = fixMessage.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER);
+                final CharSequenceField origSendingTimeField = fixMessage.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER);
                 origSendingTimeField.reset();
-                final AbstractField sendingTimeField = fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER);
+                final CharSequenceField sendingTimeField = fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER);
                 if (sendingTimeField.isValueSet()) {
-                    origSendingTimeField.setFieldData(sendingTimeField.getFieldData());
+                    origSendingTimeField.setValue(sendingTimeField);
                 }
                 channelHandlerContext.write(fixMessage).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
             } else {

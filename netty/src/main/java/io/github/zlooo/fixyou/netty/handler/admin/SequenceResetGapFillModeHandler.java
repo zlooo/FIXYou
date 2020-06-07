@@ -10,6 +10,8 @@ import javax.inject.Singleton;
 @Singleton
 class SequenceResetGapFillModeHandler implements AdministrativeMessageHandler {
 
+    private static final CharSequence SUPPORTED_MESSAGE_TYPE = String.copyValueOf(FixConstants.SEQUENCE_RESET);
+
     @Inject
     SequenceResetGapFillModeHandler() {
     }
@@ -20,7 +22,7 @@ class SequenceResetGapFillModeHandler implements AdministrativeMessageHandler {
     }
 
     @Override
-    public char[] supportedMessageType() {
-        return FixConstants.SEQUENCE_RESET;
+    public CharSequence supportedMessageType() {
+        return SUPPORTED_MESSAGE_TYPE;
     }
 }

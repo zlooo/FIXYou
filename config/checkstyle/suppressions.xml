@@ -5,8 +5,6 @@
         "https://checkstyle.org/dtds/suppressions_1_2.dtd">
 
 <suppressions>
-    <suppress checks="MagicNumber" files="FieldUtils\.java"/>
-    <suppress checks="MagicNumber" files="FixMessageReader\.java"/>
     <suppress checks="ReturnCount" files="io.github.zlooo.fixyou.commons.pool.DefaultObjectPool\.java" lines="49" />
     <suppress checks="ReturnCount" files="io.github.zlooo.fixyou.netty.handler.MutableIdleStateHandler\.java" lines="374" />
     <suppress checks="FileLength" files="io.github.zlooo.fixyou.netty.handler.MutableIdleStateHandler\.java" />
