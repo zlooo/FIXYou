@@ -1,18 +1,15 @@
 package io.github.zlooo.fixyou.parser.model;
 
 import io.github.zlooo.fixyou.Closeable;
-import io.github.zlooo.fixyou.commons.ReusableCharArray;
-import io.github.zlooo.fixyou.commons.utils.FieldUtils;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.util.ReferenceCountUtil;
 import lombok.*;
 
 import java.nio.charset.StandardCharsets;
 
 @EqualsAndHashCode
-@ToString
+@ToString(exclude = {"encodedFieldNumber", "fieldData"})
 public abstract class AbstractField implements Closeable {
 
     @Getter
@@ -21,23 +18,24 @@ public abstract class AbstractField implements Closeable {
     protected final int number;
     @Setter(AccessLevel.PROTECTED)
     protected ByteBuf fieldData;
+    @Getter
     protected int startIndex;
-    protected int endIndexIndex;
+    @Getter
+    protected int endIndex;
     protected boolean valueSet;
 
     public AbstractField(int number) {
         this.number = number;
-        final ReusableCharArray fieldNumberAsChar = FieldUtils.toCharSequence(number);
-        final int encodedFieldNumberCapacity = fieldNumberAsChar.length() + 1;
+        final String fieldNumberAsString = Integer.toString(number); //we're doing it just on startup so we can afford it
+        final int encodedFieldNumberCapacity = fieldNumberAsString.length() + 1;
         encodedFieldNumber = Unpooled.directBuffer(encodedFieldNumberCapacity, encodedFieldNumberCapacity);
-        encodedFieldNumber.writeCharSequence(fieldNumberAsChar, StandardCharsets.US_ASCII);
+        encodedFieldNumber.writeCharSequence(fieldNumberAsString, StandardCharsets.US_ASCII);
         encodedFieldNumber.writeByte(FixMessage.FIELD_VALUE_SEPARATOR);
-        ReferenceCountUtil.release(fieldNumberAsChar);
     }
 
     public void setIndexes(int newStartIndex, int newEndIndexIndex) {
         this.startIndex = newStartIndex;
-        this.endIndexIndex = newEndIndexIndex;
+        this.endIndex = newEndIndexIndex;
         this.valueSet = true;
     }
 
@@ -46,7 +44,7 @@ public abstract class AbstractField implements Closeable {
     }
 
     public int getLength() {
-        return endIndexIndex - startIndex;
+        return endIndex - startIndex;
     }
 
     public abstract FieldType getFieldType();
@@ -59,7 +57,7 @@ public abstract class AbstractField implements Closeable {
         }
         this.encodedFieldNumber.readerIndex(0);
         this.startIndex = 0;
-        this.endIndexIndex = 0;
+        this.endIndex = 0;
         this.valueSet = false;
     }
 

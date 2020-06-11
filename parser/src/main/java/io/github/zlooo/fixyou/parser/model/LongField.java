@@ -1,10 +1,14 @@
 package io.github.zlooo.fixyou.parser.model;
 
+import io.github.zlooo.fixyou.commons.utils.FieldUtils;
 import io.github.zlooo.fixyou.model.FieldType;
+import io.netty.buffer.ByteBuf;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
+@EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class LongField extends AbstractField {
+public final class LongField extends AbstractField {
 
     public static final long DEFAULT_VALUE = Long.MIN_VALUE;
     public static final int FIELD_DATA_LENGTH = 8; // 7 digits plus optional sign
@@ -21,16 +25,22 @@ public class LongField extends AbstractField {
         return FieldType.LONG;
     }
 
+    @Override
+    public void appendByteBufWithValue(ByteBuf out) {
+        FieldUtils.writeEncoded(value, out);
+    }
+
     public long getValue() {
-        if (value == DEFAULT_VALUE) {
+        if (value == DEFAULT_VALUE && valueSet) {
             fieldData.readerIndex(startIndex);
-            value = ParsingUtils.parseLong(fieldData, FixMessage.FIELD_SEPARATOR_BYTE); //TODO run JMH test and see if you're right
+            value = ParsingUtils.parseLong(fieldData, FixMessage.FIELD_SEPARATOR); //TODO run JMH test and see if you're right
         }
         return value;
     }
 
     public void setValue(long value) {
         this.value = value;
+        this.valueSet = true;
     }
 
     @Override

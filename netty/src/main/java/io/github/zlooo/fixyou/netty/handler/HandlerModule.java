@@ -2,12 +2,10 @@ package io.github.zlooo.fixyou.netty.handler;
 
 import dagger.Module;
 import dagger.Provides;
-import io.github.zlooo.fixyou.FIXYouConfiguration;
 import io.github.zlooo.fixyou.commons.utils.ListUtils;
 import io.github.zlooo.fixyou.netty.handler.validation.SessionAwareValidators;
 import io.github.zlooo.fixyou.netty.handler.validation.SimpleValidators;
 import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelInboundHandler;
 
 import javax.inject.Singleton;
 import java.time.Clock;
@@ -30,12 +28,5 @@ public interface HandlerModule {
     @NamedHandler(Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR)
     static ChannelHandler provideBeforeSessionHandlerMessageValidatorHandler() {
         return new MessageValidationHandler(Collections.emptyList(), ListUtils.of(SessionAwareValidators.BODY_LENGTH_VALIDATOR));
-    }
-
-    @Provides
-    @Singleton
-    @NamedHandler(Handlers.ASYNC_EXECUTING_HANDLER)
-    static ChannelInboundHandler provideAsyncExecutingHandler(FIXYouConfiguration fixYouConfiguration) {
-        return new AsyncExecutingHandler(fixYouConfiguration);
     }
 }

@@ -32,6 +32,9 @@ public class FieldTypeUtils {
             case GROUP:
                 newField = (T) new GroupField(fieldNumber, fixSpec);
                 break;
+            case TIMESTAMP:
+                newField = (T) new TimestampField(fieldNumber);
+                break;
             default:
                 throw new IllegalArgumentException("Unrecognized field type " + fieldType);
         }

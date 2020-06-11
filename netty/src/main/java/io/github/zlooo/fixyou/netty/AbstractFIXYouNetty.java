@@ -38,7 +38,6 @@ abstract class AbstractFIXYouNetty implements Engine {
         fixYouNettyComponent.retransmissionSubscriberPool().close();
         ((SessionRegistry<NettyHandlerAwareSessionState>) fixYouNettyComponent.sessionRegistry()).getAll().forEach(Closeable::close);
         final io.netty.util.concurrent.Future<?> shutdownGracefully = eventLoopGroup.shutdownGracefully();
-        ((Closeable) fixYouNettyComponent.asyncExecutingHandler()).close();
         return shutdownGracefully;
     }
 

@@ -1,12 +1,12 @@
 package io.github.zlooo.fixyou.netty.handler;
 
 import io.github.zlooo.fixyou.FixConstants;
-import io.github.zlooo.fixyou.commons.utils.DateUtils;
 import io.github.zlooo.fixyou.fix.commons.RequiredFieldMissingException;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.parser.model.CharSequenceField;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
+import io.github.zlooo.fixyou.parser.model.TimestampField;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.netty.channel.*;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.time.Clock;
-import java.util.Arrays;
 
 @Singleton
 @Slf4j
@@ -53,10 +52,10 @@ class GenericHandler extends ChannelDuplexHandler { //TODO remember about unit t
             //TODO make this optional, depending on config
             checkIfFieldsArePresent(fixMessage, FixConstants.MESSAGE_TYPE_FIELD_NUMBER, FixConstants.SENDER_COMP_ID_FIELD_NUMBER, FixConstants.TARGET_COMP_ID_FIELD_NUMBER,
                                     FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER);
-            final CharArrayField sendingTimeField = fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER);
-            DateUtils.writeTimestamp(clock.millis(), sendingTimeField.getFieldData().clear(), true);
+            final long timestamp = clock.millis();
+            fixMessage.<TimestampField>getField(FixConstants.SENDING_TIME_FIELD_NUMBER).setValue(timestamp);
             if (shouldSetOrigSendingTime(fixMessage)) {
-                fixMessage.<CharSequenceField>getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).setValue(sendingTimeField);
+                fixMessage.<TimestampField>getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).setValue(timestamp);
             }
         }
         super.write(ctx, msg, promise);

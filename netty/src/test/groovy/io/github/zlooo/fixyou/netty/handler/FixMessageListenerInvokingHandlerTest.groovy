@@ -4,6 +4,7 @@ import io.github.zlooo.fixyou.fix.commons.FixMessageListener
 import io.github.zlooo.fixyou.netty.AbstractNettyAwareFixMessageListener
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
+import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.SessionID
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
@@ -18,8 +19,8 @@ class FixMessageListenerInvokingHandlerTest extends Specification {
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
     private NettyHandlerAwareSessionState sessionState = Mock()
-    private SessionID sessionID = new SessionID([] as char[], [] as char[], [] as char[])
-    private io.github.zlooo.fixyou.parser.model.FixMessage fixMessage = new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+    private SessionID sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
+    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
 
     def "should invoke fix message listener"() {
         when:
@@ -51,7 +52,7 @@ class FixMessageListenerInvokingHandlerTest extends Specification {
     private static class TestFixMessageListener extends AbstractNettyAwareFixMessageListener {
 
         @Override
-        void onFixMessage(SessionID sessionID, io.github.zlooo.fixyou.parser.model.FixMessage fixMessage) {
+        void onFixMessage(SessionID sessionID, FixMessage fixMessage) {
 
         }
     }

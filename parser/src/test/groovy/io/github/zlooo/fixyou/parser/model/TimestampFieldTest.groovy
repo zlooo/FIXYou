@@ -1,26 +1,26 @@
 package io.github.zlooo.fixyou.parser.model
 
-
 import io.netty.buffer.Unpooled
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 
-class LongFieldTest extends Specification {
+class TimestampFieldTest extends Specification {
 
-    private LongField field
+    private TimestampField field
+    private long millis = Instant.parse("2020-06-08T22:45:16.666Z").toEpochMilli()
 
     void setup() {
-        field = new LongField(1)
-        field.fieldData = Unpooled.buffer(10, 10)
-        field.fieldData.clear().writeCharSequence("123456", StandardCharsets.US_ASCII)
-        field.fieldData.writeByte(0x01)
-        field.setIndexes(0, 7)
+        field = new TimestampField(1)
+        field.fieldData = Unpooled.buffer(30, 30)
+        field.fieldData.clear().writeCharSequence("20200608-22:45:16.666", StandardCharsets.US_ASCII)
+        field.setIndexes(0, 21)
     }
 
     def "should get value"() {
         expect:
-        field.getValue() == 123456
+        field.getValue() == millis
         field.valueSet
     }
 
@@ -29,7 +29,7 @@ class LongFieldTest extends Specification {
         field.reset()
 
         expect:
-        field.value == LongField.DEFAULT_VALUE
+        field.value == TimestampField.DEFAULT_VALUE
     }
 
     def "should cache value once parsed"() {
@@ -39,7 +39,7 @@ class LongFieldTest extends Specification {
         field.setIndexes(0, 1)
 
         expect:
-        field.getValue() == 123456
+        field.getValue() == millis
         field.valueSet
     }
 
@@ -48,7 +48,7 @@ class LongFieldTest extends Specification {
         field.resetInnerState()
 
         then:
-        field.@value == LongField.DEFAULT_VALUE
+        field.@value == TimestampField.DEFAULT_VALUE
     }
 
     def "should set value"() {
@@ -62,13 +62,13 @@ class LongFieldTest extends Specification {
 
     def "should append provided byte buf with value"() {
         setup:
-        field.value = 14666
-        def buf = Unpooled.buffer(10, 10)
+        field.value = Instant.parse("2026-06-06T22:45:16.666Z").toEpochMilli()
+        def buf = Unpooled.buffer(30, 30)
 
         when:
         field.appendByteBufWithValue(buf)
 
         then:
-        buf.toString(StandardCharsets.US_ASCII) == "14666"
+        buf.toString(StandardCharsets.US_ASCII) == "20260606-22:45:16.666"
     }
 }

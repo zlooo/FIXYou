@@ -27,8 +27,11 @@ public class SessionIDUtils {
     @Nonnull
     public static SessionID buildSessionID(@Nonnull FixMessage fixMessage, boolean flipIDs) {
         final CharSequenceField senderCompId = fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER);
+        senderCompId.getValue(); //so that value is parsed
         final CharSequenceField targetCompId = fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER);
+        targetCompId.getValue();
         final CharSequenceField beginString = fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER);
+        beginString.getValue();
         if (flipIDs) {
             return new SessionID(beginString.getUnderlyingValue(), beginString.getLength(), targetCompId.getUnderlyingValue(), targetCompId.getLength(), senderCompId.getUnderlyingValue(), senderCompId.getLength());
         } else {

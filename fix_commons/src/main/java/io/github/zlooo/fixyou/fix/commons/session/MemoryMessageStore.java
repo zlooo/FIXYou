@@ -27,6 +27,7 @@ public class MemoryMessageStore implements MessageStore<FixMessage> {
 
     @Override
     public void storeMessage(SessionID sessionID, long sequenceNumber, FixMessage message) {
+        log.debug("Storing message for session id {}, sequence number {}, message {}", sessionID, sequenceNumber, message);
         message.retain();
         sessionToMessagesMap.computeIfAbsent(sessionID, MESSAGES_MAP_CREATOR).put(sequenceNumber, message);
     }

@@ -18,29 +18,29 @@ import java.util.concurrent.TimeUnit
 class MutableIdleStateHandlerTest extends Specification {
 
     private SessionConfig sessionConfig = new SessionConfig()
-    private SessionID sessionID = new SessionID([] as char[], [] as char[], [] as char[])
+    private SessionID sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
     private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
     private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(sessionConfig, sessionID, fixMessageObjectPool, TestSpec.INSTANCE)
     private MutableIdleStateHandler idleStateHandler = new MutableIdleStateHandler(sessionState, 1, 2, 3)
     private ChannelHandlerContext channelHandlerContext = Mock()
     private ChannelFuture channelFuture = Mock()
 
-    def "should get reader idle time millis"(){
+    def "should get reader idle time millis"() {
         expect:
         idleStateHandler.readerIdleTimeInMillis == TimeUnit.SECONDS.toMillis(1)
     }
 
-    def "should get writer idle time millis"(){
+    def "should get writer idle time millis"() {
         expect:
         idleStateHandler.writerIdleTimeInMillis == TimeUnit.SECONDS.toMillis(2)
     }
 
-    def "should get all idle time millis"(){
+    def "should get all idle time millis"() {
         expect:
         idleStateHandler.allIdleTimeInMillis == TimeUnit.SECONDS.toMillis(3)
     }
 
-    def "should get session state"(){
+    def "should get session state"() {
         expect:
         idleStateHandler.sessionState == sessionState
     }
@@ -56,7 +56,7 @@ class MutableIdleStateHandlerTest extends Specification {
         1 * fixMessageObjectPool.getAndRetain() >> fixMessage
         1 * channelHandlerContext.writeAndFlush(fixMessage) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
-        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.HEARTBEAT
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.HEARTBEAT)
         !fixMessage.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER).isValueSet()
         0 * _
     }
@@ -72,8 +72,8 @@ class MutableIdleStateHandlerTest extends Specification {
         1 * fixMessageObjectPool.getAndRetain() >> fixMessage
         1 * channelHandlerContext.writeAndFlush(fixMessage) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
-        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.TEST_REQUEST
-        fixMessage.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER).value == 'test'.toCharArray()
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.TEST_REQUEST)
+        fixMessage.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER).value.toString() == 'test'
         0 * _
     }
 

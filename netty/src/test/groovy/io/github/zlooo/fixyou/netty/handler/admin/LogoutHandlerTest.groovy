@@ -2,6 +2,10 @@ package io.github.zlooo.fixyou.netty.handler.admin
 
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
+import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.session.SessionConfig
+import io.github.zlooo.fixyou.session.SessionID
+import io.github.zlooo.fixyou.session.SessionStateListener
 import io.netty.channel.Channel
 import io.netty.channel.ChannelFuture
 import io.netty.channel.ChannelFutureListener
@@ -12,13 +16,13 @@ import spock.lang.Specification
 class LogoutHandlerTest extends Specification {
 
     private LogoutHandler logoutHandler = new LogoutHandler()
-    private io.github.zlooo.fixyou.session.SessionStateListener sessionStateListener = Mock()
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new io.github.zlooo.fixyou.session.SessionConfig().addSessionStateListener(sessionStateListener), new io.github.zlooo.fixyou.session.SessionID([] as char[], [] as char[], [] as char[]), Mock(
+    private SessionStateListener sessionStateListener = Mock()
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().addSessionStateListener(sessionStateListener), new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0), Mock(
             DefaultObjectPool), TestSpec.INSTANCE)
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
     private Channel channel = Mock()
     private ChannelHandlerContext channelHandlerContext = Mock()
-    private io.github.zlooo.fixyou.parser.model.FixMessage fixMessage = new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
     private ChannelFuture channelFuture = Mock()
 
     def "should send logout message if none was sent"() {

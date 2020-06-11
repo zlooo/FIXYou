@@ -2,17 +2,20 @@ package io.github.zlooo.fixyou.fix.commons.session
 
 import io.github.zlooo.fixyou.fix.commons.TestSpec
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils
+import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.session.LongSubscriber
+import io.github.zlooo.fixyou.session.SessionID
 import org.assertj.core.api.Assertions
 import spock.lang.Specification
 
 class MemoryMessageStoreTest extends Specification {
 
-    private io.github.zlooo.fixyou.session.SessionID sessionID = new io.github.zlooo.fixyou.session.SessionID([] as char[], [] as char[], [] as char[])
+    private SessionID sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
     private MemoryMessageStore store = new MemoryMessageStore()
 
     def "should store message"() {
         setup:
-        io.github.zlooo.fixyou.parser.model.FixMessage msg = new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+        FixMessage msg = new FixMessage(TestSpec.INSTANCE)
 
         when:
         store.storeMessage(sessionID, 666, msg)
@@ -25,9 +28,9 @@ class MemoryMessageStoreTest extends Specification {
 
     def "should load messages"() {
         setup:
-        List<io.github.zlooo.fixyou.parser.model.FixMessage> msgs = []
+        List<FixMessage> msgs = []
         for (i in 0..6) {
-            msgs << new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+            msgs << new FixMessage(TestSpec.INSTANCE)
         }
         store.@sessionToMessagesMap.computeIfAbsent(sessionID, MemoryMessageStore.MESSAGES_MAP_CREATOR).putAll(msgs.indexed().collectEntries { key, value -> [key.toLong(), value] })
         def testSub = new TestLongSubscriber()
@@ -44,9 +47,9 @@ class MemoryMessageStoreTest extends Specification {
 
     def "should load messages even when excessive amount is requested"() {
         setup:
-        List<io.github.zlooo.fixyou.parser.model.FixMessage> msgs = []
+        List<FixMessage> msgs = []
         for (i in 0..4) {
-            msgs << new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+            msgs << new FixMessage(TestSpec.INSTANCE)
         }
         store.@sessionToMessagesMap.computeIfAbsent(sessionID, MemoryMessageStore.MESSAGES_MAP_CREATOR).putAll(msgs.indexed().collectEntries { key, value -> [key.toLong(), value] })
         def testSub = new TestLongSubscriber()
@@ -63,9 +66,9 @@ class MemoryMessageStoreTest extends Specification {
 
     def "should load all messages subsequent to provided sequence number"() {
         setup:
-        List<io.github.zlooo.fixyou.parser.model.FixMessage> msgs = []
+        List<FixMessage> msgs = []
         for (i in 0..6) {
-            msgs << new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+            msgs << new FixMessage(TestSpec.INSTANCE)
         }
         store.@sessionToMessagesMap.computeIfAbsent(sessionID, MemoryMessageStore.MESSAGES_MAP_CREATOR).putAll(msgs.indexed().collectEntries { key, value -> [key.toLong(), value] })
         def testSub = new TestLongSubscriber()
@@ -82,9 +85,9 @@ class MemoryMessageStoreTest extends Specification {
 
     def "should notify about exception when it happens during message processing"() {
         setup:
-        List<io.github.zlooo.fixyou.parser.model.FixMessage> msgs = []
+        List<FixMessage> msgs = []
         for (i in 0..6) {
-            msgs << new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+            msgs << new FixMessage(TestSpec.INSTANCE)
         }
         store.@sessionToMessagesMap.computeIfAbsent(sessionID, MemoryMessageStore.MESSAGES_MAP_CREATOR).putAll(msgs.indexed().collectEntries { key, value -> [key.toLong(), value] })
         def testSub = new TestLongSubscriber()
@@ -104,10 +107,10 @@ class MemoryMessageStoreTest extends Specification {
 
     def "should release all for given session messages when store is reset"() {
         setup:
-        io.github.zlooo.fixyou.parser.model.FixMessage msg = new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+        FixMessage msg = new FixMessage(TestSpec.INSTANCE)
         store.storeMessage(sessionID, 666, msg)
-        io.github.zlooo.fixyou.session.SessionID sessionID2 = new io.github.zlooo.fixyou.session.SessionID(['2'] as char[], [] as char[], [] as char[])
-        io.github.zlooo.fixyou.parser.model.FixMessage msg2 = new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+        SessionID sessionID2 = new SessionID(['2'] as char[], 1, [] as char[], 0, [] as char[], 0)
+        FixMessage msg2 = new FixMessage(TestSpec.INSTANCE)
         store.storeMessage(sessionID2, 666, msg2)
 
         when:
@@ -118,10 +121,10 @@ class MemoryMessageStoreTest extends Specification {
         Assertions.assertThat(store.@sessionToMessagesMap).hasSize(1).containsOnlyKeys(sessionID2)
     }
 
-    private static final class TestLongSubscriber implements io.github.zlooo.fixyou.session.LongSubscriber<io.github.zlooo.fixyou.parser.model.FixMessage> {
+    private static final class TestLongSubscriber implements LongSubscriber<FixMessage> {
 
         private boolean subscribeCalled = false
-        private Map<Long, io.github.zlooo.fixyou.parser.model.FixMessage> items = new HashMap<>()
+        private Map<Long, FixMessage> items = new HashMap<>()
         private Throwable error
         private boolean completeCalled = false
         private long keyThatShouldThrowException = -1
@@ -132,7 +135,7 @@ class MemoryMessageStoreTest extends Specification {
         }
 
         @Override
-        void onNext(long key, io.github.zlooo.fixyou.parser.model.FixMessage item) {
+        void onNext(long key, FixMessage item) {
             if (keyThatShouldThrowException == key) {
                 throw new RuntimeException("Test")
             }

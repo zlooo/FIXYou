@@ -1,19 +1,22 @@
 package io.github.zlooo.fixyou.parser.model;
 
 import io.github.zlooo.fixyou.model.FieldType;
-import lombok.Getter;
+import io.netty.buffer.ByteBuf;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.agrona.collections.Hashing;
 
+import java.nio.charset.StandardCharsets;
+
 @Slf4j
+@EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class CharSequenceField extends AbstractField {
+public final class CharSequenceField extends AbstractField {
 
     private static final int STARTING_LENGTH = 10;
 
     private final MutableCharSequence returnValue = new MutableCharSequence();
-    @Getter
     private int length;
     private byte[] rawValue;
     private char[] value;
@@ -30,10 +33,15 @@ public class CharSequenceField extends AbstractField {
         return FieldType.CHAR_ARRAY;
     }
 
+    @Override
+    public void appendByteBufWithValue(ByteBuf out) {
+        out.writeCharSequence(returnValue, StandardCharsets.US_ASCII);
+    }
+
     public CharSequence getValue() {
-        if (length == 0) {
+        if (length == 0 && valueSet) {
             fieldData.readerIndex(startIndex);
-            length = endIndexIndex - startIndex;
+            length = endIndex - startIndex;
             ensureSufficientTablesLength();
             ParsingUtils.readChars(fieldData, length, rawValue, value);
             returnValue.setLength(length);
@@ -64,20 +72,26 @@ public class CharSequenceField extends AbstractField {
 
     public void setValue(char[] value) {
         length = value.length;
+        returnValue.setLength(length);
         ensureSufficientTablesLength();
         System.arraycopy(value, 0, this.value, 0, length);
+        this.valueSet = true;
     }
 
     public void setValue(CharSequenceField sourceValue) {
         length = sourceValue.length;
+        returnValue.setLength(length);
         ensureSufficientTablesLength();
-        System.arraycopy(sourceValue, 0, this.value, 0, length);
+        System.arraycopy(sourceValue.value, 0, this.value, 0, length);
+        this.valueSet = true;
     }
 
     public void setValue(char[] newValue, int valueLength) {
         length = valueLength;
+        returnValue.setLength(length);
         ensureSufficientTablesLength();
         System.arraycopy(newValue, 0, this.value, 0, length);
+        this.valueSet = true;
     }
 
     @Override
@@ -88,5 +102,6 @@ public class CharSequenceField extends AbstractField {
     @Override
     protected void resetInnerState() {
         length = 0;
+        returnValue.setLength(length);
     }
 }

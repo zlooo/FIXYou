@@ -4,7 +4,9 @@ import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.parser.utils.FieldTypeUtils;
+import io.github.zlooo.fixyou.utils.AsciiCodes;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import lombok.Getter;
 
 import javax.annotation.Nonnull;
@@ -14,11 +16,9 @@ import java.nio.charset.StandardCharsets;
 @Getter
 public class FixMessage extends AbstractPoolableObject {
 
-    public static final byte FIELD_SEPARATOR_BYTE = 0x01;
-    public static final char FIELD_SEPARATOR_CHAR = 0x01;
-    static final char FIELD_VALUE_SEPARATOR = '=';
+    public static final byte FIELD_SEPARATOR = AsciiCodes.SOH;
+    public static final byte FIELD_VALUE_SEPARATOR = AsciiCodes.EQUALS;
     private static final char FIELD_DELIMITER = '|';
-    //    private static final String SOH = "\u0001";
     private static final int LONG_MESSAGE_FIELD_NUMBER_THRESHOLD = 10;
 
     private final AbstractField[] fieldsOrdered;
@@ -39,11 +39,20 @@ public class FixMessage extends AbstractPoolableObject {
         }
     }
 
-    public void setMessageByteSource(@Nonnull ByteBuf messageByteSource) {
-        messageByteSource.retain();
-        this.messageByteSource = messageByteSource;
+    public void setMessageByteSourceAndRetain(@Nonnull ByteBuf newMessageByteSource) {
+        if (this.messageByteSource != newMessageByteSource) {
+            if (this.messageByteSource != null) {
+                messageByteSource.release();
+            }
+            newMessageByteSource.retain();
+            setMessageByteSource(newMessageByteSource);
+        }
+    }
+
+    public void setMessageByteSource(ByteBuf newMessageByteSource) {
+        this.messageByteSource = newMessageByteSource;
         for (final AbstractField abstractField : fieldsOrdered) {
-            abstractField.setFieldData(messageByteSource);
+            abstractField.setFieldData(newMessageByteSource);
         }
     }
 
@@ -62,20 +71,29 @@ public class FixMessage extends AbstractPoolableObject {
         if (longMessage) {
             for (int i = 0; i < LONG_MESSAGE_FIELD_NUMBER_THRESHOLD; i++) {
                 final AbstractField field = fieldsOrdered[i];
-                builder.append(field.number).append(FIELD_VALUE_SEPARATOR).append(field.fieldData.toString(StandardCharsets.US_ASCII)).append(FIELD_DELIMITER);
+                builder.append(field.number).append((char) FIELD_VALUE_SEPARATOR).append(fieldDataOrEmpty(field).toString(field.startIndex, field.endIndex - field.startIndex, StandardCharsets.US_ASCII)).append(FIELD_DELIMITER);
             }
         } else {
             for (final AbstractField field : fieldsOrdered) {
-                builder.append(field.number).append(FIELD_VALUE_SEPARATOR).append(field.fieldData.toString(StandardCharsets.US_ASCII)).append(FIELD_DELIMITER);
+                builder.append(field.number).append((char) FIELD_VALUE_SEPARATOR).append(fieldDataOrEmpty(field).toString(field.startIndex, field.endIndex - field.startIndex, StandardCharsets.US_ASCII)).append(FIELD_DELIMITER);
             }
         }
         builder.deleteCharAt(builder.length() - 1).append(longMessage ? "..." : "").append(", refCnt=").append(refCnt());
         return builder.toString();
     }
 
+    private static ByteBuf fieldDataOrEmpty(AbstractField field) {
+        final ByteBuf fieldData = field.fieldData;
+        if (fieldData != null) {
+            return fieldData;
+        } else {
+            return Unpooled.EMPTY_BUFFER;
+        }
+    }
+
     public void resetAllDataFields() {
         for (final AbstractField field : fieldsOrdered) {
-                field.reset();
+            field.reset();
         }
     }
 
@@ -95,16 +113,17 @@ public class FixMessage extends AbstractPoolableObject {
     @Override
     protected void deallocate() {
         resetAllDataFields();
-        messageByteSource.release();
+        if (messageByteSource != null) {
+            messageByteSource.release();
+            setMessageByteSource(null);
+        }
         super.deallocate();
     }
 
     @Override
     public void close() {
-        for (final AbstractField field : fields) {
-            if (field != null) {
-                field.close();
-            }
+        for (final AbstractField field : fieldsOrdered) {
+            field.close();
         }
     }
 

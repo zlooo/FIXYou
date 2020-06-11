@@ -24,7 +24,7 @@ public class FixFieldsTypes {
     public static final FieldType DEFAULT_APP_VERSION = FieldType.CHAR_ARRAY;
     public static final FieldType BEGIN_STRING = FieldType.CHAR_ARRAY;
     public static final FieldType BODY_LENGTH = FieldType.LONG;
-    public static final FieldType SENDING_TIME = FieldType.CHAR_ARRAY;
+    public static final FieldType SENDING_TIME = FieldType.TIMESTAMP;
     public static final FieldType USERNAME = FieldType.CHAR_ARRAY;
     public static final FieldType PASSWORD = FieldType.CHAR_ARRAY;
     public static final FieldType DEFAULT_APP_VERSION_ID = FieldType.CHAR_ARRAY;

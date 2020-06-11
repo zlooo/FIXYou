@@ -31,6 +31,7 @@ class TestRequestHandler implements AdministrativeMessageHandler {
         }
         fixMessage.retain();
         final CharSequenceField testReqID = fixMessage.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER);
+        testReqID.getValue(); //just to trigger parsing
         ctx.writeAndFlush(FixMessageUtils.toHeartbeatMessage(fixMessage, testReqID.getUnderlyingValue(), testReqID.getLength())).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
     }
 

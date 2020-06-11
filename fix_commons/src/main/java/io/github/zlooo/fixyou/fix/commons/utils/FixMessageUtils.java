@@ -21,7 +21,7 @@ public final class FixMessageUtils {
 
     public static FixMessage toRejectMessage(FixMessage sourceMessage, long rejectReasonCode) {
         sourceMessage.<LongField>getField(FixConstants.REFERENCED_SEQUENCE_NUMBER_FIELD_NUMBER).setValue(sourceMessage.<LongField>getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).getValue());
-        sourceMessage.resetAllDataFields();
+        sourceMessage.resetDataFields(FixConstants.REFERENCED_SEQUENCE_NUMBER_FIELD_NUMBER);
         sourceMessage.<LongField>getField(FixConstants.SESSION_REJECT_REASON_FIELD_NUMBER).setValue(rejectReasonCode);
         sourceMessage.<CharSequenceField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(FixConstants.REJECT);
         return sourceMessage;

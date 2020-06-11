@@ -1,14 +1,17 @@
 package io.github.zlooo.fixyou.parser.model;
 
 import io.github.zlooo.fixyou.model.FieldType;
+import io.github.zlooo.fixyou.utils.AsciiCodes;
+import io.netty.buffer.ByteBuf;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
+@EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class BooleanField extends AbstractField {
+public final class BooleanField extends AbstractField {
 
-    private static final byte Y_IN_ASCII = 89;
-    private static final byte N_IN_ASCII = 78;
     private boolean value;
+    private boolean parsed;
 
     public BooleanField(int number) {
         super(number);
@@ -20,26 +23,32 @@ public class BooleanField extends AbstractField {
     }
 
     public boolean getValue() {
-        if (!valueSet) {
+        if (!parsed && valueSet) {
             fieldData.readerIndex(startIndex);
             switch (fieldData.readByte()) {
-                case Y_IN_ASCII:
+                case AsciiCodes.Y:
                     value = true;
                     break;
-                case N_IN_ASCII:
+                case AsciiCodes.N:
                     value = false;
                     break;
                 default:
                     throw new IllegalArgumentException("Value " + fieldData.getByte(0) + " is unsupported in boolean field. Expecting either 'Y' or 'N'");
             }
-            valueSet = true;
+            parsed = true;
         }
         return value;
     }
 
     public void setValue(boolean state) {
         this.value = state;
+        this.parsed = true;
         this.valueSet = true;
+    }
+
+    @Override
+    public void appendByteBufWithValue(ByteBuf out) {
+        out.writeByte(value ? AsciiCodes.Y : AsciiCodes.N);
     }
 
     @Override
@@ -49,6 +58,6 @@ public class BooleanField extends AbstractField {
 
     @Override
     protected void resetInnerState() {
-        // nothing to do
+        parsed = false;
     }
 }

@@ -1,9 +1,12 @@
 package io.github.zlooo.fixyou.parser.model;
 
 import io.github.zlooo.fixyou.DefaultConfiguration;
+import io.github.zlooo.fixyou.commons.utils.FieldUtils;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.parser.utils.FieldTypeUtils;
+import io.netty.buffer.ByteBuf;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
@@ -15,13 +18,20 @@ import javax.annotation.Nullable;
 import java.util.function.Supplier;
 
 @Slf4j
+@EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class GroupField extends LongField {
+public final class GroupField extends AbstractField {
 
+    public static final long DEFAULT_VALUE = 0;
+    public static final int FIELD_DATA_LENGTH = 7;
     private final Supplier<Repetition> repetitionSupplier;
     private final IntHashSet memberNumbers;
     private Repetition[] repetitions;
     private int repetitionCounter;
+
+    private long value = DEFAULT_VALUE;
+    private byte[] rawValue = new byte[FIELD_DATA_LENGTH];
+    private char[] unparsedValue = new char[FIELD_DATA_LENGTH];
 
     public GroupField(int number, FixSpec spec) {
         super(number);
@@ -53,12 +63,39 @@ public class GroupField extends LongField {
     }
 
     @Override
+    protected void setFieldData(ByteBuf fieldData) {
+        super.setFieldData(fieldData);
+        for (final Repetition repetition : repetitions) {
+            for (final AbstractField repeatingGroupField : repetition.fieldsOrdered) {
+                repeatingGroupField.setFieldData(fieldData);
+            }
+
+        }
+
+    }
+
+    public long getValue() {
+        if (value == DEFAULT_VALUE && valueSet) {
+            fieldData.readerIndex(startIndex);
+            value = ParsingUtils.parseLong(fieldData, FixMessage.FIELD_SEPARATOR); //TODO run JMH test and see if you're right
+        }
+        return value;
+    }
+
+    public void setValue(long value) {
+        this.value = value;
+        this.valueSet = true;
+    }
+
+    @Override
     public FieldType getFieldType() {
         return FieldType.GROUP;
     }
 
     @Override
     protected void resetInnerState() {
+        value = DEFAULT_VALUE;
+        repetitionCounter = 0;
         for (final Repetition repetition : repetitions) {
             for (final AbstractField field : repetition.fieldsOrdered) {
                 field.reset();
@@ -72,15 +109,43 @@ public class GroupField extends LongField {
     }
 
     @Nullable
-    public <T extends AbstractField> T getFieldAndIncRepetitionIfValueIsSet(int fieldNum) {
-        final AbstractField field = repetitions[repetitionCounter].idToField.get(fieldNum);
-        if (field.isValueSet()) {
-            repetitionCounter++;
-            ensureRepetitionsArrayCapacity();
-            return (T) repetitions[repetitionCounter].idToField.get(fieldNum);
+    public <T extends AbstractField> T getFieldForCurrentRepetition(int fieldNum) {
+        return (T) repetitions[repetitionCounter].idToField.get(fieldNum);
+    }
+
+    public GroupField next() {
+        repetitionCounter++;
+        ensureRepetitionsArrayCapacity();
+        return this;
+    }
+
+    @Override
+    public boolean isValueSet() {
+        if (repetitionCounter == 0) {
+            boolean result = false;
+            for (final AbstractField field : repetitions[0].fieldsOrdered) {
+                result |= field.isValueSet();
+            }
+            return result;
         } else {
-            return (T) field;
+            return true;
         }
+    }
+
+    @Override
+    public void appendByteBufWithValue(ByteBuf out) {
+        FieldUtils.writeEncoded(repetitionCounter, out);
+        out.writeByte(FixMessage.FIELD_SEPARATOR);
+        for (int i = 0; i <= repetitionCounter; i++) {
+            for (final AbstractField repetitionField : repetitions[i].fieldsOrdered) {
+                if (repetitionField.isValueSet()) {
+                    out.writeBytes(repetitionField.getEncodedFieldNumber());
+                    repetitionField.appendByteBufWithValue(out);
+                    out.writeByte(FixMessage.FIELD_SEPARATOR);
+                }
+            }
+        }
+        out.writerIndex(out.writerIndex() - 1); //"remove" last soh from buffer
     }
 
     @Override
@@ -94,7 +159,7 @@ public class GroupField extends LongField {
     }
 
     private void ensureRepetitionsArrayCapacity() {
-        if (repetitions.length < repetitionCounter) {
+        if (repetitions.length <= repetitionCounter) {
             final int newLength = (int) (repetitionCounter * (1.0 + Hashing.DEFAULT_LOAD_FACTOR));
             log.warn("Repetitions array resize in field {}, from {} to {}. Consider making default larger", number, repetitions.length, newLength);
             final Repetition[] newArray = new Repetition[newLength];

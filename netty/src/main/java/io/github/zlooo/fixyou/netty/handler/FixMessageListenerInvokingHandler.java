@@ -30,6 +30,7 @@ class FixMessageListenerInvokingHandler extends SimpleChannelInboundHandler<FixM
         ctx.fireChannelActive();
     }
 
+    //TODO add option to invoke in disruptor!!!!
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FixMessage msg) throws Exception {
         fixMessageListener.onFixMessage(NettyHandlerAwareSessionState.getSessionID(ctx), msg);

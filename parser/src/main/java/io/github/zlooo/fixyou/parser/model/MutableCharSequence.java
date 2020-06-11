@@ -1,11 +1,9 @@
 package io.github.zlooo.fixyou.parser.model;
 
 import lombok.AccessLevel;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
-@Data
 @Getter(AccessLevel.PACKAGE)
 @Setter(AccessLevel.PACKAGE)
 class MutableCharSequence implements CharSequence {
@@ -33,15 +31,20 @@ class MutableCharSequence implements CharSequence {
      */
     @Override
     public CharSequence subSequence(int start, int end) {
-        if (end < length) {
+        if (start < 0 || end <= length) {
             final MutableCharSequence subSequence = new MutableCharSequence();
             final int subSequenceLength = end - start;
-            subSequence.length = length;
+            subSequence.length = subSequenceLength;
             subSequence.state = new char[subSequenceLength];
             System.arraycopy(state, start, subSequence.state, 0, subSequenceLength);
             return subSequence;
         } else {
             throw new IndexOutOfBoundsException("Requested sub sequence with indexes start=" + start + ", end=" + end + RANGE_EXCEPTION_MESSAGE_PART + length);
         }
+    }
+
+    @Override
+    public String toString() {
+        return String.valueOf(state, 0, length);
     }
 }

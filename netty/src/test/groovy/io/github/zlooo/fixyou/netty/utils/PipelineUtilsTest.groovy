@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 class PipelineUtilsTest extends Specification {
 
     private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)), new SessionID([] as char[], [] as char[], [] as char[]),
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)), new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0),
                                                                                            fixMessageObjectPool, TestSpec.INSTANCE)
     private ChannelHandler messageEncoder = Mock()
     private ChannelHandler messageDecoder = Mock()
@@ -34,7 +34,6 @@ class PipelineUtilsTest extends Specification {
     private ChannelHandler genericHandler = Mock()
     private ChannelHandler preValidator = Mock()
     private ChannelHandler postValidator = Mock()
-    private ChannelInboundHandler asyncExecutingHandler = Mock()
     private SessionAwareChannelInboundHandler sessionHandler = Mock()
     private DelegatingChannelHandlerContext nmfCtx = Mock()
     private MutableIdleStateHandler idleStateHandler = Mock()
@@ -56,7 +55,7 @@ class PipelineUtilsTest extends Specification {
         TestPipeline channelPipeline = pipeline()
 
         when:
-        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator, asyncExecutingHandler, 30)
+        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator,  30)
 
         then:
         result == sessionHandler
@@ -66,11 +65,11 @@ class PipelineUtilsTest extends Specification {
         1 * sessionAttribute.set(sessionState)
         1 * idleStateHandler.setReaderIdleTimeNanos(TimeUnit.SECONDS.toNanos(30) * PipelineUtils.TEST_REQUEST_MULTIPLIER)
         1 * idleStateHandler.setWriterIdleTimeNanos(TimeUnit.SECONDS.toNanos(30))
-        1 * asyncExecutingHandler.channelRegistered(channelPipeline.channelHandlerContext)
         0 * _
         Assertions.
                 assertThat(channelPipeline.names()).
-                containsExactly(Handlers.FLUSH_CONSOLIDATION_HANDLER.getName(), Handlers.ASYNC_EXECUTING_HANDLER.getName(), Handlers.MESSAGE_DECODER.getName(), Handlers.MESSAGE_ENCODER.getName(), Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR.getName(), Handlers.GENERIC.getName(),
+                containsExactly(Handlers.FLUSH_CONSOLIDATION_HANDLER.getName(), Handlers.MESSAGE_DECODER.getName(), Handlers.MESSAGE_ENCODER.getName(),
+                                Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR.getName(), Handlers.GENERIC.getName(),
                                 Handlers.SESSION.getName(), Handlers.IDLE_STATE_HANDLER.getName(), Handlers.AFTER_SESSION_MESSAGE_VALIDATOR.getName(), Handlers.ADMIN_MESSAGES.getName(), Handlers.LISTENER_INVOKER.getName())
     }
 
@@ -81,7 +80,7 @@ class PipelineUtilsTest extends Specification {
         sessionState.getSessionConfig().setConsolidateFlushes(false).setSeparateIoFromAppThread(false)
 
         when:
-        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator, asyncExecutingHandler, 30)
+        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator,  30)
 
         then:
         result == sessionHandler
@@ -105,7 +104,7 @@ class PipelineUtilsTest extends Specification {
         sessionState.getSessionConfig().setConsolidateFlushes(true).setConsolidateFlushes(true)
 
         when:
-        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator, asyncExecutingHandler, 30)
+        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator,  30)
 
         then:
         result == sessionHandler
@@ -115,11 +114,10 @@ class PipelineUtilsTest extends Specification {
         1 * sessionAttribute.set(sessionState)
         1 * idleStateHandler.setReaderIdleTimeNanos(TimeUnit.SECONDS.toNanos(30) * PipelineUtils.TEST_REQUEST_MULTIPLIER)
         1 * idleStateHandler.setWriterIdleTimeNanos(TimeUnit.SECONDS.toNanos(30))
-        1 * asyncExecutingHandler.channelRegistered(channelPipeline.channelHandlerContext)
         0 * _
         Assertions.
                 assertThat(channelPipeline.names()).
-                containsExactly(Handlers.FLUSH_CONSOLIDATION_HANDLER.getName(), Handlers.ASYNC_EXECUTING_HANDLER.getName(), Handlers.MESSAGE_DECODER.getName(), Handlers.MESSAGE_ENCODER.getName(),
+                containsExactly(Handlers.FLUSH_CONSOLIDATION_HANDLER.getName(), Handlers.MESSAGE_DECODER.getName(), Handlers.MESSAGE_ENCODER.getName(),
                                 Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR.getName(), Handlers.GENERIC.getName(),
                                 Handlers.SESSION.getName(), Handlers.IDLE_STATE_HANDLER.getName(), Handlers.AFTER_SESSION_MESSAGE_VALIDATOR.getName(), Handlers.ADMIN_MESSAGES.getName(), Handlers.LISTENER_INVOKER.getName())
     }
@@ -137,7 +135,7 @@ class PipelineUtilsTest extends Specification {
                        .addLast(Handlers.LISTENER_INVOKER.getName(), fixMessageListenerInvokingHandler)
 
         when:
-        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator, asyncExecutingHandler, 30, Handlers.AFTER_SESSION_MESSAGE_VALIDATOR)
+        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator,  30, Handlers.AFTER_SESSION_MESSAGE_VALIDATOR)
 
         then:
         result == sessionHandler
@@ -147,11 +145,11 @@ class PipelineUtilsTest extends Specification {
         1 * sessionAttribute.set(sessionState)
         1 * idleStateHandler.setReaderIdleTimeNanos(TimeUnit.SECONDS.toNanos(30) * PipelineUtils.TEST_REQUEST_MULTIPLIER)
         1 * idleStateHandler.setWriterIdleTimeNanos(TimeUnit.SECONDS.toNanos(30))
-        1 * asyncExecutingHandler.channelRegistered(channelPipeline.channelHandlerContext)
         0 * _
         Assertions.
                 assertThat(channelPipeline.names()).
-                containsExactly(Handlers.FLUSH_CONSOLIDATION_HANDLER.getName(), Handlers.ASYNC_EXECUTING_HANDLER.getName(),Handlers.MESSAGE_DECODER.getName(), Handlers.MESSAGE_ENCODER.getName(), Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR.getName(), Handlers.GENERIC.getName(),
+                containsExactly(Handlers.FLUSH_CONSOLIDATION_HANDLER.getName(), Handlers.MESSAGE_DECODER.getName(), Handlers.MESSAGE_ENCODER.getName(),
+                                Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR.getName(), Handlers.GENERIC.getName(),
                                 Handlers.SESSION.getName(), Handlers.IDLE_STATE_HANDLER.getName(), Handlers.ADMIN_MESSAGES.getName(), Handlers.LISTENER_INVOKER.getName())
     }
 
@@ -166,7 +164,7 @@ class PipelineUtilsTest extends Specification {
                        .addLast(Handlers.LISTENER_INVOKER.getName(), fixMessageListenerInvokingHandler)
 
         when:
-        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator, asyncExecutingHandler, 30)
+        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator,  30)
 
         then:
         result == null
@@ -176,11 +174,11 @@ class PipelineUtilsTest extends Specification {
         1 * sessionAttribute.set(sessionState)
         1 * idleStateHandler.setReaderIdleTimeNanos(TimeUnit.SECONDS.toNanos(30) * PipelineUtils.TEST_REQUEST_MULTIPLIER)
         1 * idleStateHandler.setWriterIdleTimeNanos(TimeUnit.SECONDS.toNanos(30))
-        1 * asyncExecutingHandler.channelRegistered(channelPipeline.channelHandlerContext)
         0 * _
         Assertions.
                 assertThat(channelPipeline.names()).
-                containsExactly(Handlers.FLUSH_CONSOLIDATION_HANDLER.getName(), Handlers.ASYNC_EXECUTING_HANDLER.getName(),Handlers.MESSAGE_DECODER.getName(), Handlers.MESSAGE_ENCODER.getName(), Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR.getName(), Handlers.GENERIC.getName(),
+                containsExactly(Handlers.FLUSH_CONSOLIDATION_HANDLER.getName(), Handlers.MESSAGE_DECODER.getName(), Handlers.MESSAGE_ENCODER.getName(),
+                                Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR.getName(), Handlers.GENERIC.getName(),
                                 Handlers.SESSION.getName(), Handlers.IDLE_STATE_HANDLER.getName(), Handlers.AFTER_SESSION_MESSAGE_VALIDATOR.getName(), Handlers.ADMIN_MESSAGES.getName(), Handlers.LISTENER_INVOKER.getName())
     }
 
@@ -193,7 +191,7 @@ class PipelineUtilsTest extends Specification {
                        .addLast(Handlers.LISTENER_INVOKER.getName(), fixMessageListenerInvokingHandler)
 
         when:
-        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator, asyncExecutingHandler, 30)
+        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator, 30)
 
         then:
         result == sessionHandler
@@ -203,11 +201,11 @@ class PipelineUtilsTest extends Specification {
         1 * sessionAttribute.set(sessionState)
         1 * idleStateHandler.setReaderIdleTimeNanos(TimeUnit.SECONDS.toNanos(30) * PipelineUtils.TEST_REQUEST_MULTIPLIER)
         1 * idleStateHandler.setWriterIdleTimeNanos(TimeUnit.SECONDS.toNanos(30))
-        1 * asyncExecutingHandler.channelRegistered(channelPipeline.channelHandlerContext)
         0 * _
         Assertions.
                 assertThat(channelPipeline.names()).
-                containsExactly(Handlers.FLUSH_CONSOLIDATION_HANDLER.getName(), Handlers.ASYNC_EXECUTING_HANDLER.getName(),Handlers.MESSAGE_ENCODER.getName(), Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR.getName(), Handlers.GENERIC.getName(), Handlers.SESSION.getName(),
+                containsExactly(Handlers.FLUSH_CONSOLIDATION_HANDLER.getName(), Handlers.MESSAGE_ENCODER.getName(), Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR.getName(), Handlers.GENERIC.getName(),
+                                Handlers.SESSION.getName(),
                                 Handlers.IDLE_STATE_HANDLER.getName(), Handlers.AFTER_SESSION_MESSAGE_VALIDATOR.getName(), Handlers.ADMIN_MESSAGES.getName(), Handlers.LISTENER_INVOKER.getName())
     }
 

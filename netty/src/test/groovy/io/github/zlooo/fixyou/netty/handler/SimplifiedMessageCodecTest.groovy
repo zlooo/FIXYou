@@ -72,16 +72,4 @@ class SimplifiedMessageCodecTest extends Specification {
         1 * channelHandlerContext.fireChannelWritabilityChanged()
         0 * _
     }
-
-    def "should release body temp buffer when it's not needed"() {
-        setup:
-        def byteBuf = Unpooled.buffer(1, 1)
-
-        when:
-        messageDecoder.bodyTempBufferNotNeeded(byteBuf)
-
-        then:
-        byteBuf.refCnt() == 0
-        0 * _
-    }
 }

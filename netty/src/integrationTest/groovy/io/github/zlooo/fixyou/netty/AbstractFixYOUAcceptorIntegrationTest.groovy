@@ -35,7 +35,7 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
     protected static final String qualifier = "secondSession"
     private static final char[] CHECKSUM_TAG_INDICATOR = ['1', '0', '='] as char[]
     protected SessionID sessionID = new SessionID("FIXT.1.1", targetCompId, senderCompId)
-    protected fixYouSessionId = new io.github.zlooo.fixyou.session.SessionID("FIXT.1.1".toCharArray(), senderCompId.toCharArray(), targetCompId.toCharArray())
+    protected fixYouSessionId = new io.github.zlooo.fixyou.session.SessionID("FIXT.1.1".toCharArray(), 8, senderCompId.toCharArray(), senderCompId.length(), targetCompId.toCharArray(), targetCompId.length())
     protected TestSessionSateListener sessionSateListener = new TestSessionSateListener()
     protected FIXYouNettyAcceptor engine
     protected Initiator initiator

@@ -1,10 +1,7 @@
 package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.DefaultConfiguration
-import io.github.zlooo.fixyou.FIXYouException
 import io.github.zlooo.fixyou.model.FieldType
-import io.github.zlooo.fixyou.model.FixSpec
-import io.github.zlooo.fixyou.parser.FieldTestUtils
 import io.github.zlooo.fixyou.parser.TestSpec
 import io.github.zlooo.fixyou.parser.utils.FieldTypeUtils
 import io.netty.buffer.ByteBuf
@@ -20,8 +17,6 @@ class GroupFieldTest extends Specification {
 
     def "should create a group field"() {
         setup:
-        def longChildField = new FixSpec.FieldNumberTypePair(FieldType.LONG, TestSpec.LONG_FIELD_NUMBER)
-        def booleanChildField = new FixSpec.FieldNumberTypePair(FieldType.BOOLEAN, TestSpec.BOOLEAN_FIELD_NUMBER)
         def expectedLongfield = new LongField(TestSpec.LONG_FIELD_NUMBER)
         def expectedBooleanField = new BooleanField(TestSpec.BOOLEAN_FIELD_NUMBER)
 
@@ -29,15 +24,14 @@ class GroupFieldTest extends Specification {
         GroupField groupField = new GroupField(TestSpec.USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER, TestSpec.INSTANCE)
 
         then:
-        groupField.numberOfFieldsInGroup() == 2
-        Assertions.assertThat(groupField.@childFields).containsExactly(longChildField, booleanChildField)
+        groupField.repetitionCounter == 0
+        Assertions.assertThat(groupField.@memberNumbers).containsExactly(TestSpec.LONG_FIELD_NUMBER, TestSpec.BOOLEAN_FIELD_NUMBER)
         Assertions.assertThat(groupField.@repetitions).hasSize(DefaultConfiguration.NUMBER_OF_REPETITIONS_IN_GROUP).doesNotContainNull()
-        Assertions.assertThat(groupField.@repetitions[0].fieldsOrdered).usingElementComparator(FieldTestUtils.FIELD_COMPARATOR).containsOnly(expectedLongfield, expectedBooleanField)
+        Assertions.assertThat(groupField.@repetitions[0].fieldsOrdered).containsOnly(expectedLongfield, expectedBooleanField)
         Assertions.assertThat(groupField.@repetitions[0].idToField).hasSize(2)
-        Assertions.assertThat(groupField.@repetitions[0].idToField[TestSpec.LONG_FIELD_NUMBER]).usingComparator(FieldTestUtils.FIELD_COMPARATOR).isEqualTo(expectedLongfield)
-        Assertions.assertThat(groupField.@repetitions[0].idToField[TestSpec.BOOLEAN_FIELD_NUMBER]).usingComparator(FieldTestUtils.FIELD_COMPARATOR).isEqualTo(expectedBooleanField)
+        Assertions.assertThat(groupField.@repetitions[0].idToField[TestSpec.LONG_FIELD_NUMBER]).isEqualTo(expectedLongfield)
+        Assertions.assertThat(groupField.@repetitions[0].idToField[TestSpec.BOOLEAN_FIELD_NUMBER]).isEqualTo(expectedBooleanField)
         groupField.@repetitionSupplier != null
-        groupField.@fieldDataWithoutRepetitionCount != null
     }
 
     def "should not create group field when group is empty"() {
@@ -56,125 +50,199 @@ class GroupFieldTest extends Specification {
         thrown(IllegalArgumentException)
     }
 
+    def "should set message byte source on all child fields"() {
+        setup:
+        ByteBuf messageByteSource = Mock()
+
+        when:
+        groupField.fieldData = messageByteSource
+
+        then:
+        groupField.fieldData == messageByteSource
+        Assertions.assertThat(groupField.@repetitions).allMatch({ it.fieldsOrdered.every { it.fieldData == messageByteSource } })
+    }
+
+    def "should reset field state"() {
+        setup:
+        groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER).setValue(666L)
+        groupField.getFieldForCurrentRepetition(TestSpec.BOOLEAN_FIELD_NUMBER).setValue(true)
+        groupField.value = 1
+
+        when:
+        groupField.reset()
+
+        then:
+        groupField.@repetitions.collect { it.fieldsOrdered }.flatten().every { !it.isValueSet() }
+        groupField.repetitionCounter == 0
+        groupField.value == GroupField.DEFAULT_VALUE
+    }
+
     def "should get field by number"() {
         setup:
-        groupField.write().getFieldAndIncRepetitionIfValueIsSet(TestSpec.LONG_FIELD_NUMBER).value = 666L
-        groupField.getFieldAndIncRepetitionIfValueIsSet(TestSpec.BOOLEAN_FIELD_NUMBER).value = true
+        groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER).value = 666L
+        groupField.getFieldForCurrentRepetition(TestSpec.BOOLEAN_FIELD_NUMBER).value = true
 
         expect:
-        FieldTestUtils.FIELD_COMPARATOR.compare(groupField.getField(0, expectedField.number), expectedField) == 0
+        groupField.getField(0, expectedField.number) == expectedField
 
         where:
         expectedField << [fieldWithValue(FieldType.LONG, TestSpec.LONG_FIELD_NUMBER, 666L), fieldWithValue(FieldType.BOOLEAN, TestSpec.BOOLEAN_FIELD_NUMBER, true)]
     }
 
-    def "should update inner buffer once repetition is inputted"() {
-        setup:
-        groupField.write().getFieldAndIncRepetitionIfValueIsSet(TestSpec.LONG_FIELD_NUMBER).value = 666L
-        groupField.getFieldAndIncRepetitionIfValueIsSet(TestSpec.BOOLEAN_FIELD_NUMBER).value = true
-
+    def "should get field from current repetition"() {
         when:
-        groupField.writeNext()
+        def result = groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER)
 
         then:
-        groupField.@numberOfRepetitions == 1
-        ByteBuf expectedBuffer = Unpooled.buffer(100)
-        expectedBuffer.writeCharSequence("1\u0001${TestSpec.LONG_FIELD_NUMBER}=666\u0001${TestSpec.BOOLEAN_FIELD_NUMBER}=Y", StandardCharsets.US_ASCII)
-        assert groupField.getFieldData().compareTo(expectedBuffer) == 0: "Expected buffer: ${expectedBuffer.toString(StandardCharsets.US_ASCII)}, but got ${groupField.getFieldData().toString(StandardCharsets.US_ASCII)}"
+        groupField.repetitionCounter == 0
+        result == fieldWithValue(FieldType.LONG, TestSpec.LONG_FIELD_NUMBER)
+        !result.valueSet
     }
 
-    def "should update inner buffer once second repetition is inputted"() {
+    def "should get field from next repetition"() {
         setup:
-        groupField.write().getFieldAndIncRepetitionIfValueIsSet(TestSpec.LONG_FIELD_NUMBER).value = 666L
-        groupField.getFieldAndIncRepetitionIfValueIsSet(TestSpec.BOOLEAN_FIELD_NUMBER).value = true
-        groupField.writeNext()
-        groupField.getFieldAndIncRepetitionIfValueIsSet(TestSpec.LONG_FIELD_NUMBER).value = 667L
-        groupField.getFieldAndIncRepetitionIfValueIsSet(TestSpec.BOOLEAN_FIELD_NUMBER).value = true
+        groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER).value = 666L
+        groupField.next()
 
         when:
-        groupField.writeNext()
+        def result = groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER)
 
         then:
-        groupField.@numberOfRepetitions == 2
-        ByteBuf expectedBuffer = Unpooled.buffer(100)
-        expectedBuffer.writeCharSequence("2\u0001${TestSpec.LONG_FIELD_NUMBER}=666\u0001${TestSpec.BOOLEAN_FIELD_NUMBER}=Y\u0001${TestSpec.LONG_FIELD_NUMBER}=667\u0001${TestSpec.BOOLEAN_FIELD_NUMBER}=Y", StandardCharsets.US_ASCII)
-        assert groupField.getFieldData().compareTo(expectedBuffer) == 0: "Expected buffer: ${expectedBuffer.toString(StandardCharsets.US_ASCII)}, but got ${groupField.getFieldData().toString(StandardCharsets.US_ASCII)}"
+        groupField.repetitionCounter == 1
+        result == fieldWithValue(FieldType.LONG, TestSpec.LONG_FIELD_NUMBER)
+        !result.valueSet
     }
 
-    def "should reset inner state"() {
+    def "should expand repetitions array when needed"() {
         setup:
-        groupField.getFieldAndIncRepetitionIfValueIsSet(TestSpec.LONG_FIELD_NUMBER).setValue(666L)
-        groupField.getFieldAndIncRepetitionIfValueIsSet(TestSpec.BOOLEAN_FIELD_NUMBER).setValue(true)
-        groupField.writeNext()
+        def repetitionsArrayLength = groupField.@repetitions.length
+        (0..(DefaultConfiguration.NUMBER_OF_REPETITIONS_IN_GROUP - 1)).forEach({
+            groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER).value = 666L
+            groupField.next()
+        })
 
         when:
-        groupField.resetInnerState()
+        def result = groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER)
 
         then:
-        groupField.@repetitions.collect { it.fieldsOrdered }.flatten().every { !it.isValueSet() }
-        groupField.@numberOfRepetitions == 0
-        groupField.@fieldDataWithoutRepetitionCount.readerIndex() == 0
-        groupField.@fieldDataWithoutRepetitionCount.writerIndex() == 0
+        groupField.repetitionCounter == DefaultConfiguration.NUMBER_OF_REPETITIONS_IN_GROUP
+        result == fieldWithValue(FieldType.LONG, TestSpec.LONG_FIELD_NUMBER)
+        !result.valueSet
+        groupField.@repetitions.length > repetitionsArrayLength
     }
 
-    def "should parse repetition count"() {
+    def "should get zero field value"() {
+        expect:
+        groupField.value == 0
+    }
+
+    def "should increase counters when next is called"() {
+        when:
+        groupField.next()
+
+        then:
+        groupField.value == 0
+        groupField.repetitionCounter == 1
+    }
+
+    def "should not claim value is set"() {
+        expect:
+        !groupField.valueSet
+    }
+
+    def "should not claim value is set when just accessing field"() {
         setup:
-        groupField.getFieldData().writeCharSequence("666", StandardCharsets.US_ASCII)
+        groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER)
+
+        expect:
+        !groupField.valueSet
+    }
+
+    def "should claim value is set"() {
+        setup:
+        groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER).value = 666
+
+        expect:
+        groupField.valueSet
+    }
+
+    def "should claim value is set with multiple repetitions"() {
+        setup:
+        (1..numberOfRepetitions).forEach({
+            groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER).value = 666
+            groupField.next()
+        })
+
+        expect:
+        groupField.valueSet
+
+        where:
+        numberOfRepetitions | _
+        1                   | _
+        2                   | _
+        3                   | _
+        10                  | _
+        66                  | _
+        100                 | _
+    }
+
+    def "should append child field values to buffer"() {
+        setup:
+        groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER).value = 666
+        groupField.getFieldForCurrentRepetition(TestSpec.BOOLEAN_FIELD_NUMBER).value = true
+        groupField.next()
+        def buffer = Unpooled.buffer(100, 100)
 
         when:
-        groupField.parseRepetitionsNumber()
+        groupField.appendByteBufWithValue(buffer)
 
         then:
-        groupField.@numberOfRepetitionsRead == 666
-        Assertions.assertThat(groupField.@repetitions).hasSize(666).doesNotContainNull()
+        buffer.toString(StandardCharsets.US_ASCII) == "1\u00011=666\u00012=Y"
     }
 
-    def "should close child fields when closed"() {
+    def "should append child field values to buffer when multiple repetitions are stored"() {
+        setup:
+        groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER).value = 666
+        groupField.getFieldForCurrentRepetition(TestSpec.BOOLEAN_FIELD_NUMBER).value = true
+        groupField.next()
+        groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER).value = 666
+        groupField.next()
+        groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER).value = 666
+        groupField.next()
+        def buffer = Unpooled.buffer(300, 300)
+
+        when:
+        groupField.appendByteBufWithValue(buffer)
+
+        then:
+        buffer.toString(StandardCharsets.US_ASCII) == "3\u00011=666\u00012=Y\u00011=666\u00011=666"
+    }
+
+    def "should close child fields when group field is closed"() {
         when:
         groupField.close()
 
         then:
-        groupField.@fieldDataWithoutRepetitionCount.refCnt() == 0
-        groupField.@repetitions.collect { it.fieldsOrdered }.flatten().collect { it.fieldData }.every { it.refCnt() == 0 }
+        groupField.encodedFieldNumber.refCnt() == 0
+        groupField.@repetitions.collect { it.fieldsOrdered }.flatten().every { it.encodedFieldNumber.refCnt() == 0 }
     }
 
-    def "should not increase number of repetitions on consecutive get field calls when field value is not set"() {
-        when:
-        def result = groupField.getFieldAndIncRepetitionIfValueIsSet(TestSpec.LONG_FIELD_NUMBER)
+    def "should check if group contains field with given number"() {
+        expect:
+        groupField.containsField(fieldNumber) == expectedResult
 
-        then:
-        groupField.@numberOfRepetitions == 0
-        !result.isValueSet()
+        where:
+        fieldNumber                   | expectedResult
+        TestSpec.LONG_FIELD_NUMBER    | true
+        TestSpec.BOOLEAN_FIELD_NUMBER | true
+        666                           | false
     }
 
-    def "should increase number of repetitions on consecutive get field calls when field value is set"() {
-        setup:
-        groupField.getFieldAndIncRepetitionIfValueIsSet(TestSpec.LONG_FIELD_NUMBER).value = 666L
-        groupField.@numberOfRepetitionsRead = 2
-
-        when:
-        def result = groupField.getFieldAndIncRepetitionIfValueIsSet(TestSpec.LONG_FIELD_NUMBER)
-
-        then:
-        groupField.@numberOfRepetitions == 1
-        !result.isValueSet()
-    }
-
-    def "should throw exception if when too many repetitions are requested to be read"() {
-        setup:
-        groupField.getFieldAndIncRepetitionIfValueIsSet(TestSpec.LONG_FIELD_NUMBER).value = 666L
-        groupField.@numberOfRepetitionsRead = 1
-
-        when:
-        groupField.getFieldAndIncRepetitionIfValueIsSet(TestSpec.LONG_FIELD_NUMBER)
-
-        then:
-        thrown(FIXYouException)
-    }
-
-    private static <T extends AbstractField> T fieldWithValue(FieldType fieldType, int number, Object value) {
+    private static <T extends AbstractField> T fieldWithValue(FieldType fieldType, int number, Object value = null) {
         def field = FieldTypeUtils.createField(fieldType, number, TestSpec.INSTANCE)
-        field.setValue(value)
+        if (value != null) {
+            field.setValue(value)
+        }
         return field
     }
 }

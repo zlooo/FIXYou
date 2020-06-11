@@ -1,6 +1,6 @@
 package io.github.zlooo.fixyou.parser.model
 
-import io.netty.buffer.ByteBuf
+
 import io.netty.buffer.Unpooled
 import spock.lang.Specification
 
@@ -12,13 +12,19 @@ class BooleanFieldTest extends Specification {
 
     void setup() {
         field = new BooleanField(1)
+        field.fieldData = Unpooled.buffer(10, 10)
+        field.fieldData.writerIndex(5)
         field.fieldData.writeCharSequence("Y", StandardCharsets.US_ASCII)
+        field.setIndexes(5, 6)
     }
 
     def "should get value"() {
         setup:
         field = new BooleanField(1)
+        field.fieldData = Unpooled.buffer(10, 10)
+        field.fieldData.writerIndex(5)
         field.fieldData.writeCharSequence(rawValue, StandardCharsets.US_ASCII)
+        field.setIndexes(5, 6)
 
         when:
         def value = field.getValue()
@@ -33,10 +39,20 @@ class BooleanFieldTest extends Specification {
         "N"      | false
     }
 
+    def "should get default value when value is not set"(){
+        setup:
+        field.reset()
+
+        expect:
+        field.value == false
+    }
+
     def "should throw exception when trying to parse unexpected value"() {
         setup:
         field = new BooleanField(1)
+        field.fieldData = Unpooled.buffer(10, 10)
         field.fieldData.writeCharSequence("Z", StandardCharsets.US_ASCII)
+        field.setIndexes(0, 1)
 
         when:
         def value = field.getValue()
@@ -68,9 +84,24 @@ class BooleanFieldTest extends Specification {
 
         then:
         field.@parsed
+        field.valueSet
         !field.getValue()
-        ByteBuf expectedBuffer = Unpooled.buffer(10)
-        expectedBuffer.writeCharSequence("N", StandardCharsets.US_ASCII)
-        field.fieldData.compareTo(expectedBuffer) == 0
+    }
+
+    def "should append provided byte buf with value"() {
+        setup:
+        field.value = valueToSet
+        def buf = Unpooled.buffer(1, 1)
+
+        when:
+        field.appendByteBufWithValue(buf)
+
+        then:
+        buf.toString(StandardCharsets.US_ASCII) == expectedValue
+
+        where:
+        valueToSet | expectedValue
+        true       | "Y"
+        false      | "N"
     }
 }

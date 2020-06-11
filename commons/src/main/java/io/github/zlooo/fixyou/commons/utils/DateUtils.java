@@ -1,14 +1,12 @@
 package io.github.zlooo.fixyou.commons.utils;
 
+import io.github.zlooo.fixyou.utils.AsciiCodes;
 import io.netty.buffer.ByteBuf;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class DateUtils {
 
-    private static final int ASCII_MINUS_CODE = 45; //- in ASCII
-    private static final int ASCII_COMA_CODE = 46; //. in ASCII
-    private static final int ASCII_COLON_CODE = 58; //: in ASCII
     private static final long MILLIS_IN_SECOND = 1000L;
     private static final long MILLIS_IN_MINUTE = 60000L;
     private static final long MILLIS_IN_HOUR = 3600000L;
@@ -80,14 +78,14 @@ public class DateUtils {
         FieldUtils.writeEncoded(year, destinationBuffer);
         FieldUtils.writeEncoded(month, destinationBuffer, 2);
         FieldUtils.writeEncoded(day, destinationBuffer, 2);
-        destinationBuffer.writeByte(ASCII_MINUS_CODE);
+        destinationBuffer.writeByte(AsciiCodes.MINUS);
         FieldUtils.writeEncoded(hour, destinationBuffer, 2);
-        destinationBuffer.writeByte(ASCII_COLON_CODE);
+        destinationBuffer.writeByte(AsciiCodes.COLON);
         FieldUtils.writeEncoded(minute, destinationBuffer, 2);
-        destinationBuffer.writeByte(ASCII_COLON_CODE);
+        destinationBuffer.writeByte(AsciiCodes.COLON);
         FieldUtils.writeEncoded(second, destinationBuffer, 2);
         if (withMillis) {
-            destinationBuffer.writeByte(ASCII_COMA_CODE);
+            destinationBuffer.writeByte(AsciiCodes.DOT);
             FieldUtils.writeEncoded(remainingMillis, destinationBuffer, 3);
         }
     }

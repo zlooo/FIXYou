@@ -20,8 +20,7 @@ import io.netty.channel.*
 import io.netty.util.Attribute
 import spock.lang.Specification
 
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 class LogonHandlerTest extends Specification {
@@ -30,12 +29,11 @@ class LogonHandlerTest extends Specification {
     private SessionRegistry sessionRegistry = Mock()
     private ChannelHandler preMessageValidatorHandler = Mock()
     private ChannelHandler postMessageValidatorHandler = Mock()
-    private ChannelInboundHandler asyncExecutingHandler = Mock()
-    private LogonHandler logonHandler = new LogonHandler(authenticator, sessionRegistry, preMessageValidatorHandler, postMessageValidatorHandler, asyncExecutingHandler)
+    private LogonHandler logonHandler = new LogonHandler(authenticator, sessionRegistry, preMessageValidatorHandler, postMessageValidatorHandler)
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
     private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
-    private SessionID sessionID = new SessionID("beginString".toCharArray(), "senderCompId".toCharArray(), "targetCompId".toCharArray())
+    private SessionID sessionID = new SessionID("beginString".toCharArray(), 11, "senderCompId".toCharArray(), 12, "targetCompId".toCharArray(), 12)
     private FixMessage fixMessage = createValidLogonMessage(sessionID)
     private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)).setConsolidateFlushes(false).setSeparateIoFromAppThread(false),
                                                                                            sessionID, fixMessageObjectPool,
@@ -70,7 +68,7 @@ class LogonHandlerTest extends Specification {
 
     def "should close channel when logon on existing session is received"() {
         setup:
-        SessionID sessionID = new SessionID("beginString".toCharArray(), "targetCompId".toCharArray(), "senderCompId".toCharArray())
+        SessionID sessionID = new SessionID("beginString".toCharArray(), 11, "targetCompId".toCharArray(), 12, "senderCompId".toCharArray(), 12)
         sessionState.connected.set(true)
 
         when:
@@ -87,7 +85,7 @@ class LogonHandlerTest extends Specification {
 
     def "should close channel when logon on unknown session is received"() {
         setup:
-        SessionID sessionID = new SessionID("beginString".toCharArray(), "targetCompId".toCharArray(), "senderCompId".toCharArray())
+        SessionID sessionID = new SessionID("beginString".toCharArray(), 11, "targetCompId".toCharArray(), 12, "senderCompId".toCharArray(), 12)
 
         when:
         logonHandler.handleMessage(fixMessage, channelHandlerContext)
@@ -103,7 +101,7 @@ class LogonHandlerTest extends Specification {
 
     def "should logout when credentials are invalid"() {
         setup:
-        SessionID sessionID = new SessionID("beginString".toCharArray(), "targetCompId".toCharArray(), "senderCompId".toCharArray())
+        SessionID sessionID = new SessionID("beginString".toCharArray(), 11, "targetCompId".toCharArray(), 12, "senderCompId".toCharArray(), 12)
         ChannelFuture channelFuture = Mock()
 
         when:
@@ -116,15 +114,15 @@ class LogonHandlerTest extends Specification {
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
         1 * channelFuture.addListener(FixChannelListeners.LOGOUT_SENT) >> channelFuture
         fixMessage.refCnt() == 1
-        fixMessage.<CharSequenceField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getValue() == ['5'] as char[]
-        fixMessage.<CharSequenceField> getField(FixConstants.TEXT_FIELD_NUMBER).getValue() == LogoutTexts.BAD_CREDENTIALS
+        fixMessage.<CharSequenceField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getValue().toString() == String.valueOf(FixConstants.LOGOUT)
+        fixMessage.<CharSequenceField> getField(FixConstants.TEXT_FIELD_NUMBER).getValue().toString() == String.valueOf(LogoutTexts.BAD_CREDENTIALS)
         sessionState.channel == null
         0 * _
     }
 
     def "should start fix session"() {
         setup:
-        SessionID sessionID = new SessionID("beginString".toCharArray(), "targetCompId".toCharArray(), "senderCompId".toCharArray())
+        SessionID sessionID = new SessionID("beginString".toCharArray(), 11, "targetCompId".toCharArray(), 12, "senderCompId".toCharArray(), 12)
         ChannelPipeline channelPipeline = Mock()
         Attribute sessionAttribute = Mock()
         ChannelFuture channelFuture = Mock()
@@ -150,10 +148,10 @@ class LogonHandlerTest extends Specification {
         1 * channelHandlerContext.writeAndFlush(logonResponse) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
         1 * channelFuture.addListener(FixChannelListeners.LOGON_SENT) >> channelFuture
-        logonResponse.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.LOGON
+        logonResponse.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.LOGON)
         logonResponse.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value == 0L
         logonResponse.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value == 15L
-        logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value == ApplicationVersionID.FIX50SP2.value
+        logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value.toString() == String.valueOf(ApplicationVersionID.FIX50SP2.value)
         1 * sessionStateListener.logOn(sessionState)
         1 * sessionHandler.getSessionState() >> sessionState
         1 * channelHandlerContext.pipeline() >> channelPipeline
@@ -166,7 +164,7 @@ class LogonHandlerTest extends Specification {
 
     def "should start fix session and reset it when reset seq number flag is set"() {
         setup:
-        SessionID sessionID = new SessionID("beginString".toCharArray(), "targetCompId".toCharArray(), "senderCompId".toCharArray())
+        SessionID sessionID = new SessionID("beginString".toCharArray(), 11, "targetCompId".toCharArray(), 12, "senderCompId".toCharArray(), 12)
         ChannelPipeline channelPipeline = Mock()
         Attribute sessionAttribute = Mock()
         ChannelFuture channelFuture = Mock()
@@ -193,10 +191,10 @@ class LogonHandlerTest extends Specification {
         1 * channelHandlerContext.writeAndFlush(logonResponse) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
         1 * channelFuture.addListener(FixChannelListeners.LOGON_SENT) >> channelFuture
-        logonResponse.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.LOGON
+        logonResponse.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.LOGON)
         logonResponse.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value == 0L
         logonResponse.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value == 15L
-        logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value == ApplicationVersionID.FIX50SP2.value
+        logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value.toString() == String.valueOf(ApplicationVersionID.FIX50SP2.value)
         1 * sessionStateListener.logOn(sessionState)
         1 * sessionHandler.getSessionState() >> sessionState
         1 * channelHandlerContext.pipeline() >> channelPipeline
@@ -209,7 +207,7 @@ class LogonHandlerTest extends Specification {
 
     def "should close channel when exception occurs during sequence number for logon message check"() {
         setup:
-        SessionID sessionID = new SessionID("beginString".toCharArray(), "targetCompId".toCharArray(), "senderCompId".toCharArray())
+        SessionID sessionID = new SessionID("beginString".toCharArray(), 11, "targetCompId".toCharArray(), 12, "senderCompId".toCharArray(), 12)
         ChannelPipeline channelPipeline = Mock()
         Attribute sessionAttribute = Mock()
         fixMessage.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value = 0L
@@ -236,10 +234,10 @@ class LogonHandlerTest extends Specification {
         1 * channelHandlerContext.writeAndFlush(logonResponse) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
         1 * channelFuture.addListener(FixChannelListeners.LOGON_SENT) >> channelFuture
-        logonResponse.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.LOGON
+        logonResponse.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.LOGON)
         logonResponse.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value == 0L
         logonResponse.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value == 15L
-        logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value == ApplicationVersionID.FIX50SP2.value
+        logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value.toString() == String.valueOf(ApplicationVersionID.FIX50SP2.value)
         1 * sessionStateListener.logOn(sessionState)
         1 * sessionHandler.getSessionState() >> sessionState
         1 * channelHandlerContext.pipeline() >> channelPipeline
@@ -253,7 +251,7 @@ class LogonHandlerTest extends Specification {
 
     def "should start fix session but not send logon because it has already been sent"() {
         setup:
-        SessionID sessionID = new SessionID("beginString".toCharArray(), "targetCompId".toCharArray(), "senderCompId".toCharArray())
+        SessionID sessionID = new SessionID("beginString".toCharArray(), 11, "targetCompId".toCharArray(), 12, "senderCompId".toCharArray(), 12)
         ChannelPipeline channelPipeline = Mock()
         Attribute sessionAttribute = Mock()
         fixMessage.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value = 0L
@@ -286,7 +284,7 @@ class LogonHandlerTest extends Specification {
 
     def "should start fix session when handlers are already set up"() {
         setup:
-        SessionID sessionID = new SessionID("beginString".toCharArray(), "targetCompId".toCharArray(), "senderCompId".toCharArray())
+        SessionID sessionID = new SessionID("beginString".toCharArray(), 11, "targetCompId".toCharArray(), 12, "senderCompId".toCharArray(), 12)
         ChannelPipeline channelPipeline = Mock()
         fixMessage.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value = 0L
         fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value = 15L
@@ -309,10 +307,10 @@ class LogonHandlerTest extends Specification {
         1 * channelHandlerContext.writeAndFlush(logonResponse) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
         1 * channelFuture.addListener(FixChannelListeners.LOGON_SENT) >> channelFuture
-        logonResponse.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.LOGON
+        logonResponse.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.LOGON)
         logonResponse.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value == 0L
         logonResponse.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value == 15L
-        logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value == ApplicationVersionID.FIX50SP2.value
+        logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value.toString() == String.valueOf(ApplicationVersionID.FIX50SP2.value)
         1 * sessionStateListener.logOn(sessionState)
         1 * channelHandlerContext.channel() >> channel
         sessionState.channel == channel
@@ -321,7 +319,7 @@ class LogonHandlerTest extends Specification {
 
     def "should send reject and logout when invalid logon message is received"() {
         setup:
-        SessionID sessionID = new SessionID("beginString".toCharArray(), "targetCompId".toCharArray(), "senderCompId".toCharArray())
+        SessionID sessionID = new SessionID("beginString".toCharArray(), 11, "targetCompId".toCharArray(), 12, "senderCompId".toCharArray(), 12)
         fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).reset()
         ChannelOutboundHandler sessionOutChannelHandler = Mock()
         sessionState.getResettables().put(NettyResettablesNames.SESSION, sessionOutChannelHandler)
@@ -371,14 +369,14 @@ class LogonHandlerTest extends Specification {
     }
 
     private static FixMessage createValidLogonMessage(SessionID sessionID) {
-        FixMessage logon = new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+        FixMessage logon = new FixMessage(TestSpec.INSTANCE)
         logon.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).value = sessionID.beginString
         logon.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value = sessionID.senderCompID
         logon.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value = sessionID.targetCompID
         logon.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER).value = 666L
         logon.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 666L
         logon.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = FixConstants.LOGON
-        logon.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).value = FixConstants.UTC_TIMESTAMP_FORMATTER.format(OffsetDateTime.now(ZoneOffset.UTC)).toCharArray()
+        logon.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).value = Instant.now().toEpochMilli()
         logon.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value = 0L
         logon.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value = 15L
         logon.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value = ApplicationVersionID.FIX50SP2.value

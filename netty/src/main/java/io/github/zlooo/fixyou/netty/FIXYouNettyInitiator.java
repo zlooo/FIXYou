@@ -47,8 +47,7 @@ class FIXYouNettyInitiator extends AbstractFIXYouNetty {
                 (ChannelFutureListener) future -> {
                     final Channel channel = future.channel();
                     final long heartbeatInterval = sessionConfig.getHeartbeatInterval();
-                    PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, fixYouNettyComponent.beforeSessionMessageValidatorHandler(), fixYouNettyComponent.afterSessionMessageValidatorHandler(),
-                                                                fixYouNettyComponent.asyncExecutingHandler(), heartbeatInterval,
+                    PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, fixYouNettyComponent.beforeSessionMessageValidatorHandler(), fixYouNettyComponent.afterSessionMessageValidatorHandler(), heartbeatInterval,
                                                                 Handlers.SESSION);
                     final FixMessage logonMessage =
                             FixMessageUtils.toLogonMessage(sessionState.getFixMessageObjectPool().getAndRetain(), sessionState.getFixSpec().applicationVersionId().getValue(), sessionConfig.getEncryptMethod(), heartbeatInterval, false);

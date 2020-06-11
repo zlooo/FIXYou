@@ -12,7 +12,6 @@ import io.github.zlooo.fixyou.fix.commons.session.SessionModule;
 import io.github.zlooo.fixyou.netty.handler.admin.AdminModule;
 import io.github.zlooo.fixyou.session.SessionRegistry;
 import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelInboundHandler;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -34,9 +33,6 @@ public interface FixYouNettyComponent {
 
     @NamedHandler(Handlers.AFTER_SESSION_MESSAGE_VALIDATOR)
     ChannelHandler afterSessionMessageValidatorHandler();
-
-    @NamedHandler(Handlers.ASYNC_EXECUTING_HANDLER)
-    ChannelInboundHandler asyncExecutingHandler();
 
     @Named("acceptorConfigValidator")
     ConfigValidator acceptorConfigValidator();

@@ -6,6 +6,7 @@ import io.github.zlooo.fixyou.netty.test.framework.QuickfixTestUtils
 import io.github.zlooo.fixyou.parser.model.CharSequenceField
 import io.github.zlooo.fixyou.parser.model.CharField
 import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.parser.model.TimestampField
 import quickfix.Message
 import quickfix.Session
 import quickfix.SessionID
@@ -19,6 +20,7 @@ import spock.lang.Ignore
 import spock.lang.Timeout
 
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
@@ -115,7 +117,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         then:
         nextExpectedInboundSequenceNumber() == 3
         testFixMessageListener.messagesReceived.size() == 1
-        testFixMessageListener.messagesReceived[0].getField(ClOrdID.FIELD).value == clordid.toCharArray()
+        testFixMessageListener.messagesReceived[0].getField(ClOrdID.FIELD).value.toString() == clordid
     }
 
     def "should process resend message 2-e-2-1"() {
@@ -440,13 +442,9 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
     }
 
     void assertMinimalNewOrderSingle(NewOrderSingle expected, FixMessage actual) {
-        assert actual.<CharSequenceField> getField(ClOrdID.FIELD).value == expected.getClOrdID().value.toCharArray()
+        assert actual.<CharSequenceField> getField(ClOrdID.FIELD).value.toString() == expected.getClOrdID().value
         assert actual.<CharField> getField(Side.FIELD).value == expected.getSide().value
-        assert actual.<CharSequenceField> getField(TransactTime.FIELD).value == expected.
-                getTransactTime().
-                value.
-                format(DateTimeFormatter.ofPattern("YYYYMMdd-HH:mm:ss.SSS")).
-                toCharArray()
+        assert actual.<TimestampField> getField(TransactTime.FIELD).value == expected.getTransactTime().value.toInstant(ZoneOffset.UTC).toEpochMilli()
         assert actual.<CharField> getField(OrdType.FIELD).value == expected.getOrdType().value
     }
 

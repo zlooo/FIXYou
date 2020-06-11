@@ -27,9 +27,9 @@ class TestSpec implements FixSpec {
     @Override
     FieldType[] getTypes() {
         return [FixFieldsTypes.BEGIN_STRING, FixFieldsTypes.BODY_LENGTH, FixFieldsTypes.MESSAGE_TYPE, FixFieldsTypes.MESSAGE_SEQUENCE_NUMBER, FixFieldsTypes.POSS_DUP_FLAG,
-                FixFieldsTypes.SENDER_COMP_ID, FixFieldsTypes.TARGET_COMP_ID, FixFieldsTypes.SENDING_TIME, FieldType.CHAR_ARRAY,
+                FixFieldsTypes.SENDER_COMP_ID, FixFieldsTypes.TARGET_COMP_ID, FixFieldsTypes.SENDING_TIME, FieldType.TIMESTAMP,
                 FixFieldsTypes.BEGIN_SEQUENCE_NUMBER, FieldType.CHAR_ARRAY, FixFieldsTypes
-                        .END_SEQUENCE_NUMBER, FixFieldsTypes.NEW_SEQUENCE_NUMBER, FieldType.CHAR, FixFieldsTypes.REFERENCED_SEQUENCE_NUMBER, FieldType.CHAR, FieldType.CHAR_ARRAY,
+                        .END_SEQUENCE_NUMBER, FixFieldsTypes.NEW_SEQUENCE_NUMBER, FieldType.CHAR, FixFieldsTypes.REFERENCED_SEQUENCE_NUMBER, FieldType.CHAR, FieldType.TIMESTAMP,
                 FixFieldsTypes.
                         ENCRYPT_METHOD, FixFieldsTypes
                         .HEARTBEAT_INTERVAL, FieldType.CHAR_ARRAY, FixFieldsTypes.GAP_FILL_FLAG, FixFieldsTypes.TEXT, FixFieldsTypes.RESET_SEQ_NUMBER_FLAG, FixFieldsTypes.REFERENCED_TAG_ID, FixFieldsTypes.SESSION_REJECT_REASON,

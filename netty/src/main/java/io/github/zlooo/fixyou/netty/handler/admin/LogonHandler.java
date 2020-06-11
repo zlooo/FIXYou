@@ -38,18 +38,15 @@ class LogonHandler implements AdministrativeMessageHandler {
     private final SessionRegistry<NettyHandlerAwareSessionState> sessionRegistry;
     private final ChannelHandler beforeSessionMessageValidatorHandler;
     private final ChannelHandler afterSessionMessageValidatorHandler;
-    private final ChannelInboundHandler asyncExecutingHandler;
 
     @Inject
     LogonHandler(@Nullable Authenticator authenticator, SessionRegistry sessionRegistry,
                  @NamedHandler(Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR) ChannelHandler beforeSessionMessageValidatorHandler,
-                 @NamedHandler(Handlers.AFTER_SESSION_MESSAGE_VALIDATOR) ChannelHandler afterSessionMessageValidatorHandler,
-                 @NamedHandler(Handlers.ASYNC_EXECUTING_HANDLER) ChannelInboundHandler asyncExecutingHandler) {
+                 @NamedHandler(Handlers.AFTER_SESSION_MESSAGE_VALIDATOR) ChannelHandler afterSessionMessageValidatorHandler) {
         this.authenticator = authenticator;
         this.sessionRegistry = sessionRegistry;
         this.beforeSessionMessageValidatorHandler = beforeSessionMessageValidatorHandler;
         this.afterSessionMessageValidatorHandler = afterSessionMessageValidatorHandler;
-        this.asyncExecutingHandler = asyncExecutingHandler;
     }
 
     @Override
@@ -132,7 +129,7 @@ class LogonHandler implements AdministrativeMessageHandler {
 
     private SessionAwareChannelInboundHandler addRequiredHandlersToPipelineIfNeeded(ChannelHandlerContext ctx, NettyHandlerAwareSessionState sessionState, long heartbeatInterval) {
         if (ctx.pipeline().get(Handlers.SESSION.getName()) == null) {
-            return PipelineUtils.addRequiredHandlersToPipeline(ctx.channel(), sessionState, beforeSessionMessageValidatorHandler, afterSessionMessageValidatorHandler, asyncExecutingHandler, heartbeatInterval);
+            return PipelineUtils.addRequiredHandlersToPipeline(ctx.channel(), sessionState, beforeSessionMessageValidatorHandler, afterSessionMessageValidatorHandler, heartbeatInterval);
         } else {
             return null;
         }

@@ -1,5 +1,6 @@
 package io.github.zlooo.fixyou.parser.model;
 
+import io.github.zlooo.fixyou.utils.AsciiCodes;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.openjdk.jmh.annotations.*;
@@ -12,7 +13,7 @@ public class ParsingPerformanceTest {
     @Benchmark
     @BenchmarkMode(Mode.Throughput)
     public void parsingUtilsParseLong(TestState testState, Blackhole blackhole) {
-        blackhole.consume(ParsingUtils.parseLong(testState.byteBuf.readerIndex(0), FixMessage.FIELD_SEPARATOR_BYTE));
+        blackhole.consume(ParsingUtils.parseLong(testState.byteBuf.readerIndex(0), FixMessage.FIELD_SEPARATOR));
     }
 
     @Benchmark
@@ -25,7 +26,7 @@ public class ParsingPerformanceTest {
         long value = 0;
         for (int i = negative ? 1 : 0; i < length; i++) {
             final char nextChar = testState.unparsedValue[i];
-            value = value * ParsingUtils.RADIX + ((int) nextChar - ParsingUtils.ASCII_ZERO_CODE);
+            value = value * ParsingUtils.RADIX + ((int) nextChar - AsciiCodes.ZERO);
         }
         if (negative) {
             value *= -1;
@@ -49,7 +50,7 @@ public class ParsingPerformanceTest {
             byteBuf = Unpooled.buffer(LongField.FIELD_DATA_LENGTH, LongField.FIELD_DATA_LENGTH);
             byteBuf.writeCharSequence(valueToParse, StandardCharsets.US_ASCII);
             endIndex = byteBuf.writerIndex();
-            byteBuf.writeByte(FixMessage.FIELD_SEPARATOR_BYTE);
+            byteBuf.writeByte(FixMessage.FIELD_SEPARATOR);
         }
     }
 }

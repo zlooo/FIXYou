@@ -41,7 +41,7 @@ import java.util.Deque;
 @NoArgsConstructor
 public class FixMessageParser {
 
-    private static final ByteProcessor FIELD_TERMINATOR_FINDER = new ByteProcessor.IndexOfProcessor(FixMessage.FIELD_SEPARATOR_BYTE);
+    private static final ByteProcessor FIELD_TERMINATOR_FINDER = new ByteProcessor.IndexOfProcessor(FixMessage.FIELD_SEPARATOR);
     private static final String FIELD_NOT_FOUND_IN_MESSAGE_SPEC_LOG = "Field {} not found in message spec";
     private static final int NOT_FOUND = -1;
     private static final int MAX_CAPACITY_REACHED = 3;
@@ -83,17 +83,21 @@ public class FixMessageParser {
     }
 
     public void parseFixMsgBytes() {
+        fixMessage.setMessageByteSourceAndRetain(parseableBytes);
         int closestFieldTerminatorIndex;
 
         while ((closestFieldTerminatorIndex = parseableBytes.forEachByte(FIELD_TERMINATOR_FINDER)) != NOT_FOUND) {
-            final int fieldNum = ParsingUtils.parseInteger(parseableBytes, FixMessage.FIELD_SEPARATOR_BYTE);
+            final int fieldNum = ParsingUtils.parseInteger(parseableBytes, FixMessage.FIELD_VALUE_SEPARATOR);
             AbstractField field = null;
             if (!parsingRepeatingGroup) {
                 field = fixMessage.getField(fieldNum);
             } else {
                 final GroupField groupField = groupFieldsStack.peek();
                 if (groupField.containsField(fieldNum)) { //quick path, in 90% cases we won't have to deal with nested repeating groups
-                    field = groupField.getFieldAndIncRepetitionIfValueIsSet(fieldNum);
+                    field = groupField.getFieldForCurrentRepetition(fieldNum);
+                    if (field.isValueSet()) {
+                        field = groupField.next().getFieldForCurrentRepetition(fieldNum);
+                    }
                 } else {
                     field = handleNestedRepeatingGroup(fieldNum);
                 }
@@ -115,7 +119,6 @@ public class FixMessageParser {
                     parseableBytes.release();
                     parseableBytes = Unpooled.EMPTY_BUFFER;
                 }
-                fixMessage.setMessageByteSource(parseableBytes);
                 return;
             }
         }
@@ -126,7 +129,11 @@ public class FixMessageParser {
         GroupField groupField;
         while ((groupField = groupFieldsStack.peek()) != null) {
             if (groupField.containsField(fieldNum)) {
-                return groupField.getFieldAndIncRepetitionIfValueIsSet(fieldNum);
+                AbstractField currentRepetition = groupField.getFieldForCurrentRepetition(fieldNum);
+                if (currentRepetition.isValueSet()) {
+                    currentRepetition = groupField.next().getFieldForCurrentRepetition(fieldNum);
+                }
+                return currentRepetition;
             } else {
                 groupFieldsStack.poll();
             }

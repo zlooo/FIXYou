@@ -8,6 +8,7 @@ import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
 import io.github.zlooo.fixyou.netty.utils.FixChannelListeners
+import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID
 import io.netty.channel.*
@@ -16,11 +17,12 @@ import spock.lang.Specification
 
 class SessionHandlerTest extends Specification {
 
-    private DefaultObjectPool<io.github.zlooo.fixyou.parser.model.FixMessage> fixMessageObjectPool = Mock(DefaultObjectPool)
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), new SessionID("testBeginString".toCharArray(), "testSender".toCharArray(), "testTarget".toCharArray()), fixMessageObjectPool,
+    private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock(DefaultObjectPool)
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), new SessionID("testBeginString".toCharArray(), 15, "testSender".toCharArray(), 10, "testTarget".toCharArray(), 10),
+                                                                                           fixMessageObjectPool,
                                                                                            TestSpec.INSTANCE)
     private SessionHandler sessionHandler = new SessionHandler(sessionState)
-    private io.github.zlooo.fixyou.parser.model.FixMessage fixMessage = new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
     private ChannelHandlerContext channelHandlerContext = Mock()
     private ChannelFuture channelFuture = Mock()
 
@@ -93,11 +95,11 @@ class SessionHandlerTest extends Specification {
         1 * channelHandlerContext.writeAndFlush(fixMessage) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
         fixMessage.refCnt() == 1
-        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.REJECT
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.REJECT)
         fixMessage.getField(FixConstants.REFERENCED_SEQUENCE_NUMBER_FIELD_NUMBER).value == 444L
         fixMessage.getField(FixConstants.SESSION_REJECT_REASON_FIELD_NUMBER).value == RejectReasons.VALUE_IS_INCORRECT_FOR_THIS_TAG
         fixMessage.getField(FixConstants.REFERENCED_TAG_ID_FIELD_NUMBER).value == FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER
-        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).value == RejectReasons.TOO_LOW_NEW_SEQUENCE_NUMBER
+        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).value.toString() == String.valueOf(RejectReasons.TOO_LOW_NEW_SEQUENCE_NUMBER)
         0 * _
     }
 
@@ -162,15 +164,15 @@ class SessionHandlerTest extends Specification {
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
         1 * channelFuture.addListener(FixChannelListeners.LOGOUT_SENT) >> channelFuture
         fixMessage.refCnt() == 1
-        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.LOGOUT
-        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).value == LogoutTexts.SEQUENCE_NUMBER_LOWER_THAN_EXPECTED
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.LOGOUT)
+        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).value.toString() == String.valueOf(LogoutTexts.SEQUENCE_NUMBER_LOWER_THAN_EXPECTED)
         0 * _
     }
 
     def "should send resend request when gap is detected"() {
         setup:
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 10L
-        io.github.zlooo.fixyou.parser.model.FixMessage resendRequest = new io.github.zlooo.fixyou.parser.model.FixMessage(sessionHandler.sessionState.fixSpec)
+        FixMessage resendRequest = new FixMessage(sessionHandler.sessionState.fixSpec)
 
         when:
         sessionHandler.channelRead(channelHandlerContext, fixMessage)
@@ -179,7 +181,7 @@ class SessionHandlerTest extends Specification {
         1 * fixMessageObjectPool.getAndRetain() >> resendRequest
         1 * channelHandlerContext.writeAndFlush(resendRequest) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
-        resendRequest.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.RESEND_REQUEST
+        resendRequest.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.RESEND_REQUEST)
         resendRequest.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value == 1L
         resendRequest.getField(FixConstants.BEGIN_SEQUENCE_NUMBER_FIELD_NUMBER).value == 1L
         resendRequest.getField(FixConstants.END_SEQUENCE_NUMBER_FIELD_NUMBER).value == 9L
@@ -202,7 +204,7 @@ class SessionHandlerTest extends Specification {
     def "should send resend request when single message gap is detected"() {
         setup:
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 2L
-        io.github.zlooo.fixyou.parser.model.FixMessage resendRequest = new io.github.zlooo.fixyou.parser.model.FixMessage(sessionHandler.sessionState.fixSpec)
+        FixMessage resendRequest = new FixMessage(sessionHandler.sessionState.fixSpec)
 
         when:
         sessionHandler.channelRead(channelHandlerContext, fixMessage)
@@ -212,7 +214,7 @@ class SessionHandlerTest extends Specification {
         1 * fixMessageObjectPool.getAndRetain() >> resendRequest
         1 * channelHandlerContext.writeAndFlush(resendRequest) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
-        resendRequest.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.RESEND_REQUEST
+        resendRequest.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.RESEND_REQUEST)
         resendRequest.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value == 1L
         resendRequest.getField(FixConstants.BEGIN_SEQUENCE_NUMBER_FIELD_NUMBER).value == 1L
         resendRequest.getField(FixConstants.END_SEQUENCE_NUMBER_FIELD_NUMBER).value == 1L
@@ -225,7 +227,7 @@ class SessionHandlerTest extends Specification {
 
     def "should push message for processing when response to resend request arrives"() {
         setup:
-        io.github.zlooo.fixyou.parser.model.FixMessage queuedFixMessage = new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+        FixMessage queuedFixMessage = new FixMessage(TestSpec.INSTANCE)
         queuedFixMessage.retain()
         sessionHandler.@sequenceNumberToQueuedFixMessages.putAll([(1L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (2L): queuedFixMessage, (3L): FixMessageUtils.EMPTY_FAKE_MESSAGE])
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 1L
@@ -247,9 +249,9 @@ class SessionHandlerTest extends Specification {
     def "should send resend request cut down to what has not been yet requested"() {
         setup:
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 10L
-        def queuedFixMessage = new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+        def queuedFixMessage = new FixMessage(TestSpec.INSTANCE)
         sessionHandler.@sequenceNumberToQueuedFixMessages.putAll([(1L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (2L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (3L): queuedFixMessage])
-        io.github.zlooo.fixyou.parser.model.FixMessage resendRequest = new io.github.zlooo.fixyou.parser.model.FixMessage(sessionHandler.sessionState.fixSpec)
+        FixMessage resendRequest = new FixMessage(sessionHandler.sessionState.fixSpec)
 
         when:
         sessionHandler.channelRead(channelHandlerContext, fixMessage)
@@ -259,7 +261,7 @@ class SessionHandlerTest extends Specification {
         1 * fixMessageObjectPool.getAndRetain() >> resendRequest
         1 * channelHandlerContext.writeAndFlush(resendRequest) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
-        resendRequest.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value == FixConstants.RESEND_REQUEST
+        resendRequest.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.RESEND_REQUEST)
         resendRequest.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value == 1L
         resendRequest.getField(FixConstants.BEGIN_SEQUENCE_NUMBER_FIELD_NUMBER).value == 4L
         resendRequest.getField(FixConstants.END_SEQUENCE_NUMBER_FIELD_NUMBER).value == 9L
@@ -281,7 +283,7 @@ class SessionHandlerTest extends Specification {
     def "should not send resend request for sequence that has already been requested"() {
         setup:
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 2L
-        def queuedFixMessage = new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+        def queuedFixMessage = new FixMessage(TestSpec.INSTANCE)
         sessionHandler.@sequenceNumberToQueuedFixMessages.putAll([(1L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (2L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (3L): queuedFixMessage])
 
         when:
@@ -308,8 +310,8 @@ class SessionHandlerTest extends Specification {
         then:
         fixMessage.refCnt() == 1
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value == 1L
-        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value == "testSender".toCharArray()
-        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value == "testTarget".toCharArray()
+        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value.toString() == "testSender"
+        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value.toString() == "testTarget"
         1 * channelHandlerContext.write(fixMessage, channelPromise)
         sessionHandler.@lastOutboundSequenceNumber == 1L
         0 * _
@@ -328,8 +330,8 @@ class SessionHandlerTest extends Specification {
         then:
         fixMessage.refCnt() == 1
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value == 666L
-        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value == "testSender".toCharArray()
-        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value == "testTarget".toCharArray()
+        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value.toString() == "testSender"
+        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value.toString() == "testTarget"
         1 * channelHandlerContext.write(fixMessage, channelPromise)
         sessionHandler.@lastOutboundSequenceNumber == SessionHandler.DEFAULT_OUTBOUND_SEQUENCE_NUMBER
         0 * _
@@ -348,8 +350,8 @@ class SessionHandlerTest extends Specification {
         then:
         fixMessage.refCnt() == 1
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value == 666L
-        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value == "testSender".toCharArray()
-        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value == "testTarget".toCharArray()
+        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value.toString() == "testSender"
+        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value.toString() == "testTarget"
         1 * channelHandlerContext.write(fixMessage, channelPromise)
         sessionHandler.@lastOutboundSequenceNumber == SessionHandler.DEFAULT_OUTBOUND_SEQUENCE_NUMBER
         0 * _
@@ -357,7 +359,7 @@ class SessionHandlerTest extends Specification {
 
     def "should reprocess queued message if it is sequence reset"() {
         setup:
-        io.github.zlooo.fixyou.parser.model.FixMessage sequenceReset = new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+        FixMessage sequenceReset = new FixMessage(TestSpec.INSTANCE)
         sequenceReset.retain()
         sequenceReset.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = FixConstants.SEQUENCE_RESET
         sequenceReset.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 2L
@@ -380,7 +382,7 @@ class SessionHandlerTest extends Specification {
 
     def "should push message for processing when sequence reset - gap fill arrives"() {
         setup:
-        io.github.zlooo.fixyou.parser.model.FixMessage someFixMessage = new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+        FixMessage someFixMessage = new FixMessage(TestSpec.INSTANCE)
         sessionHandler.@sequenceNumberToQueuedFixMessages.putAll([(1L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (2L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (3L): someFixMessage])
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 1L
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = FixConstants.SEQUENCE_RESET
@@ -401,7 +403,7 @@ class SessionHandlerTest extends Specification {
 
     def "should push message for processing when sequence reset - reset arrives"() {
         setup:
-        io.github.zlooo.fixyou.parser.model.FixMessage someFixMessage = new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+        FixMessage someFixMessage = new FixMessage(TestSpec.INSTANCE)
         sessionHandler.@sequenceNumberToQueuedFixMessages.putAll([(1L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (2L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (3L): someFixMessage])
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = FixConstants.SEQUENCE_RESET
         fixMessage.getField(FixConstants.NEW_SEQUENCE_NUMBER_FIELD_NUMBER).value = 3
@@ -420,7 +422,7 @@ class SessionHandlerTest extends Specification {
 
     def "should ignore queued admin messages other than sequence reset"() {
         setup:
-        io.github.zlooo.fixyou.parser.model.FixMessage someFixMessage = new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+        FixMessage someFixMessage = new FixMessage(TestSpec.INSTANCE)
         someFixMessage.retain()
         someFixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = FixConstants.HEARTBEAT
         sessionHandler.@sequenceNumberToQueuedFixMessages.putAll([(1L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (2L): someFixMessage])

@@ -1,7 +1,9 @@
 package io.github.zlooo.fixyou.netty.handler
 
+import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
+import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandlerContext
@@ -11,10 +13,10 @@ import java.nio.charset.StandardCharsets
 
 class MessageDecoderTest extends Specification {
 
-    private DefaultObjectPool<io.github.zlooo.fixyou.parser.model.FixMessage> fixMessageObjectPool = Mock()
+    private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
     private MessageDecoder messageDecoder = new MessageDecoder(fixMessageObjectPool)
     private ChannelHandlerContext channelHandlerContext = Mock()
-    private io.github.zlooo.fixyou.parser.model.FixMessage fixMessage = new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
 
     def "should decode not fragmented message"() {
         setup:
@@ -24,10 +26,11 @@ class MessageDecoderTest extends Specification {
         messageDecoder.channelRead(channelHandlerContext, encodedMessage)
 
         then:
-        encodedMessage.refCnt() == 0
+        encodedMessage.refCnt() == 1 //should be increased when buffer is set on fix message
         1 * fixMessageObjectPool.getAndRetain() >> fixMessage
         1 * channelHandlerContext.fireChannelRead(fixMessage)
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
+        fixMessage.messageByteSource == encodedMessage
         0 * _
     }
 
@@ -39,9 +42,10 @@ class MessageDecoderTest extends Specification {
         messageDecoder.channelRead(channelHandlerContext, encodedMessage)
 
         then:
-        encodedMessage.refCnt() == 1
+        encodedMessage.refCnt() == 2
         1 * fixMessageObjectPool.getAndRetain() >> fixMessage
         messageDecoder.@state == MessageDecoder.State.DECODING
+        fixMessage.messageByteSource == encodedMessage
         0 * _
     }
 
@@ -58,9 +62,12 @@ class MessageDecoderTest extends Specification {
         then:
         encodedMessagePart1.refCnt() == 0
         encodedMessagePart2.refCnt() == 0
+        fixMessage.messageByteSource != encodedMessagePart1
+        fixMessage.messageByteSource != encodedMessagePart2
+        fixMessage.messageByteSource.refCnt() == 1
         1 * channelHandlerContext.fireChannelRead(fixMessage)
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
-        fixMessage.getField(io.github.zlooo.fixyou.FixConstants.TEXT_FIELD_NUMBER).value == "test".toCharArray()
+        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).value.toString() == "test"
         0 * _
     }
 
@@ -81,7 +88,10 @@ class MessageDecoderTest extends Specification {
         1 * fixMessageObjectPool.getAndRetain() >> fixMessage
         1 * channelHandlerContext.fireChannelRead(fixMessage)
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
-        fixMessage.getField(io.github.zlooo.fixyou.FixConstants.TEXT_FIELD_NUMBER).value == "test".toCharArray()
+        fixMessage.messageByteSource != encodedMessage1Part1
+        fixMessage.messageByteSource != encodedMessage1Part2
+        fixMessage.messageByteSource.refCnt() == 1
+        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).value.toString() == "test"
 
         fixMessage.resetAllDataFields()
 
@@ -97,7 +107,12 @@ class MessageDecoderTest extends Specification {
         1 * fixMessageObjectPool.getAndRetain() >> fixMessage
         1 * channelHandlerContext.fireChannelRead(fixMessage)
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
-        fixMessage.getField(io.github.zlooo.fixyou.FixConstants.TEXT_FIELD_NUMBER).value == "test".toCharArray()
+        fixMessage.messageByteSource != encodedMessage1Part1
+        fixMessage.messageByteSource != encodedMessage1Part2
+        fixMessage.messageByteSource != encodedMessage2Part1
+        fixMessage.messageByteSource != encodedMessage2Part2
+        fixMessage.messageByteSource.refCnt() == 1
+        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).value.toString() == "test"
         0 * _
     }
 
@@ -128,15 +143,20 @@ class MessageDecoderTest extends Specification {
         setup:
         ByteBuf encodedMessage = Unpooled.
                 wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u00018=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test2\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
+        FixMessage fixMessage2 = new FixMessage(TestSpec.INSTANCE)
 
         when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessage)
 
         then:
-        encodedMessage.refCnt() == 0
-        2 * fixMessageObjectPool.getAndRetain() >> fixMessage
-        1 * channelHandlerContext.fireChannelRead({ it.getField(58).value == "test".toCharArray() }) >> { io.github.zlooo.fixyou.parser.model.FixMessage msg -> msg.resetAllDataFields(); return channelHandlerContext }
-        1 * channelHandlerContext.fireChannelRead({ it.getField(58).value == "test2".toCharArray() }) >> { io.github.zlooo.fixyou.parser.model.FixMessage msg -> msg.resetAllDataFields(); return channelHandlerContext }
+        2 * fixMessageObjectPool.getAndRetain() >> fixMessage >> fixMessage2
+        1 * channelHandlerContext.fireChannelRead(fixMessage) >> channelHandlerContext
+        1 * channelHandlerContext.fireChannelRead(fixMessage2) >> channelHandlerContext
+        fixMessage.getField(58).value.toString() == "test"
+        fixMessage2.getField(58).value.toString() == "test2"
+        fixMessage.messageByteSource == encodedMessage
+        fixMessage2.messageByteSource == encodedMessage
+        encodedMessage.refCnt() == 2
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
         0 * _
     }

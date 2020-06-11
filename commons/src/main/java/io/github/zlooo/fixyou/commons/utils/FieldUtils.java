@@ -1,25 +1,24 @@
 package io.github.zlooo.fixyou.commons.utils;
 
 import io.github.zlooo.fixyou.commons.ReusableCharArray;
+import io.github.zlooo.fixyou.utils.AsciiCodes;
 import io.netty.buffer.ByteBuf;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public final class FieldUtils {
 
-    public static final int ASCII_ZERO_CODE = 48;
-    private static final int ASCII_MINUS_CODE = 45; //- in ASCII
     private static final int MAX_DIGIT_NUMBER_HOLDABLE_BY_LONG = 19;
     private static final ThreadLocal<ReusableCharArray> REUSABLE_CHAR_ARRAY_THREAD_LOCAL = ThreadLocal.withInitial(ReusableCharArray::new);
 
     public static void writeEncoded(long valueToWrite, ByteBuf destinationBuffer) {
         if (valueToWrite == 0) {
-            destinationBuffer.writeByte(ASCII_ZERO_CODE);
+            destinationBuffer.writeByte(AsciiCodes.ZERO);
             return;
         }
         long value = valueToWrite;
         if (valueToWrite < 0) {
-            destinationBuffer.writeByte(ASCII_MINUS_CODE);
+            destinationBuffer.writeByte(AsciiCodes.MINUS);
             value = -1 * value;
         }
         int powerOfTenIndex = 0;
@@ -32,7 +31,7 @@ public final class FieldUtils {
         for (; powerOfTenIndex >= 0; powerOfTenIndex--) {
             final long currentTenPowerValue = NumberConstants.POWERS_OF_TEN[powerOfTenIndex];
             final long digit = value / currentTenPowerValue;
-            destinationBuffer.writeByte(ASCII_ZERO_CODE + (int) digit);
+            destinationBuffer.writeByte(AsciiCodes.ZERO + (int) digit);
             value = value - (digit * currentTenPowerValue);
         }
     }
@@ -57,19 +56,20 @@ public final class FieldUtils {
             numberOfZeros--;
         }
         for (int i = numberOfZeros; i > 0; i--) {
-            destinationBuffer.writeByte(ASCII_ZERO_CODE);
+            destinationBuffer.writeByte(AsciiCodes.ZERO);
         }
         if (writeMinus) {
-            destinationBuffer.writeByte(ASCII_MINUS_CODE);
+            destinationBuffer.writeByte(AsciiCodes.MINUS);
         }
         for (powerOfTenIndex--; powerOfTenIndex >= 0; powerOfTenIndex--) {
             final long currentTenPowerValue = NumberConstants.POWERS_OF_TEN[powerOfTenIndex];
             final long digit = value / currentTenPowerValue;
-            destinationBuffer.writeByte(ASCII_ZERO_CODE + (int) digit);
+            destinationBuffer.writeByte(AsciiCodes.ZERO + (int) digit);
             value = value - (digit * currentTenPowerValue);
         }
     }
 
+    //TODO get rid of this method
     public static ReusableCharArray toCharSequence(long valueToWrite) {
         return toCharSequence(valueToWrite, 0);
     }
@@ -78,6 +78,7 @@ public final class FieldUtils {
      * Almost pure copy of {@link Long#toString(long)}. The only difference is that this method returns {@link ReusableCharArray} and gives an ability to make underlying char
      * array larger if needed
      */
+    //TODO get rid of this method
     public static ReusableCharArray toCharSequence(long valueToWrite, int additionalUnderlyingArrayLength) {
         final int size = (valueToWrite < 0) ? stringSize(-valueToWrite) + 1 : stringSize(valueToWrite);
         final char[] buf = new char[size + additionalUnderlyingArrayLength];

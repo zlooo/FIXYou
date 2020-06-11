@@ -48,7 +48,7 @@ public class FixConstants {
     public static final long ENCRYPTION_METHOD_PGP_DES = 4;
     public static final long ENCRYPTION_METHOD_PGP_DES_MD5 = 5;
     public static final long ENCRYPTION_METHOD_PEM_DES_MD5 = 6;
-    public static final DateTimeFormatter UTC_TIMESTAMP_NO_MILLIS_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HH:mm:ss");
+    public static final DateTimeFormatter UTC_TIMESTAMP_NO_MILLIS_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HH:mm:ss"); //TODO get rid of those formatters!!!
     public static final String UTC_TIMESTAMP_PATTERN = "yyyyMMdd-HH:mm:ss.SSS";
     public static final DateTimeFormatter UTC_TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern(UTC_TIMESTAMP_PATTERN);
     public static final long SENDING_TIME_ACCURACY_MILLIS = TimeUnit.SECONDS.toMillis(30);

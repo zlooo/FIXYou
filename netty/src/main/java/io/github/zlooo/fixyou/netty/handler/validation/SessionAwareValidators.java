@@ -7,10 +7,10 @@ import io.github.zlooo.fixyou.fix.commons.session.SessionIDUtils;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.netty.utils.FixChannelListeners;
-import io.github.zlooo.fixyou.parser.model.AbstractField;
 import io.github.zlooo.fixyou.parser.model.CharSequenceField;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.LongField;
+import io.github.zlooo.fixyou.parser.model.TimestampField;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.github.zlooo.fixyou.session.ValidationConfig;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
@@ -19,9 +19,6 @@ import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Clock;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 
 @Slf4j
@@ -51,19 +48,12 @@ public class SessionAwareValidators {
 
     public static final PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>> BEGIN_STRING_VALIDATOR = createBeginStringValidator();
 
+    public static final int CHECKSUM_FIELD_LENGTH = 7;
     public static final PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>> BODY_LENGTH_VALIDATOR =
             new PredicateWithValidator<>(ValidationConfig::isShouldCheckBodyLength, (fixMessage, sessionState) -> {
-                final long bodyLength = fixMessage.<LongField>getField(FixConstants.BODY_LENGTH_FIELD_NUMBER).getValue();
-                final AbstractField[] fieldsOrdered = fixMessage.getFieldsOrdered();
-                int numberOfBytesInMessage = 0;
-                for (int i = 2; i < fieldsOrdered.length - 1; i++) {
-                    final AbstractField field = fieldsOrdered[i];
-                    if (field.isValueSet()) {
-                        numberOfBytesInMessage += field.getLength();
-                        numberOfBytesInMessage += field.getEncodedFieldNumber().writerIndex();
-                        numberOfBytesInMessage++; //SOH also counts
-                    }
-                }
+                final LongField bodyLengthField = fixMessage.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER);
+                final long bodyLength = bodyLengthField.getValue();
+                final int numberOfBytesInMessage = fixMessage.getMessageByteSource().writerIndex() - CHECKSUM_FIELD_LENGTH - bodyLengthField.getEndIndex() - 1;
                 if (bodyLength != numberOfBytesInMessage) {
                     log.warn("Body length mismatch, value in message {}, calculated {}. Ignoring message and logging it on debug level", bodyLength, numberOfBytesInMessage);
                     log.debug("Ignored message {}", fixMessage);
@@ -93,11 +83,8 @@ public class SessionAwareValidators {
 
     public static PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>> createSendingTimeValidator(Clock clock) {
         return new PredicateWithValidator<>(ValidationConfig::isShouldCheckSendingTime, ((fixMessage, sessionState) -> {
-            //TODO rewrite this so that it compares char[] values without parsing. this way it'll produce less garbage and probably be faster
-            final CharSequence sendingTime = fixMessage.<CharSequenceField>getField(FixConstants.SENDING_TIME_FIELD_NUMBER).getValue();
-            final DateTimeFormatter formatter = sendingTime.length() > MAX_TIMESTAMP_LENGTH_WITHOUT_MILLIS ? FixConstants.UTC_TIMESTAMP_FORMATTER : FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER;
-            final long sendingTimeEpochMillis = formatter.parse(sendingTime, LocalDateTime::from).toInstant(ZoneOffset.UTC).toEpochMilli();
-            if (Math.abs(sendingTimeEpochMillis - clock.millis()) > FixConstants.SENDING_TIME_ACCURACY_MILLIS) {
+            final long sendingTime = fixMessage.<TimestampField>getField(FixConstants.SENDING_TIME_FIELD_NUMBER).getValue();
+            if (Math.abs(sendingTime - clock.millis()) > FixConstants.SENDING_TIME_ACCURACY_MILLIS) {
                 log.warn("Sending time inaccuracy detected. Difference between now and sending time from message is greater than {} millis. Logging out session {}, message will be logged on debug level",
                          FixConstants.SENDING_TIME_ACCURACY_MILLIS, sessionState.getSessionId());
                 log.debug("Message with sending time inaccuracy {}", fixMessage);

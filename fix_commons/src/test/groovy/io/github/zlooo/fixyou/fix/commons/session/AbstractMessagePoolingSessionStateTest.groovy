@@ -1,16 +1,20 @@
 package io.github.zlooo.fixyou.fix.commons.session
 
-
+import io.github.zlooo.fixyou.Resettable
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.fix.commons.TestSpec
+import io.github.zlooo.fixyou.model.FixSpec
+import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.session.SessionConfig
+import io.github.zlooo.fixyou.session.SessionID
 import spock.lang.Specification
 
 class AbstractMessagePoolingSessionStateTest extends Specification {
 
-    private DefaultObjectPool<io.github.zlooo.fixyou.parser.model.FixMessage> fixMessageDefaultObjectPool = Mock()
-    private io.github.zlooo.fixyou.Resettable resettable = Mock()
+    private DefaultObjectPool<FixMessage> fixMessageDefaultObjectPool = Mock()
+    private Resettable resettable = Mock()
     private ClosableResettable closableResettable = Mock()
-    private AbstractMessagePoolingSessionState sessionState = new TestSessionState(new io.github.zlooo.fixyou.session.SessionConfig(), new io.github.zlooo.fixyou.session.SessionID([] as char[], [] as char[], [] as char[]), fixMessageDefaultObjectPool, TestSpec.INSTANCE)
+    private AbstractMessagePoolingSessionState sessionState = new TestSessionState(new SessionConfig(), new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0), fixMessageDefaultObjectPool, TestSpec.INSTANCE)
 
     void setup() {
         sessionState.getResettables()["resettable"] = resettable
@@ -40,12 +44,12 @@ class AbstractMessagePoolingSessionStateTest extends Specification {
 
     private static final class TestSessionState extends AbstractMessagePoolingSessionState {
 
-        TestSessionState(io.github.zlooo.fixyou.session.SessionConfig sessionConfig, io.github.zlooo.fixyou.session.SessionID sessionId, DefaultObjectPool<io.github.zlooo.fixyou.parser.model.FixMessage> fixMessageObjectPool, io.github.zlooo.fixyou.model.FixSpec fixSpec) {
+        TestSessionState(SessionConfig sessionConfig, SessionID sessionId, DefaultObjectPool<FixMessage> fixMessageObjectPool, FixSpec fixSpec) {
             super(sessionConfig, sessionId, fixMessageObjectPool, fixSpec)
         }
     }
 
-    private static class ClosableResettable implements io.github.zlooo.fixyou.Resettable, io.github.zlooo.fixyou.Closeable {
+    private static class ClosableResettable implements Resettable, io.github.zlooo.fixyou.Closeable {
 
         @Override
         void close() {

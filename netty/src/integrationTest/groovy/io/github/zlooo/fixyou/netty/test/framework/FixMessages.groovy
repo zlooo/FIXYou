@@ -1,9 +1,10 @@
 package io.github.zlooo.fixyou.netty.test.framework
 
 import io.github.zlooo.fixyou.FixConstants
-import io.github.zlooo.fixyou.parser.model.CharSequenceField
 import io.github.zlooo.fixyou.parser.model.CharField
+import io.github.zlooo.fixyou.parser.model.CharSequenceField
 import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.parser.model.TimestampField
 import quickfix.SessionID
 import quickfix.field.*
 import quickfix.fix50sp2.NewOrderSingle
@@ -12,9 +13,8 @@ import quickfix.fixt11.Logon
 import quickfix.fixt11.Logout
 import quickfix.fixt11.TestRequest
 
+import java.time.Instant
 import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
 import java.util.function.Consumer
 
 class FixMessages {
@@ -82,7 +82,7 @@ class FixMessages {
             fixMessage.<CharSequenceField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(NewOrderSingle.MSGTYPE.toCharArray())
             fixMessage.<CharSequenceField> getField(ClOrdID.FIELD).setValue(clordid.toString().toCharArray())
             fixMessage.<CharField> getField(Side.FIELD).setValue(Side.BUY)
-            fixMessage.<CharSequenceField> getField(TransactTime.FIELD).setValue(FixConstants.UTC_TIMESTAMP_FORMATTER.format(OffsetDateTime.now(ZoneOffset.UTC)).toCharArray())
+            fixMessage.<TimestampField> getField(TransactTime.FIELD).setValue(Instant.now().toEpochMilli())
             fixMessage.<CharField> getField(OrdType.FIELD).setValue(OrdType.MARKET)
         }
     }

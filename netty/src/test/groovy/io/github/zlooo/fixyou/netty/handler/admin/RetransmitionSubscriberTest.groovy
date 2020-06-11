@@ -11,6 +11,7 @@ import io.netty.channel.ChannelFutureListener
 import io.netty.channel.ChannelHandlerContext
 import spock.lang.Specification
 
+import java.time.Instant
 import java.time.LocalDateTime
 
 class RetransmitionSubscriberTest extends Specification {
@@ -51,7 +52,7 @@ class RetransmitionSubscriberTest extends Specification {
         FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
         fixMessage.retain()
         fixMessage.<CharSequenceField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue("D".toCharArray())
-        def sendingTime = FixConstants.UTC_TIMESTAMP_FORMATTER.format(LocalDateTime.now()).toCharArray()
+        def sendingTime = Instant.now().toEpochMilli()
         fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).value = sendingTime
 
         when:
@@ -72,7 +73,7 @@ class RetransmitionSubscriberTest extends Specification {
         fixMessage.retain()
         FixMessage gapFill = new FixMessage(TestSpec.INSTANCE)
         fixMessage.<CharSequenceField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue("D".toCharArray())
-        def sendingTime = FixConstants.UTC_TIMESTAMP_FORMATTER.format(LocalDateTime.now()).toCharArray()
+        def sendingTime = Instant.now().toEpochMilli()
         fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).value = sendingTime
         fixMessageSubscriber.@fromValue = 666
         fixMessageSubscriber.@toValue = 777

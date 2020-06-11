@@ -1,8 +1,6 @@
 package io.github.zlooo.fixyou.netty.handler;
 
-import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.FixConstants;
-import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.github.zlooo.fixyou.model.ApplicationVersionID;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
@@ -12,8 +10,8 @@ import io.github.zlooo.fixyou.parser.FixFieldsTypes;
 import io.github.zlooo.fixyou.parser.FixMessageParser;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage;
+import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandler;
@@ -72,16 +70,6 @@ class SimplifiedMessageCodec extends AbstractMessageEncoder implements ChannelIn
     @Override
     protected ValueAddingByteProcessor getValueAddingByteProcessor() {
         return new ValueAddingByteProcessor();
-    }
-
-    @Override
-    protected ByteBuf getBodyTempBuffer() {
-        return Unpooled.directBuffer(DefaultConfiguration.AVG_FIELDS_PER_MESSAGE * DefaultConfiguration.FIELD_BUFFER_SIZE);
-    }
-
-    @Override
-    protected void bodyTempBufferNotNeeded(ByteBuf bodyTempBuffer) {
-        bodyTempBuffer.release(bodyTempBuffer.refCnt());
     }
 
     @Override
