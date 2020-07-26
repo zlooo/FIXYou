@@ -12,13 +12,13 @@ public class ObjectPoolPerformanceTest {
 
     private static final int POOL_SIZE = 10_000_000;
     private DefaultObjectPool<TestPoolableObject> defaultObjectPool;
-    private NoThreadLocalObjectPool<TestPoolableObject> noThreadLocalObjectPool;
+    private ArrayBackedObjectPool<TestPoolableObject> arrayBackedObjectPool;
 
 
     @Setup
     public void setUp() {
-        defaultObjectPool = new DefaultObjectPool<>(POOL_SIZE, TestPoolableObject::new, TestPoolableObject.class);
-        noThreadLocalObjectPool = new NoThreadLocalObjectPool<>(POOL_SIZE, TestPoolableObject::new, TestPoolableObject.class);
+        defaultObjectPool = new DefaultObjectPool<>(POOL_SIZE, TestPoolableObject::new, TestPoolableObject.class, POOL_SIZE);
+        arrayBackedObjectPool = new ArrayBackedObjectPool<>(POOL_SIZE, TestPoolableObject::new, TestPoolableObject.class, POOL_SIZE);
     }
 
 
@@ -33,7 +33,7 @@ public class ObjectPoolPerformanceTest {
     @Benchmark
     @BenchmarkMode({Mode.Throughput, Mode.SampleTime})
     public TestPoolableObject noThreadLocalObjectPoolTest() {
-        final TestPoolableObject poolableObject = noThreadLocalObjectPool.getAndRetain();
+        final TestPoolableObject poolableObject = arrayBackedObjectPool.getAndRetain();
         poolableObject.release(); //TODO this is supposed to be get test not get and release test, move release out of mesurement
         return poolableObject;
     }

@@ -6,7 +6,6 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.LongAdder;
 
 @Slf4j
 @ToString
@@ -17,7 +16,7 @@ public abstract class AbstractPoolableObject implements ReferenceCounted, Closea
 
     protected boolean exceptionOnReferenceCheckFail = true;
     private final AtomicInteger state = new AtomicInteger(AVAILABLE_STATE);
-    private final LongAdder referenceCount = new LongAdder();
+    private final AtomicInteger referenceCount = new AtomicInteger(0);
     private ObjectPool pool;
 
     @Override
@@ -27,13 +26,13 @@ public abstract class AbstractPoolableObject implements ReferenceCounted, Closea
 
     @Override
     public ReferenceCounted retain() {
-        referenceCount.increment();
+        referenceCount.incrementAndGet();
         return this;
     }
 
     @Override
     public ReferenceCounted retain(int increment) {
-        referenceCount.add(increment);
+        referenceCount.addAndGet(increment);
         return this;
     }
 
@@ -49,18 +48,16 @@ public abstract class AbstractPoolableObject implements ReferenceCounted, Closea
 
     @Override
     public boolean release() {
-        referenceCount.decrement();
-        return checkReferenceCount();
+        return checkReferenceCount(referenceCount.decrementAndGet());
     }
 
     @Override
     public boolean release(int decrement) {
-        referenceCount.add(-decrement);
-        return checkReferenceCount();
+        return checkReferenceCount(referenceCount.addAndGet(-decrement));
     }
 
-    private boolean checkReferenceCount() {
-        final int compareResult = Long.compare(referenceCount.sum(), 0L);
+    private boolean checkReferenceCount(int refCount) {
+        final int compareResult = Long.compare(refCount, 0L);
         if (compareResult == 0) {
             deallocate();
             return true;

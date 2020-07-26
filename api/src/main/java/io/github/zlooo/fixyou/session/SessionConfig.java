@@ -18,7 +18,6 @@ public class SessionConfig {
     private int port;
     private String host;
     private boolean consolidateFlushes = true;
-    private boolean separateIoFromAppThread = true;
     private long encryptMethod = DefaultConfiguration.DEFAULT_ENCRYPTION_METHOD;
     private long heartbeatInterval = DefaultConfiguration.DEFAULT_HEARTBEAT_INTERVAL;
     private final List<SessionStateListener> sessionStateListeners = new ArrayList<>();

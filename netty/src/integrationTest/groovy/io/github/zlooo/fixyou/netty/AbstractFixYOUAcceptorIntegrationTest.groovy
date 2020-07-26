@@ -3,6 +3,8 @@ package io.github.zlooo.fixyou.netty
 import io.github.zlooo.fixyou.FIXYouConfiguration
 import io.github.zlooo.fixyou.Resettable
 import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject
+import io.github.zlooo.fixyou.commons.pool.ArrayBackedObjectPool
+import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.fix.commons.session.AbstractMessagePoolingSessionState
 import io.github.zlooo.fixyou.netty.handler.NettyResettablesNames
 import io.github.zlooo.fixyou.netty.test.framework.*
@@ -138,18 +140,29 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
     }
 
     protected Collection<FixMessage> getInUseFixMessages() {
-        def fixMessageObjectPool = ((AbstractMessagePoolingSessionState) ((FIXYouNettyAcceptor) engine).@fixYouNettyComponent.sessionRegistry().
-                getStateForSession(fixYouSessionId)).fixMessageObjectPool
-        if (fixMessageObjectPool.@objectArray.contains(null)) {
+        def fixMessageReadPool = ((AbstractMessagePoolingSessionState) ((FIXYouNettyAcceptor) engine).@fixYouNettyComponent.sessionRegistry().
+                getStateForSession(fixYouSessionId)).fixMessageReadPool
+        Collection inUseMessages = checkPool(fixMessageReadPool)
+        def fixMessageWritePool = ((AbstractMessagePoolingSessionState) ((FIXYouNettyAcceptor) engine).@fixYouNettyComponent.sessionRegistry().
+                getStateForSession(fixYouSessionId)).fixMessageWritePool
+        inUseMessages.addAll(checkPool(fixMessageWritePool))
+        return inUseMessages
+    }
+
+    protected Collection checkPool(ArrayBackedObjectPool objectPool) {
+        if (objectPool.@objectArray.contains(null)) {
             Assert.fail("Array in FixMessage object pool contains nulls, this means something has not been returned to the pool, which is baaaaaaaad")
         }
-        def inUseMessages = fixMessageObjectPool.@objectArray.findAll { it.getState().get() == AbstractPoolableObject.IN_USE_STATE }
-        if (fixMessageObjectPool.@firstObject.getState()?.get() == AbstractPoolableObject.IN_USE_STATE) {
-            inUseMessages.add(fixMessageObjectPool.@firstObject)
+        def inUseMessages = objectPool.@objectArray.findAll { it.getState().get() == AbstractPoolableObject.IN_USE_STATE }
+        if (objectPool instanceof DefaultObjectPool) {
+            if (objectPool.@firstObject.getState()?.get() == AbstractPoolableObject.IN_USE_STATE) {
+                inUseMessages.add(objectPool.@firstObject)
+            }
+            if (objectPool.@secondObject.getState()?.get() == AbstractPoolableObject.IN_USE_STATE) {
+                inUseMessages.add(objectPool.@secondObject)
+            }
         }
-        if (fixMessageObjectPool.@secondObject.getState()?.get() == AbstractPoolableObject.IN_USE_STATE) {
-            inUseMessages.add(fixMessageObjectPool.@secondObject)
-        }
+
         return inUseMessages
     }
 
@@ -165,4 +178,5 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
         receivedMessages?.clear()
         LOGGER.info("Cleanup done")
     }
+
 }

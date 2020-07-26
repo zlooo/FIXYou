@@ -76,8 +76,7 @@ public final class GroupField extends AbstractField {
 
     public long getValue() {
         if (value == DEFAULT_VALUE && valueSet) {
-            fieldData.readerIndex(startIndex);
-            value = ParsingUtils.parseLong(fieldData, FixMessage.FIELD_SEPARATOR); //TODO run JMH test and see if you're right
+            value = ParsingUtils.parseLong(fieldData, startIndex, FixMessage.FIELD_SEPARATOR); //TODO run JMH test and see if you're right
         }
         return value;
     }
@@ -110,6 +109,7 @@ public final class GroupField extends AbstractField {
 
     @Nullable
     public <T extends AbstractField> T getFieldForCurrentRepetition(int fieldNum) {
+        ensureRepetitionsArrayCapacity();
         return (T) repetitions[repetitionCounter].idToField.get(fieldNum);
     }
 
@@ -123,8 +123,10 @@ public final class GroupField extends AbstractField {
     public boolean isValueSet() {
         if (repetitionCounter == 0) {
             boolean result = false;
-            for (final AbstractField field : repetitions[0].fieldsOrdered) {
-                result |= field.isValueSet();
+            if (repetitions.length > 0) {
+                for (final AbstractField field : repetitions[0].fieldsOrdered) {
+                    result |= field.isValueSet();
+                }
             }
             return result;
         } else {
@@ -139,7 +141,7 @@ public final class GroupField extends AbstractField {
         for (int i = 0; i <= repetitionCounter; i++) {
             for (final AbstractField repetitionField : repetitions[i].fieldsOrdered) {
                 if (repetitionField.isValueSet()) {
-                    out.writeBytes(repetitionField.getEncodedFieldNumber());
+                    repetitionField.appendFieldNumber(out);
                     repetitionField.appendByteBufWithValue(out);
                     out.writeByte(FixMessage.FIELD_SEPARATOR);
                 }
@@ -160,12 +162,19 @@ public final class GroupField extends AbstractField {
 
     private void ensureRepetitionsArrayCapacity() {
         if (repetitions.length <= repetitionCounter) {
-            final int newLength = (int) (repetitionCounter * (1.0 + Hashing.DEFAULT_LOAD_FACTOR));
+            final int newLength = (int) ((repetitionCounter + 1) * (1.0 + Hashing.DEFAULT_LOAD_FACTOR));
             log.warn("Repetitions array resize in field {}, from {} to {}. Consider making default larger", number, repetitions.length, newLength);
             final Repetition[] newArray = new Repetition[newLength];
             System.arraycopy(repetitions, 0, newArray, 0, repetitions.length);
             for (int i = repetitions.length; i < newLength; i++) {
-                newArray[i] = repetitionSupplier.get();
+                final Repetition repetition = repetitionSupplier.get();
+                if (fieldData != null) {
+                    for (final AbstractField field : repetition.fieldsOrdered) {
+                        field.setFieldData(fieldData);
+                    }
+
+                }
+                newArray[i] = repetition;
             }
             repetitions = newArray;
         }

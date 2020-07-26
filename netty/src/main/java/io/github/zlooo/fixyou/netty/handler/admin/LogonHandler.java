@@ -84,7 +84,7 @@ class LogonHandler implements AdministrativeMessageHandler {
                     final SessionAwareChannelInboundHandler sessionHandler = addRequiredHandlersToPipelineIfNeeded(ctx, sessionState, fixMessage.<LongField>getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getValue());
                     if (!sessionState.isLogonSent()) {
                         ctx.writeAndFlush(
-                                FixMessageUtils.toLogonMessage(sessionState.getFixMessageObjectPool().getAndRetain(),
+                                FixMessageUtils.toLogonMessage(sessionState.getFixMessageWritePool().getAndRetain(),
                                                                sessionState.getFixSpec().applicationVersionId().getValue(),
                                                                fixMessage.<LongField>getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).getValue(),
                                                                fixMessage.<LongField>getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getValue(), resetSequenceFlagSet))
@@ -118,7 +118,7 @@ class LogonHandler implements AdministrativeMessageHandler {
         log.warn("Invalid logon message received, responding with reject and logout messages");
         final ChannelOutboundHandler sessionHandler = (ChannelOutboundHandler) sessionState.getResettables().get(NettyResettablesNames.SESSION);
         final ChannelHandlerContext notMovingForwardCtx = (ChannelHandlerContext) sessionState.getResettables().get(NettyResettablesNames.NOT_MOVING_FORWARD_ON_READ_AND_WRITE_CHANNEL_HANDLER_CONTEXT);
-        final FixMessage rejectMessage = FixMessageUtils.toRejectMessage(sessionState.getFixMessageObjectPool().getAndRetain(), RejectReasons.OTHER, RejectReasons.INVALID_LOGON_MESSAGE);
+        final FixMessage rejectMessage = FixMessageUtils.toRejectMessage(sessionState.getFixMessageWritePool().getAndRetain(), RejectReasons.OTHER, RejectReasons.INVALID_LOGON_MESSAGE);
         sessionHandler.write(notMovingForwardCtx, rejectMessage, null); //Yeah manually getting session handler and applying it looks a bit odd :/
         ctx.write(rejectMessage).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
         final FixMessage logoutMessage = FixMessageUtils.toLogoutMessage(fixMessage, LogoutTexts.INVALID_LOGON_MESSAGE);

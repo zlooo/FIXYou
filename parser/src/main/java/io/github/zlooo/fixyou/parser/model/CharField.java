@@ -26,8 +26,7 @@ public final class CharField extends AbstractField {
 
     public char getValue() {
         if (value == Character.MIN_VALUE && valueSet) {
-            fieldData.readerIndex(startIndex);
-            value = AsciiString.b2c(fieldData.readByte());
+            value = AsciiString.b2c(fieldData.getByte(startIndex));
         }
         return value;
     }

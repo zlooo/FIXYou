@@ -320,13 +320,13 @@ public class MutableIdleStateHandler extends ChannelDuplexHandler implements Ses
         switch (idleState) {
             case WRITER_IDLE:
                 log.info("Connection idle for too long, sending heartbeat for session {}", sessionState.getSessionId());
-                ctx.writeAndFlush(FixMessageUtils.toHeartbeatMessage(sessionState.getFixMessageObjectPool().getAndRetain())).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+                ctx.writeAndFlush(FixMessageUtils.toHeartbeatMessage(sessionState.getFixMessageWritePool().getAndRetain())).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
                 break;
             case READER_IDLE:
                 if (evt.isFirst()) {
                     log.info("Connection idle for too long, sending test request for session {}", sessionState.getSessionId());
                     //TODO some randomness in test request id?
-                    ctx.writeAndFlush(FixMessageUtils.toTestRequest(sessionState.getFixMessageObjectPool().getAndRetain(), TEST_REQ_ID)).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+                    ctx.writeAndFlush(FixMessageUtils.toTestRequest(sessionState.getFixMessageWritePool().getAndRetain(), TEST_REQ_ID)).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
                 } else {
                     log.warn("Second read timeout, closing connection for session {}", sessionState.getSessionId());
                     ctx.close();

@@ -24,7 +24,7 @@ class ReceiveSequenceResetResetModeIntegrationTest extends AbstractFixYOUAccepto
         when:
         Session.sendToTarget(sequenceReset, sessionID)
         pollingConditions.eventually {
-            nextExpectedInboundSequenceNumber() == 10
+            testFixMessageListener.messagesReceived.size() == 1
         }
 
         then:

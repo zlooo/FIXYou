@@ -32,8 +32,7 @@ public final class LongField extends AbstractField {
 
     public long getValue() {
         if (value == DEFAULT_VALUE && valueSet) {
-            fieldData.readerIndex(startIndex);
-            value = ParsingUtils.parseLong(fieldData, FixMessage.FIELD_SEPARATOR); //TODO run JMH test and see if you're right
+            value = ParsingUtils.parseLong(fieldData, startIndex, FixMessage.FIELD_SEPARATOR); //TODO run JMH test and see if you're right
         }
         return value;
     }

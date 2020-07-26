@@ -1,5 +1,7 @@
 package io.github.zlooo.fixyou.netty.handler
 
+import com.lmax.disruptor.dsl.Disruptor
+import io.github.zlooo.fixyou.FIXYouConfiguration
 import io.github.zlooo.fixyou.fix.commons.FixMessageListener
 import io.github.zlooo.fixyou.netty.AbstractNettyAwareFixMessageListener
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
@@ -10,35 +12,72 @@ import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.util.Attribute
 import spock.lang.Specification
+import spock.util.concurrent.PollingConditions
 
 class FixMessageListenerInvokingHandlerTest extends Specification {
 
     private FixMessageListener fixMessageListener = Mock()
-    private FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener)
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
+    private Attribute<Integer> ordinalNumberAttribute = Mock()
     private NettyHandlerAwareSessionState sessionState = Mock()
     private SessionID sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
     private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
+    def fixYouConfiguration = new FIXYouConfiguration.FIXYouConfigurationBuilder().separateIoFromAppThread(false).build()
 
-    def "should invoke fix message listener"() {
+    def "should invoke fix message listener directly"() {
+        setup:
+        fixMessage.retain()
+        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener, fixYouConfiguration)
+
         when:
-        handler.channelRead0(channelHandlerContext, fixMessage)
+        handler.channelRead(channelHandlerContext, fixMessage)
 
         then:
+        handler.disruptor == null
         1 * channelHandlerContext.channel() >> channel
         1 * channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY) >> sessionStateAttribute
         1 * sessionStateAttribute.get() >> sessionState
         1 * sessionState.getSessionId() >> sessionID
         1 * fixMessageListener.onFixMessage(sessionID, fixMessage)
+        fixMessage.refCnt() == 0
         0 * _
+    }
+
+    def "should invoke fix message listener via disruptor"() {
+        setup:
+        fixMessage.retain()
+        def fixMessageListener = new TestFixMessageListener()
+        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener, new FIXYouConfiguration.FIXYouConfigurationBuilder().separateIoFromAppThread(true).build())
+        PollingConditions pollingConditions = new PollingConditions()
+
+        when:
+        handler.channelRead(channelHandlerContext, fixMessage)
+        pollingConditions.eventually {
+            fixMessageListener.onFixMessageCalled
+        }
+
+        then:
+        assertDisruptor(handler.disruptor)
+        1 * channelHandlerContext.channel() >> channel
+        1 * channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY) >> sessionStateAttribute
+        1 * channel.attr(FIXYouChannelInitializer.ORDINAL_NUMBER_KEY) >> ordinalNumberAttribute
+        1 * ordinalNumberAttribute.get() >> 0
+        1 * sessionStateAttribute.get() >> sessionState
+        1 * sessionState.getSessionId() >> sessionID
+        fixMessageListener.onFixMessageCalled
+        fixMessage.refCnt() == 0
+        0 * _
+
+        cleanup:
+        handler.close()
     }
 
     def "should set channel is listener is instance of AbstractNettyAwareFixMessageListener"() {
         setup:
         TestFixMessageListener fixMessageListener = new TestFixMessageListener()
-        handler = new FixMessageListenerInvokingHandler(fixMessageListener)
+        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener, fixYouConfiguration)
 
         when:
         handler.channelActive(channelHandlerContext)
@@ -49,11 +88,22 @@ class FixMessageListenerInvokingHandlerTest extends Specification {
         fixMessageListener.channel == channel
     }
 
+    void assertDisruptor(Disruptor<FixMessageListenerInvokingHandler.Event> disruptor) {
+        assert disruptor != null
+        try {
+            disruptor.start()
+            assert false: "Disruptor has not been started"
+        } catch (IllegalStateException) {
+        }
+    }
+
     private static class TestFixMessageListener extends AbstractNettyAwareFixMessageListener {
+
+        private boolean onFixMessageCalled
 
         @Override
         void onFixMessage(SessionID sessionID, FixMessage fixMessage) {
-
+            onFixMessageCalled = true
         }
     }
 }

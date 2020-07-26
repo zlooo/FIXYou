@@ -27,10 +27,12 @@ class GroupFieldTest extends Specification {
         groupField.repetitionCounter == 0
         Assertions.assertThat(groupField.@memberNumbers).containsExactly(TestSpec.LONG_FIELD_NUMBER, TestSpec.BOOLEAN_FIELD_NUMBER)
         Assertions.assertThat(groupField.@repetitions).hasSize(DefaultConfiguration.NUMBER_OF_REPETITIONS_IN_GROUP).doesNotContainNull()
-        Assertions.assertThat(groupField.@repetitions[0].fieldsOrdered).containsOnly(expectedLongfield, expectedBooleanField)
-        Assertions.assertThat(groupField.@repetitions[0].idToField).hasSize(2)
-        Assertions.assertThat(groupField.@repetitions[0].idToField[TestSpec.LONG_FIELD_NUMBER]).isEqualTo(expectedLongfield)
-        Assertions.assertThat(groupField.@repetitions[0].idToField[TestSpec.BOOLEAN_FIELD_NUMBER]).isEqualTo(expectedBooleanField)
+        if (DefaultConfiguration.NUMBER_OF_REPETITIONS_IN_GROUP > 0) {
+            Assertions.assertThat(groupField.@repetitions[0].fieldsOrdered).containsOnly(expectedLongfield, expectedBooleanField)
+            Assertions.assertThat(groupField.@repetitions[0].idToField).hasSize(2)
+            Assertions.assertThat(groupField.@repetitions[0].idToField[TestSpec.LONG_FIELD_NUMBER]).isEqualTo(expectedLongfield)
+            Assertions.assertThat(groupField.@repetitions[0].idToField[TestSpec.BOOLEAN_FIELD_NUMBER]).isEqualTo(expectedBooleanField)
+        }
         groupField.@repetitionSupplier != null
     }
 
@@ -116,7 +118,7 @@ class GroupFieldTest extends Specification {
     def "should expand repetitions array when needed"() {
         setup:
         def repetitionsArrayLength = groupField.@repetitions.length
-        (0..(DefaultConfiguration.NUMBER_OF_REPETITIONS_IN_GROUP - 1)).forEach({
+        (0..repetitionsArrayLength).forEach({
             groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER).value = 666L
             groupField.next()
         })
@@ -125,7 +127,7 @@ class GroupFieldTest extends Specification {
         def result = groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER)
 
         then:
-        groupField.repetitionCounter == DefaultConfiguration.NUMBER_OF_REPETITIONS_IN_GROUP
+        groupField.repetitionCounter == repetitionsArrayLength+1
         result == fieldWithValue(FieldType.LONG, TestSpec.LONG_FIELD_NUMBER)
         !result.valueSet
         groupField.@repetitions.length > repetitionsArrayLength
@@ -245,4 +247,5 @@ class GroupFieldTest extends Specification {
         }
         return field
     }
+
 }

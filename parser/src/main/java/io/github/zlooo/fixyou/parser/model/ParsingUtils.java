@@ -11,18 +11,19 @@ public class ParsingUtils {
 
     public static final int RADIX = 10;
 
-    static void readChars(ByteBuf source, int length, byte[] tempBuf, char[] destination) {
-        source.readBytes(tempBuf, 0, length);
+    static void readChars(ByteBuf source, int srcIndex, int length, byte[] tempBuf, char[] destination) {
+        source.getBytes(srcIndex, tempBuf, 0, length);
         for (int i = 0; i < length; i++) {
-            destination[i] = AsciiString.b2c(PlatformDependent.getByte(tempBuf, i));
+            destination[i] = AsciiString.b2c(PlatformDependent.getByte(tempBuf, i)); //TODO just out of curiosity JMH this and see if it's faster than ordinary for loop
         }
     }
 
-    public static int parseInteger(ByteBuf byteBuf, byte endIndicator) {
+    public static int parseInteger(ByteBuf byteBuf, int srcIndex, byte endIndicator, boolean advanceReaderIndex) {
         int num = 0;
         boolean negative = false;
+        int index = srcIndex;
         while (true) {
-            final byte b = byteBuf.readByte();
+            final byte b = byteBuf.getByte(index++);
             if (b >= AsciiCodes.ZERO && b <= AsciiCodes.NINE) {
                 num = num * ParsingUtils.RADIX + b - AsciiCodes.ZERO;
             } else if (b == AsciiCodes.MINUS) {
@@ -31,14 +32,18 @@ public class ParsingUtils {
                 break;
             }
         }
+        if (advanceReaderIndex) {
+            byteBuf.readerIndex(index);
+        }
         return negative ? -num : num;
     }
 
-    static long parseLong(ByteBuf byteBuf, byte endIndicator) {
+    static long parseLong(ByteBuf byteBuf, int srcIndex, byte endIndicator) {
         long num = 0;
         boolean negative = false;
+        int index = srcIndex;
         while (true) {
-            final byte b = byteBuf.readByte();
+            final byte b = byteBuf.getByte(index++);
             if (b >= AsciiCodes.ZERO && b <= AsciiCodes.NINE) {
                 num = num * ParsingUtils.RADIX + b - AsciiCodes.ZERO;
             } else if (b == AsciiCodes.MINUS) {

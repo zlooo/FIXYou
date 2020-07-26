@@ -1,8 +1,10 @@
 package io.github.zlooo.fixyou.netty.handler;
 
 import io.github.zlooo.fixyou.FIXYouConfiguration;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.AttributeKey;
 
 import javax.inject.Inject;
@@ -12,6 +14,7 @@ import javax.inject.Singleton;
 public class FIXYouChannelInitializer extends ChannelInitializer<NioSocketChannel> {
 
     public static final AttributeKey<Integer> ORDINAL_NUMBER_KEY = AttributeKey.valueOf("ordinalNumber");
+    public static final LoggingHandler LOGGING_HANDLER = new LoggingHandler();
 
     @Inject
     protected GenericHandler genericHandler;
@@ -20,7 +23,8 @@ public class FIXYouChannelInitializer extends ChannelInitializer<NioSocketChanne
     @Inject
     protected SimplifiedMessageCodec simplifiedMessageCodec;
     @Inject
-    protected FixMessageListenerInvokingHandler fixMessageListenerInvokingHandler;
+    @NamedHandler(Handlers.LISTENER_INVOKER)
+    protected ChannelHandler fixMessageListenerInvokingHandler;
     private final FIXYouConfiguration fixYouConfiguration;
 
     @Inject
@@ -31,7 +35,7 @@ public class FIXYouChannelInitializer extends ChannelInitializer<NioSocketChanne
     @Override
     protected void initChannel(NioSocketChannel ch) throws Exception {
         ch.attr(ORDINAL_NUMBER_KEY).set(ch.hashCode() % fixYouConfiguration.getNumberOfAppThreads());
-        ch.pipeline()
+        ch.pipeline().addFirst(LOGGING_HANDLER)
           .addLast(Handlers.GENERIC_DECODER.getName(), simplifiedMessageCodec)
           .addLast(Handlers.GENERIC.getName(), genericHandler)
           .addLast(Handlers.ADMIN_MESSAGES.getName(), adminMessagesHandler)

@@ -34,9 +34,8 @@ public final class TimestampField extends AbstractField {
     public long getValue() {
         if (value == DEFAULT_VALUE && valueSet) { //TODO seriously? write a method that parses directly to epoch timestamp you lazy son of a bitch
             //TODO it's last place that uses formatter get rid of it when you refactor this code
-            fieldData.readerIndex(startIndex);
             final int length = endIndex - startIndex;
-            ParsingUtils.readChars(fieldData, length, rawValue, charValue);
+            ParsingUtils.readChars(fieldData, startIndex, length, rawValue, charValue);
             charSequence.setLength(length);
             value = chooseFormatter(length).parse(charSequence, LocalDateTime::from).toInstant(ZoneOffset.UTC).toEpochMilli();
             valueSet = true;

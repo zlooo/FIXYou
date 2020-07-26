@@ -39,7 +39,7 @@ class ResendRequestHandler implements AdministrativeMessageHandler {
         final SessionConfig sessionConfig = sessionState.getSessionConfig();
         if (sessionConfig.isPersistent()) {
             sessionConfig.getMessageStore()
-                         .getMessages(sessionId, from, to, retransmissionSubscriberPool.getAndRetain().setChannelHandlerContext(ctx).setFixMessagePool(sessionState.getFixMessageObjectPool()));
+                         .getMessages(sessionId, from, to, retransmissionSubscriberPool.getAndRetain().setChannelHandlerContext(ctx).setFixMessagePool(sessionState.getFixMessageWritePool()));
         } else {
             log.warn("Session {} does not have persistence configured, sending sequence reset - gap fill for whole requested range, <{}, {}>", sessionId, from, to);
             fixMessage.retain();

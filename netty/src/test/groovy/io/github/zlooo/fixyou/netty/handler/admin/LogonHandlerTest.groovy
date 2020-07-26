@@ -35,8 +35,7 @@ class LogonHandlerTest extends Specification {
     private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
     private SessionID sessionID = new SessionID("beginString".toCharArray(), 11, "senderCompId".toCharArray(), 12, "targetCompId".toCharArray(), 12)
     private FixMessage fixMessage = createValidLogonMessage(sessionID)
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)).setConsolidateFlushes(false).setSeparateIoFromAppThread(false),
-                                                                                           sessionID, fixMessageObjectPool,
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)).setConsolidateFlushes(false), sessionID, fixMessageObjectPool,
                                                                                            TestSpec.INSTANCE) {
 
         private boolean resetCalled

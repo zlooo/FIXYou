@@ -60,6 +60,7 @@ class SimplifiedMessageCodec extends AbstractMessageEncoder implements ChannelIn
                     ctx.close();
                 }
             } finally {
+                fixMessageParser.setFixMessage(null);
                 in.release();
             }
         } else {

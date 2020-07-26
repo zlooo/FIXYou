@@ -40,13 +40,11 @@ public class FixMessage extends AbstractPoolableObject {
     }
 
     public void setMessageByteSourceAndRetain(@Nonnull ByteBuf newMessageByteSource) {
-        if (this.messageByteSource != newMessageByteSource) {
-            if (this.messageByteSource != null) {
-                messageByteSource.release();
-            }
-            newMessageByteSource.retain();
-            setMessageByteSource(newMessageByteSource);
+        if (this.messageByteSource != null) {
+            messageByteSource.release();
         }
+        newMessageByteSource.retain();
+        setMessageByteSource(newMessageByteSource);
     }
 
     public void setMessageByteSource(ByteBuf newMessageByteSource) {
@@ -66,20 +64,31 @@ public class FixMessage extends AbstractPoolableObject {
      */
     @Override
     public String toString() {
+        return toString(false);
+    }
+
+    public String toString(boolean wholeMessage) {
         final StringBuilder builder = new StringBuilder("FixMessage -> ");
         final boolean longMessage = fieldsOrdered.length > LONG_MESSAGE_FIELD_NUMBER_THRESHOLD;
-        if (longMessage) {
+        final boolean shortenOutput = longMessage && !wholeMessage;
+        if (shortenOutput) {
             for (int i = 0; i < LONG_MESSAGE_FIELD_NUMBER_THRESHOLD; i++) {
                 final AbstractField field = fieldsOrdered[i];
-                builder.append(field.number).append((char) FIELD_VALUE_SEPARATOR).append(fieldDataOrEmpty(field).toString(field.startIndex, field.endIndex - field.startIndex, StandardCharsets.US_ASCII)).append(FIELD_DELIMITER);
+                appendFieldToBuilderIfValueIsSet(builder, field);
             }
         } else {
             for (final AbstractField field : fieldsOrdered) {
-                builder.append(field.number).append((char) FIELD_VALUE_SEPARATOR).append(fieldDataOrEmpty(field).toString(field.startIndex, field.endIndex - field.startIndex, StandardCharsets.US_ASCII)).append(FIELD_DELIMITER);
+                appendFieldToBuilderIfValueIsSet(builder, field);
             }
         }
-        builder.deleteCharAt(builder.length() - 1).append(longMessage ? "..." : "").append(", refCnt=").append(refCnt());
+        builder.deleteCharAt(builder.length() - 1).append(shortenOutput ? "..." : "").append(", refCnt=").append(refCnt());
         return builder.toString();
+    }
+
+    private static void appendFieldToBuilderIfValueIsSet(StringBuilder builder, AbstractField field) {
+        if (field.isValueSet()) {
+            builder.append(field.number).append((char) FIELD_VALUE_SEPARATOR).append(fieldDataOrEmpty(field).toString(field.startIndex, field.endIndex - field.startIndex, StandardCharsets.US_ASCII)).append(FIELD_DELIMITER);
+        }
     }
 
     private static ByteBuf fieldDataOrEmpty(AbstractField field) {

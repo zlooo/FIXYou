@@ -34,6 +34,9 @@ public interface FixYouNettyComponent {
     @NamedHandler(Handlers.AFTER_SESSION_MESSAGE_VALIDATOR)
     ChannelHandler afterSessionMessageValidatorHandler();
 
+    @NamedHandler(Handlers.LISTENER_INVOKER)
+    ChannelHandler fixMessageListenerInvoker();
+
     @Named("acceptorConfigValidator")
     ConfigValidator acceptorConfigValidator();
 

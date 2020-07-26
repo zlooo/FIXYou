@@ -73,11 +73,11 @@ class PipelineUtilsTest extends Specification {
                                 Handlers.SESSION.getName(), Handlers.IDLE_STATE_HANDLER.getName(), Handlers.AFTER_SESSION_MESSAGE_VALIDATOR.getName(), Handlers.ADMIN_MESSAGES.getName(), Handlers.LISTENER_INVOKER.getName())
     }
 
-    def "should not add flush consolidation and async executing handlers is config option is set to false"() {
+    def "should not add flush consolidation handler if config option is set to false"() {
         setup:
         NioSocketChannel channel = Mock()
         TestPipeline channelPipeline = pipeline()
-        sessionState.getSessionConfig().setConsolidateFlushes(false).setSeparateIoFromAppThread(false)
+        sessionState.getSessionConfig().setConsolidateFlushes(false)
 
         when:
         def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator,  30)

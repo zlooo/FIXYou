@@ -3,9 +3,9 @@ package io.github.zlooo.fixyou.commons.pool
 import org.assertj.core.api.Assertions
 import spock.lang.Specification
 
-class NoThreadLocalObjectPoolTest extends Specification {
+class ArrayBackedObjectPoolTest extends Specification {
 
-    private NoThreadLocalObjectPool objectPool = new NoThreadLocalObjectPool(10, { -> new TestPoolableObject() }, TestPoolableObject)
+    private ArrayBackedObjectPool objectPool = new ArrayBackedObjectPool(10, { -> new TestPoolableObject() }, TestPoolableObject)
 
     def "should get object from pool"() {
         when:
@@ -112,13 +112,50 @@ class NoThreadLocalObjectPoolTest extends Specification {
         def objectsFromPool = []
 
         when:
-        for(i in 0..originalPoolSize) {
+        for (i in 0..originalPoolSize) {
             objectsFromPool << objectPool.getAndRetain()
         }
 
         then:
         Assertions.assertThat(objectsFromPool).doesNotContainNull().hasSize(originalPoolSize + 1)
         objectPool.@objectArray.length > originalPoolSize
+    }
+
+    def "should try get and receive null when all elements from pool are taken"() {
+        setup:
+        def originalPoolSize = objectPool.@objectArray.length
+        def objectsFromPool = []
+        for (i in 1..originalPoolSize) {
+            objectsFromPool << objectPool.getAndRetain()
+        }
+
+        when:
+        def result = objectPool.tryGetAndRetain()
+
+        then:
+        result == null
+        objectPool.@objectArray.length == originalPoolSize
+        Assertions.assertThat(objectPool.@objectArray).containsOnlyNulls()
+    }
+
+    def "should try get and receive object when all elements from pool are taken and then one is returned"() {
+        setup:
+        def originalPoolSize = objectPool.@objectArray.length
+        def objectsFromPool = []
+        for (i in 1..originalPoolSize) {
+            objectsFromPool << objectPool.getAndRetain()
+        }
+        objectPool.returnObject(objectsFromPool[0])
+
+        when:
+        def result = objectPool.tryGetAndRetain()
+
+        then:
+        result == objectsFromPool[0]
+        objectPool.@objectArray.length == originalPoolSize
+        Assertions.assertThat(objectPool.@objectArray).containsOnlyNulls()
+        objectPool.@objectPutPosition == 17
+        objectPool.@objGetPosition == 17
     }
 
     static class TestPoolableObject extends AbstractPoolableObject {

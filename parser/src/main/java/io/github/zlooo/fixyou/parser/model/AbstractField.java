@@ -3,34 +3,36 @@ package io.github.zlooo.fixyou.parser.model;
 import io.github.zlooo.fixyou.Closeable;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import io.netty.util.AsciiString;
 import lombok.*;
-
-import java.nio.charset.StandardCharsets;
 
 @EqualsAndHashCode
 @ToString(exclude = {"encodedFieldNumber", "fieldData"})
 public abstract class AbstractField implements Closeable {
 
     @Getter
-    protected final ByteBuf encodedFieldNumber;
-    @Getter
     protected final int number;
     @Setter(AccessLevel.PROTECTED)
     protected ByteBuf fieldData;
     @Getter
-    protected int startIndex;
+    protected volatile int startIndex;
     @Getter
-    protected int endIndex;
-    protected boolean valueSet;
+    protected volatile int endIndex;
+    protected volatile boolean valueSet;
+    private final byte[] encodedFieldNumber;
+    @Getter
+    private final int encodedFieldNumberLength;
 
     public AbstractField(int number) {
         this.number = number;
-        final String fieldNumberAsString = Integer.toString(number); //we're doing it just on startup so we can afford it
-        final int encodedFieldNumberCapacity = fieldNumberAsString.length() + 1;
-        encodedFieldNumber = Unpooled.directBuffer(encodedFieldNumberCapacity, encodedFieldNumberCapacity);
-        encodedFieldNumber.writeCharSequence(fieldNumberAsString, StandardCharsets.US_ASCII);
-        encodedFieldNumber.writeByte(FixMessage.FIELD_VALUE_SEPARATOR);
+        final char[] fieldNumberAsCharArray = Integer.toString(number).toCharArray(); //we're doing it just on startup so we can afford it
+        final int encodedFieldNumberCapacity = fieldNumberAsCharArray.length + 1;
+        encodedFieldNumber = new byte[encodedFieldNumberCapacity];
+        for (int i = 0; i < fieldNumberAsCharArray.length; i++) {
+            encodedFieldNumber[i] = AsciiString.c2b(fieldNumberAsCharArray[i]);
+        }
+        encodedFieldNumber[encodedFieldNumberCapacity - 1] = FixMessage.FIELD_VALUE_SEPARATOR;
+        encodedFieldNumberLength = encodedFieldNumber.length;
     }
 
     public void setIndexes(int newStartIndex, int newEndIndexIndex) {
@@ -55,7 +57,6 @@ public abstract class AbstractField implements Closeable {
         if (valueSet) {
             resetInnerState();
         }
-        this.encodedFieldNumber.readerIndex(0);
         this.startIndex = 0;
         this.endIndex = 0;
         this.valueSet = false;
@@ -63,10 +64,11 @@ public abstract class AbstractField implements Closeable {
 
     @Override
     public void close() {
-        final int encodedFieldNumberRefCount = encodedFieldNumber.refCnt();
-        if (encodedFieldNumberRefCount > 0) {
-            encodedFieldNumber.release(encodedFieldNumberRefCount);
-        }
+        //nothing to do
+    }
+
+    public void appendFieldNumber(ByteBuf out) {
+        out.writeBytes(encodedFieldNumber);
     }
 
     public abstract void appendByteBufWithValue(ByteBuf out);

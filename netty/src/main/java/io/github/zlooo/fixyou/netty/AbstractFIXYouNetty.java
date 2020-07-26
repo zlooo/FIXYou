@@ -35,9 +35,10 @@ abstract class AbstractFIXYouNetty implements Engine {
 
     @Override
     public Future<?> stop() {
+        final io.netty.util.concurrent.Future<?> shutdownGracefully = eventLoopGroup.shutdownGracefully();
         fixYouNettyComponent.retransmissionSubscriberPool().close();
         ((SessionRegistry<NettyHandlerAwareSessionState>) fixYouNettyComponent.sessionRegistry()).getAll().forEach(Closeable::close);
-        final io.netty.util.concurrent.Future<?> shutdownGracefully = eventLoopGroup.shutdownGracefully();
+        ((Closeable) fixYouNettyComponent.fixMessageListenerInvoker()).close();
         return shutdownGracefully;
     }
 
@@ -53,8 +54,7 @@ abstract class AbstractFIXYouNetty implements Engine {
         if (dictionary == null) {
             throw new FIXYouException("Could not find dictionary with id " + dictionaryID + ". Are you sure you've registered it?");
         }
-        sessionRegistry.registerExpectedSession(new NettyHandlerAwareSessionState(sessionConfig, sessionID, dictionary.getFixMessageObjectPool(), dictionary.getFixSpec()),
-                                                nettyResettablesSupplier);
+        sessionRegistry.registerExpectedSession(new NettyHandlerAwareSessionState(sessionConfig, sessionID, dictionary.getFixMessageReadPool(), dictionary.getFixMessageWritePool(), dictionary.getFixSpec()), nettyResettablesSupplier);
         return this;
     }
 

@@ -27,10 +27,10 @@ class MessageDecoderTest extends Specification {
 
         then:
         encodedMessage.refCnt() == 1 //should be increased when buffer is set on fix message
-        1 * fixMessageObjectPool.getAndRetain() >> fixMessage
+        1 * fixMessageObjectPool.tryGetAndRetain() >> fixMessage
         1 * channelHandlerContext.fireChannelRead(fixMessage)
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
-        fixMessage.messageByteSource == encodedMessage
+        fixMessage.messageByteSource.is(encodedMessage)
         0 * _
     }
 
@@ -43,16 +43,16 @@ class MessageDecoderTest extends Specification {
 
         then:
         encodedMessage.refCnt() == 2
-        1 * fixMessageObjectPool.getAndRetain() >> fixMessage
+        1 * fixMessageObjectPool.tryGetAndRetain() >> fixMessage
         messageDecoder.@state == MessageDecoder.State.DECODING
-        fixMessage.messageByteSource == encodedMessage
+        fixMessage.messageByteSource.is(encodedMessage)
         0 * _
     }
 
     def "should finish off decoding fragmented message"() {
         setup:
         ByteBuf encodedMessagePart1 = Unpooled.wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=te".getBytes(StandardCharsets.US_ASCII))
-        fixMessageObjectPool.getAndRetain() >> fixMessage
+        fixMessageObjectPool.tryGetAndRetain() >> fixMessage
         messageDecoder.channelRead(channelHandlerContext, encodedMessagePart1)
         ByteBuf encodedMessagePart2 = Unpooled.wrappedBuffer("st\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
 
@@ -60,11 +60,12 @@ class MessageDecoderTest extends Specification {
         messageDecoder.channelRead(channelHandlerContext, encodedMessagePart2)
 
         then:
-        encodedMessagePart1.refCnt() == 0
-        encodedMessagePart2.refCnt() == 0
-        fixMessage.messageByteSource != encodedMessagePart1
-        fixMessage.messageByteSource != encodedMessagePart2
+        encodedMessagePart1.refCnt() == 1
+        encodedMessagePart2.refCnt() == 1
+        !fixMessage.messageByteSource.is(encodedMessagePart1)
+        !fixMessage.messageByteSource.is(encodedMessagePart2)
         fixMessage.messageByteSource.refCnt() == 1
+        fixMessage.messageByteSource.readerIndex(0).toString(StandardCharsets.US_ASCII) == "FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u0001"
         1 * channelHandlerContext.fireChannelRead(fixMessage)
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
         fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).value.toString() == "test"
@@ -72,7 +73,7 @@ class MessageDecoderTest extends Specification {
     }
 
     def "should decode 2 fragmented messages"() {
-        //I know this is not 100% unit test and the fact that I'm using then block twice is quite a significant fint for that. I just want to check in an easy way if component
+        //I know this is not 100% unit test and the fact that I'm using then block twice is quite a significant hint for that. I just want to check in an easy way if component
         // reset it's state properly
         setup:
         ByteBuf encodedMessage1Part1 = Unpooled.wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=te".getBytes(StandardCharsets.US_ASCII))
@@ -85,12 +86,15 @@ class MessageDecoderTest extends Specification {
         messageDecoder.channelRead(channelHandlerContext, encodedMessage1Part2)
 
         then:
-        1 * fixMessageObjectPool.getAndRetain() >> fixMessage
+        1 * fixMessageObjectPool.tryGetAndRetain() >> fixMessage
         1 * channelHandlerContext.fireChannelRead(fixMessage)
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
-        fixMessage.messageByteSource != encodedMessage1Part1
-        fixMessage.messageByteSource != encodedMessage1Part2
+        !fixMessage.messageByteSource.is(encodedMessage1Part1)
+        !fixMessage.messageByteSource.is(encodedMessage1Part2)
+        encodedMessage1Part1.refCnt() == 1
+        encodedMessage1Part2.refCnt() == 1
         fixMessage.messageByteSource.refCnt() == 1
+        fixMessage.messageByteSource.readerIndex(0).toString(StandardCharsets.US_ASCII) == "FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u0001"
         fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).value.toString() == "test"
 
         fixMessage.resetAllDataFields()
@@ -102,16 +106,17 @@ class MessageDecoderTest extends Specification {
         then:
         encodedMessage1Part1.refCnt() == 0
         encodedMessage1Part2.refCnt() == 0
-        encodedMessage2Part1.refCnt() == 0
-        encodedMessage2Part2.refCnt() == 0
-        1 * fixMessageObjectPool.getAndRetain() >> fixMessage
+        encodedMessage2Part1.refCnt() == 1
+        encodedMessage2Part2.refCnt() == 1
+        1 * fixMessageObjectPool.tryGetAndRetain() >> fixMessage
         1 * channelHandlerContext.fireChannelRead(fixMessage)
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
-        fixMessage.messageByteSource != encodedMessage1Part1
-        fixMessage.messageByteSource != encodedMessage1Part2
-        fixMessage.messageByteSource != encodedMessage2Part1
-        fixMessage.messageByteSource != encodedMessage2Part2
+        !fixMessage.messageByteSource.is(encodedMessage1Part1)
+        !fixMessage.messageByteSource.is(encodedMessage1Part2)
+        !fixMessage.messageByteSource.is(encodedMessage2Part1)
+        !fixMessage.messageByteSource.is(encodedMessage2Part2)
         fixMessage.messageByteSource.refCnt() == 1
+        fixMessage.messageByteSource.readerIndex(0).toString(StandardCharsets.US_ASCII) == "FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u0001"
         fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).value.toString() == "test"
         0 * _
     }
@@ -149,15 +154,75 @@ class MessageDecoderTest extends Specification {
         messageDecoder.channelRead(channelHandlerContext, encodedMessage)
 
         then:
-        2 * fixMessageObjectPool.getAndRetain() >> fixMessage >> fixMessage2
+        2 * fixMessageObjectPool.tryGetAndRetain() >> fixMessage >> fixMessage2
         1 * channelHandlerContext.fireChannelRead(fixMessage) >> channelHandlerContext
         1 * channelHandlerContext.fireChannelRead(fixMessage2) >> channelHandlerContext
         fixMessage.getField(58).value.toString() == "test"
         fixMessage2.getField(58).value.toString() == "test2"
-        fixMessage.messageByteSource == encodedMessage
-        fixMessage2.messageByteSource == encodedMessage
+        fixMessage.messageByteSource.readerIndex(0).toString(StandardCharsets.US_ASCII) ==
+        "8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u00018=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test2\u000110=023\u0001"
+        fixMessage2.messageByteSource.readerIndex(0).toString(StandardCharsets.US_ASCII) ==
+        "8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u00018=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test2\u000110=023\u0001"
         encodedMessage.refCnt() == 2
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
         0 * _
+    }
+
+    def "should decode multiple messages batched together in 2 packets"() {
+        setup:
+        ByteBuf encodedMessagePart1 = Unpooled.
+                wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u00018=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=tes".getBytes(StandardCharsets.US_ASCII))
+        ByteBuf encodedMessagePart2 = Unpooled.wrappedBuffer("t2\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
+        FixMessage fixMessage2 = new FixMessage(TestSpec.INSTANCE)
+
+        when:
+        messageDecoder.channelRead(channelHandlerContext, encodedMessagePart1)
+        messageDecoder.channelRead(channelHandlerContext, encodedMessagePart2)
+
+        then:
+        2 * fixMessageObjectPool.tryGetAndRetain() >> fixMessage >> fixMessage2
+        1 * channelHandlerContext.fireChannelRead(fixMessage) >> channelHandlerContext
+        1 * channelHandlerContext.fireChannelRead(fixMessage2) >> channelHandlerContext
+        fixMessage.getField(58).value.toString() == "test"
+        fixMessage2.getField(58).value.toString() == "test2"
+        fixMessage.messageByteSource.readerIndex(0).toString(StandardCharsets.US_ASCII) == "8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u00018=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=tes"
+        fixMessage.messageByteSource.is(encodedMessagePart1)
+        fixMessage2.messageByteSource != encodedMessagePart1
+        fixMessage2.messageByteSource != encodedMessagePart2
+        fixMessage2.messageByteSource.readerIndex(0).toString(StandardCharsets.US_ASCII) == "FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test2\u000110=023\u0001"
+        fixMessage2.messageByteSource.refCnt() == 1
+        encodedMessagePart1.refCnt() == 2 //fixMessage still holds 1 reference
+        encodedMessagePart2.refCnt() == 1
+        messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
+        0 * _
+    }
+
+    def "should release underlying buffers after decoding multiple messages batched together in 2 packets"() {
+        setup:
+        ByteBuf encodedMessagePart1 = Unpooled.
+                wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u00018=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=tes".getBytes(StandardCharsets.US_ASCII))
+        ByteBuf encodedMessagePart2 = Unpooled.wrappedBuffer("t2\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
+        FixMessage fixMessage2 = new FixMessage(TestSpec.INSTANCE)
+        fixMessage.retain()
+        fixMessage2.retain()
+
+        when:
+        messageDecoder.channelRead(channelHandlerContext, encodedMessagePart1)
+        messageDecoder.channelRead(channelHandlerContext, encodedMessagePart2)
+        def messageByteSource = fixMessage.messageByteSource
+        fixMessage.release()
+        def message2ByteSource = fixMessage2.messageByteSource
+        fixMessage2.release()
+
+        then:
+        2 * fixMessageObjectPool.tryGetAndRetain() >> fixMessage >> fixMessage2
+        1 * channelHandlerContext.fireChannelRead(fixMessage) >> channelHandlerContext
+        1 * channelHandlerContext.fireChannelRead(fixMessage2) >> channelHandlerContext
+        fixMessage.messageByteSource == null
+        messageByteSource.refCnt() == 0
+        fixMessage2.messageByteSource == null
+        message2ByteSource.refCnt() == 0
+        encodedMessagePart1.refCnt() == 0
+        encodedMessagePart2.refCnt() == 0
     }
 }

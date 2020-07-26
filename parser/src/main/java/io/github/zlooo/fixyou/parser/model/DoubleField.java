@@ -41,10 +41,9 @@ public final class DoubleField extends AbstractField {
     }
 
     private void decodeValuesFromFieldData() {
-        fieldData.readerIndex(startIndex);
         //TODO after JMH check in LongField is done and you're right, check this one as well
         final int length = endIndex - startIndex;
-        ParsingUtils.readChars(fieldData, length, rawValue, unparsedValue);
+        ParsingUtils.readChars(fieldData, startIndex, length, rawValue, unparsedValue);
         final boolean negative = unparsedValue[0] == '-';
         value = 0;
         for (int i = negative ? 1 : 0; i < length; i++) {

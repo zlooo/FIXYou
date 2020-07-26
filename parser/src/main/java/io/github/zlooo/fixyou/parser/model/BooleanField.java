@@ -24,8 +24,8 @@ public final class BooleanField extends AbstractField {
 
     public boolean getValue() {
         if (!parsed && valueSet) {
-            fieldData.readerIndex(startIndex);
-            switch (fieldData.readByte()) {
+            final byte byteRead = fieldData.getByte(startIndex);
+            switch (byteRead) {
                 case AsciiCodes.Y:
                     value = true;
                     break;
@@ -33,7 +33,7 @@ public final class BooleanField extends AbstractField {
                     value = false;
                     break;
                 default:
-                    throw new IllegalArgumentException("Value " + fieldData.getByte(0) + " is unsupported in boolean field. Expecting either 'Y' or 'N'");
+                    throw new IllegalArgumentException("Value " + byteRead + " is unsupported in boolean field. Expecting either 'Y' or 'N'");
             }
             parsed = true;
         }

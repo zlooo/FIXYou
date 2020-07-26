@@ -25,12 +25,12 @@ abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
         final AbstractField[] fieldsOrdered = msg.getFieldsOrdered();
         final AbstractField beginString = fieldsOrdered[0];
         final LongField bodyLength = (LongField) fieldsOrdered[1];
-        final int afterBodyLengthIndex = beginString.getEncodedFieldNumber().writerIndex() + beginString.getLength() + bodyLength.getEncodedFieldNumber().writerIndex() + MAX_BOODY_LENGTH_FIELD_LENGTH;
+        final int afterBodyLengthIndex = beginString.getEncodedFieldNumberLength() + beginString.getLength() + bodyLength.getEncodedFieldNumberLength() + MAX_BOODY_LENGTH_FIELD_LENGTH;
         out.writerIndex(afterBodyLengthIndex);
         for (int i = 2; i < fieldsOrdered.length - 1; i++) {
             final AbstractField field = fieldsOrdered[i];
             if (field.isValueSet()) {
-                out.writeBytes(field.getEncodedFieldNumber());
+                field.appendFieldNumber(out);
                 field.appendByteBufWithValue(out);
                 out.writeByte(FixMessage.FIELD_SEPARATOR);
             }
@@ -50,12 +50,13 @@ abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
                 break;
             }
         }
-        final int startingIndex = afterBodyLengthIndex - beginString.getEncodedFieldNumber().writerIndex() - beginString.getLength() - bodyLength.getEncodedFieldNumber().writerIndex() - powerOfTenIndex - 2;
+        final int startingIndex = afterBodyLengthIndex - beginString.getEncodedFieldNumberLength() - beginString.getLength() - bodyLength.getEncodedFieldNumberLength() - powerOfTenIndex - 2;
         out.markWriterIndex();
-        out.readerIndex(startingIndex).writerIndex(startingIndex).writeBytes(beginString.getEncodedFieldNumber());
+        out.readerIndex(startingIndex).writerIndex(startingIndex);
+        beginString.appendFieldNumber(out);
         beginString.appendByteBufWithValue(out);
         out.writeByte(FixMessage.FIELD_SEPARATOR);
-        out.writeBytes(bodyLength.getEncodedFieldNumber());
+        bodyLength.appendFieldNumber(out);
         bodyLength.setValue(bodyLengthValue);
         bodyLength.appendByteBufWithValue(out);
         out.writeByte(FixMessage.FIELD_SEPARATOR).resetWriterIndex();
@@ -66,7 +67,7 @@ abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
     private static void appendWithChecksum(ByteBuf out, AbstractField checksumField, ValueAddingByteProcessor valueAddingByteProcessor) {
         try {
             out.forEachByte(valueAddingByteProcessor);
-            out.writeBytes(checksumField.getEncodedFieldNumber());
+            checksumField.appendFieldNumber(out);
             final int checksum = valueAddingByteProcessor.getResult() & FixConstants.CHECK_SUM_MODULO_MASK;
             FieldUtils.writeEncoded(checksum, out, CHECKSUM_VALUE_LENGTH);
             out.writeByte(FixMessage.FIELD_SEPARATOR);
