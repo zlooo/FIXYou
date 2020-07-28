@@ -26,8 +26,9 @@ class SessionAwareValidators_ValidationFailureActionsTest extends Specification 
     private static SessionID sessionID = new SessionID('beginString'.toCharArray(), 11, 'senderCompId'.toCharArray(), 12, 'targetCompId'.toCharArray(), 12)
     private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
     private SessionConfig sessionConfig = new SessionConfig()
-    private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(sessionConfig, sessionID, fixMessageObjectPool, TestSpec.INSTANCE)
+    private DefaultObjectPool<FixMessage> fixMessageObjectReadPool = Mock()
+    private DefaultObjectPool<FixMessage> fixMessageObjectWritePool = Mock()
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(sessionConfig, sessionID, fixMessageObjectReadPool, fixMessageObjectWritePool, TestSpec.INSTANCE)
     private ChannelHandlerContext channelHandlerContext = Mock()
     private ChannelFuture channelFuture1 = Mock()
     private ChannelFuture channelFuture2 = Mock()
@@ -40,14 +41,14 @@ class SessionAwareValidators_ValidationFailureActionsTest extends Specification 
         FixMessage logoutMessage = new FixMessage(TestSpec.INSTANCE)
 
         when:
-        SessionAwareValidators.ORIG_SENDING_TIME_VALIDATOR.validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectPool)
+        SessionAwareValidators.ORIG_SENDING_TIME_VALIDATOR.validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectWritePool)
 
         then:
         1 * channelHandlerContext.write(fixMessage) >> channelFuture1
         1 * channelFuture1.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.REJECT)
         fixMessage.getField(FixConstants.SESSION_REJECT_REASON_FIELD_NUMBER).value == RejectReasons.SENDING_TIME_ACCURACY_PROBLEM
-        1 * fixMessageObjectPool.getAndRetain() >> logoutMessage
+        1 * fixMessageObjectWritePool.getAndRetain() >> logoutMessage
         1 * channelHandlerContext.writeAndFlush(logoutMessage) >> channelFuture2
         1 * channelFuture2.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture2
         1 * channelFuture2.addListener(FixChannelListeners.LOGOUT_SENT) >> channelFuture2
@@ -65,14 +66,14 @@ class SessionAwareValidators_ValidationFailureActionsTest extends Specification 
         FixMessage logout = new FixMessage(TestSpec.INSTANCE)
 
         when:
-        SessionAwareValidators.COMP_ID_VALIDATOR.validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectPool)
+        SessionAwareValidators.COMP_ID_VALIDATOR.validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectWritePool)
 
         then:
         1 * channelHandlerContext.write(fixMessage) >> channelFuture1
         1 * channelFuture1.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.REJECT)
         fixMessage.getField(FixConstants.SESSION_REJECT_REASON_FIELD_NUMBER).value == RejectReasons.COMP_ID_PROBLEM
-        1 * fixMessageObjectPool.getAndRetain() >> logout
+        1 * fixMessageObjectWritePool.getAndRetain() >> logout
         1 * channelHandlerContext.writeAndFlush(logout) >> channelFuture2
         1 * channelFuture2.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture2
         1 * channelFuture2.addListener(FixChannelListeners.LOGOUT_SENT) >> channelFuture2
@@ -94,7 +95,7 @@ class SessionAwareValidators_ValidationFailureActionsTest extends Specification 
         fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value = sessionID.targetCompID
 
         when:
-        SessionAwareValidators.BEGIN_STRING_VALIDATOR.validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectPool)
+        SessionAwareValidators.BEGIN_STRING_VALIDATOR.validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectWritePool)
 
         then:
         1 * channelHandlerContext.writeAndFlush(fixMessage) >> channelFuture1
@@ -121,7 +122,7 @@ class SessionAwareValidators_ValidationFailureActionsTest extends Specification 
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = ['Z'] as char[]
 
         when:
-        SessionAwareValidators.MESSAGE_TYPE_VALIDATOR.validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectPool)
+        SessionAwareValidators.MESSAGE_TYPE_VALIDATOR.validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectWritePool)
 
         then:
         1 * channelHandlerContext.writeAndFlush(fixMessage) >> channelFuture1
@@ -139,14 +140,14 @@ class SessionAwareValidators_ValidationFailureActionsTest extends Specification 
         FixMessage logoutMessage = new FixMessage(TestSpec.INSTANCE)
 
         when:
-        SessionAwareValidators.createSendingTimeValidator(Clock.fixed(now.toInstant(ZoneOffset.UTC), ZoneOffset.UTC)).validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectPool)
+        SessionAwareValidators.createSendingTimeValidator(Clock.fixed(now.toInstant(ZoneOffset.UTC), ZoneOffset.UTC)).validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectWritePool)
 
         then:
         1 * channelHandlerContext.write(fixMessage) >> channelFuture1
         1 * channelFuture1.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.REJECT)
         fixMessage.getField(FixConstants.SESSION_REJECT_REASON_FIELD_NUMBER).value == RejectReasons.SENDING_TIME_ACCURACY_PROBLEM
-        1 * fixMessageObjectPool.getAndRetain() >> logoutMessage
+        1 * fixMessageObjectWritePool.getAndRetain() >> logoutMessage
         1 * channelHandlerContext.writeAndFlush(logoutMessage) >> channelFuture2
         1 * channelFuture2.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture2
         1 * channelFuture2.addListener(FixChannelListeners.LOGOUT_SENT) >> channelFuture2

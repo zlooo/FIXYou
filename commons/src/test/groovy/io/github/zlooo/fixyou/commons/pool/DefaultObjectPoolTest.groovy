@@ -9,8 +9,7 @@ import java.util.function.Consumer
 
 class DefaultObjectPoolTest extends Specification {
 
-    DefaultObjectPool<TestPoolableObject> objectPool = new DefaultObjectPool(10, { -> new TestPoolableObject()
-    }, TestPoolableObject.class)
+    DefaultObjectPool<TestPoolableObject> objectPool = new DefaultObjectPool(10, { -> new TestPoolableObject() }, TestPoolableObject.class, 100)
 
     def "should get and retain object from pool"() {
         when:
@@ -217,10 +216,22 @@ class DefaultObjectPoolTest extends Specification {
         Modifier.isFinal(objectPool.getClass().getSuperclass().getDeclaredField("objectArray").getModifiers())
     }
 
-    def "should throw illegal state exception when returning object in wrong state"() {
+    def "should not throw illegal state exception when returning object is in available state"() {
         setup:
         def poolableObject = objectPool.getAndRetain()
         poolableObject.getState().set(AbstractPoolableObject.AVAILABLE_STATE)
+
+        when:
+        objectPool.returnObject(poolableObject)
+
+        then:
+        poolableObject.getState().get() == AbstractPoolableObject.AVAILABLE_STATE
+    }
+
+    def "should throw illegal state exception when returning object is in neither available nor in use state"() {
+        setup:
+        def poolableObject = objectPool.getAndRetain()
+        poolableObject.getState().set(666)
 
         when:
         objectPool.returnObject(poolableObject)

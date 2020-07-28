@@ -12,7 +12,6 @@ import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID
 import io.github.zlooo.fixyou.session.ValidationConfig
 import io.netty.channel.ChannelHandler
-import io.netty.channel.ChannelInboundHandler
 import io.netty.channel.ChannelPipeline
 import io.netty.channel.socket.nio.NioSocketChannel
 import io.netty.util.Attribute
@@ -23,9 +22,10 @@ import java.util.concurrent.TimeUnit
 
 class PipelineUtilsTest extends Specification {
 
-    private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
+    private DefaultObjectPool<FixMessage> fixMessageObjectReadPool = Mock()
+    private DefaultObjectPool<FixMessage> fixMessageObjectWritePool = Mock()
     private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)), new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0),
-                                                                                           fixMessageObjectPool, TestSpec.INSTANCE)
+                                                                                           fixMessageObjectReadPool, fixMessageObjectWritePool, TestSpec.INSTANCE)
     private ChannelHandler messageEncoder = Mock()
     private ChannelHandler messageDecoder = Mock()
     private ChannelHandler genericDecoder = Mock()

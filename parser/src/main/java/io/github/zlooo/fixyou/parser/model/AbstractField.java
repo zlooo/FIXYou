@@ -19,6 +19,7 @@ public abstract class AbstractField implements Closeable {
     @Getter
     protected volatile int endIndex;
     protected volatile boolean valueSet;
+    @Getter(value = AccessLevel.PROTECTED)
     private final byte[] encodedFieldNumber;
     @Getter
     private final int encodedFieldNumberLength;

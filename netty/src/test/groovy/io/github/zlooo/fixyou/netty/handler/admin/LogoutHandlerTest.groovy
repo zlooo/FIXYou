@@ -18,7 +18,7 @@ class LogoutHandlerTest extends Specification {
     private LogoutHandler logoutHandler = new LogoutHandler()
     private SessionStateListener sessionStateListener = Mock()
     private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().addSessionStateListener(sessionStateListener), new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0), Mock(
-            DefaultObjectPool), TestSpec.INSTANCE)
+            DefaultObjectPool), Mock(DefaultObjectPool), TestSpec.INSTANCE)
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
     private Channel channel = Mock()
     private ChannelHandlerContext channelHandlerContext = Mock()

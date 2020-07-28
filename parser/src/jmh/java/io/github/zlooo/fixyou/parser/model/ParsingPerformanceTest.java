@@ -13,7 +13,7 @@ public class ParsingPerformanceTest {
     @Benchmark
     @BenchmarkMode(Mode.Throughput)
     public void parsingUtilsParseLong(TestState testState, Blackhole blackhole) {
-        blackhole.consume(ParsingUtils.parseLong(testState.byteBuf.readerIndex(0), FixMessage.FIELD_SEPARATOR));
+        blackhole.consume(ParsingUtils.parseLong(testState.byteBuf.readerIndex(0), 0, FixMessage.FIELD_SEPARATOR));
     }
 
     @Benchmark
@@ -21,7 +21,7 @@ public class ParsingPerformanceTest {
     public void longFieldGetValue(TestState testState, Blackhole blackhole) {
         testState.byteBuf.readerIndex(0);
         final int length = testState.endIndex - testState.startIndex;
-        ParsingUtils.readChars(testState.byteBuf, length, testState.rawValue, testState.unparsedValue);
+        ParsingUtils.readChars(testState.byteBuf, 0, length, testState.rawValue, testState.unparsedValue);
         final boolean negative = testState.unparsedValue[0] == '-';
         long value = 0;
         for (int i = negative ? 1 : 0; i < length; i++) {

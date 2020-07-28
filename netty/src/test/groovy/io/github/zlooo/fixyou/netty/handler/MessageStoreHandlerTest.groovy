@@ -16,12 +16,12 @@ import spock.lang.Specification
 class MessageStoreHandlerTest extends Specification {
 
     private MessageStore messageStore = Mock()
-    private SessionID sessionID = new SessionID([] as char[], 0,[] as char[], 0,[] as char[],0)
+    private SessionID sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
     private MessageStoreHandler messageStoreHandler = new MessageStoreHandler(sessionID, messageStore)
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
     private Attribute sessionStateAttribute = Mock()
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), sessionID, Mock(DefaultObjectPool), TestSpec.INSTANCE)
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), sessionID, Mock(DefaultObjectPool), Mock(DefaultObjectPool), TestSpec.INSTANCE)
 
     def "should store message if session is persistent"() {
         setup:

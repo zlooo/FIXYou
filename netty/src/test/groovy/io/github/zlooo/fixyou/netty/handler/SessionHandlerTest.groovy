@@ -17,10 +17,10 @@ import spock.lang.Specification
 
 class SessionHandlerTest extends Specification {
 
-    private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock(DefaultObjectPool)
+    private DefaultObjectPool<FixMessage> fixMessageObjectReadPool = Mock(DefaultObjectPool)
+    private DefaultObjectPool<FixMessage> fixMessageObjectWritePool = Mock(DefaultObjectPool)
     private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), new SessionID("testBeginString".toCharArray(), 15, "testSender".toCharArray(), 10, "testTarget".toCharArray(), 10),
-                                                                                           fixMessageObjectPool,
-                                                                                           TestSpec.INSTANCE)
+                                                                                           fixMessageObjectReadPool, fixMessageObjectWritePool, TestSpec.INSTANCE)
     private SessionHandler sessionHandler = new SessionHandler(sessionState)
     private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
     private ChannelHandlerContext channelHandlerContext = Mock()
@@ -178,7 +178,7 @@ class SessionHandlerTest extends Specification {
         sessionHandler.channelRead(channelHandlerContext, fixMessage)
 
         then:
-        1 * fixMessageObjectPool.getAndRetain() >> resendRequest
+        1 * fixMessageObjectWritePool.getAndRetain() >> resendRequest
         1 * channelHandlerContext.writeAndFlush(resendRequest) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
         resendRequest.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.RESEND_REQUEST)
@@ -211,7 +211,7 @@ class SessionHandlerTest extends Specification {
 
         then:
         fixMessage.refCnt() == 1
-        1 * fixMessageObjectPool.getAndRetain() >> resendRequest
+        1 * fixMessageObjectWritePool.getAndRetain() >> resendRequest
         1 * channelHandlerContext.writeAndFlush(resendRequest) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
         resendRequest.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.RESEND_REQUEST)
@@ -258,7 +258,7 @@ class SessionHandlerTest extends Specification {
 
         then:
         fixMessage.refCnt() == 1
-        1 * fixMessageObjectPool.getAndRetain() >> resendRequest
+        1 * fixMessageObjectWritePool.getAndRetain() >> resendRequest
         1 * channelHandlerContext.writeAndFlush(resendRequest) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
         resendRequest.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.RESEND_REQUEST)

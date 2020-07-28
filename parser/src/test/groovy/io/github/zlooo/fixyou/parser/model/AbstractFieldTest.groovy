@@ -9,12 +9,11 @@ import java.nio.charset.StandardCharsets
 
 class AbstractFieldTest extends Specification {
 
-    private static final byte a_IN_ASCII = 141
-    private AbstractField field = new TestField(1)
+    private TestField field = new TestField(1)
 
     def "should encode field number on creation"() {
         expect:
-        field.encodedFieldNumber.toString(StandardCharsets.US_ASCII) == "1="
+        new String(field.encodedFieldNumber, StandardCharsets.US_ASCII) == "1="
         field.number == 1
     }
 
@@ -31,13 +30,11 @@ class AbstractFieldTest extends Specification {
     def "should reset"() {
         setup:
         field.setIndexes(1, 3)
-        field.encodedFieldNumber.readerIndex(2)
 
         when:
         field.reset()
 
         then:
-        field.encodedFieldNumber.readerIndex() == 0
         field.startIndex == 0
         field.endIndex == 0
         !field.valueSet
@@ -51,7 +48,6 @@ class AbstractFieldTest extends Specification {
         field.close()
 
         then:
-        field.encodedFieldNumber.refCnt() == 0
         field.fieldData.refCnt() == 1
     }
 

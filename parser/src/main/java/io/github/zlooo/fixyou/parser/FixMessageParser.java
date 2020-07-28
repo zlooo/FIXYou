@@ -102,6 +102,7 @@ public class FixMessageParser {
 
     public void setFixMessage(FixMessage fixMessage) {
         this.fixMessage = fixMessage;
+        this.lastBeginStringIndex = 0;
         if (fixMessage != null) {
             this.fixMessage.setMessageByteSourceAndRetain(parseableBytes);
         }
@@ -156,6 +157,7 @@ public class FixMessageParser {
                     parseableBytes.release();
                     parseableBytes = Unpooled.EMPTY_BUFFER;
                 }
+                lastBeginStringIndex = 0;
                 return;
             }
         }

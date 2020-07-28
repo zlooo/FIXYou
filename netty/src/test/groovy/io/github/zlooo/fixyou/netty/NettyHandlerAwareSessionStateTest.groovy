@@ -22,8 +22,7 @@ class NettyHandlerAwareSessionStateTest extends Specification {
         setup:
         MessageStore messageStore = Mock()
         def sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
-        NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setPersistent(true).setMessageStore(messageStore), sessionID, Mock(DefaultObjectPool),
-                                                                                       TestSpec.INSTANCE)
+        NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setPersistent(true).setMessageStore(messageStore), sessionID, Mock(DefaultObjectPool), Mock(DefaultObjectPool), TestSpec.INSTANCE)
         sessionState.getResettables()[NettyResettablesNames.NOT_MOVING_FORWARD_ON_READ_AND_WRITE_CHANNEL_HANDLER_CONTEXT] = notMovingForwardOnReadAndWriteCtx
         sessionState.getResettables()[NettyResettablesNames.SESSION] = sessionHandler
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 10L
@@ -42,7 +41,7 @@ class NettyHandlerAwareSessionStateTest extends Specification {
     def "should not queue message when session is not persistent"() {
         setup:
         def sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
-        NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), sessionID, Mock(DefaultObjectPool), TestSpec.INSTANCE)
+        NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), sessionID, Mock(DefaultObjectPool), Mock(DefaultObjectPool), TestSpec.INSTANCE)
         sessionState.getResettables()[NettyResettablesNames.NOT_MOVING_FORWARD_ON_READ_AND_WRITE_CHANNEL_HANDLER_CONTEXT] = notMovingForwardOnReadAndWriteCtx
         sessionState.getResettables()[NettyResettablesNames.SESSION] = sessionHandler
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 10L

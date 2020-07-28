@@ -5,7 +5,7 @@ import spock.lang.Specification
 
 class ArrayBackedObjectPoolTest extends Specification {
 
-    private ArrayBackedObjectPool objectPool = new ArrayBackedObjectPool(10, { -> new TestPoolableObject() }, TestPoolableObject)
+    private ArrayBackedObjectPool objectPool = new ArrayBackedObjectPool(10, { -> new TestPoolableObject() }, TestPoolableObject, 100)
 
     def "should get object from pool"() {
         when:
@@ -82,10 +82,22 @@ class ArrayBackedObjectPoolTest extends Specification {
         objectPool.@objectArray.findAll { it == null }.isEmpty()
     }
 
-    def "should throw illegal state exception when returning object in wrong state"() {
+    def "should not throw illegal state exception when returning object is in available state"() {
         setup:
         def poolableObject = objectPool.getAndRetain()
         poolableObject.getState().set(AbstractPoolableObject.AVAILABLE_STATE)
+
+        when:
+        objectPool.returnObject(poolableObject)
+
+        then:
+        poolableObject.getState().get() == AbstractPoolableObject.AVAILABLE_STATE
+    }
+
+    def "should throw illegal state exception when returning object is in neither available nor in use state"() {
+        setup:
+        def poolableObject = objectPool.getAndRetain()
+        poolableObject.getState().set(666)
 
         when:
         objectPool.returnObject(poolableObject)

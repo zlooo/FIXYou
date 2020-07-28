@@ -31,6 +31,7 @@ class FixMessageParserTest extends Specification {
 
         then:
         fixMessageReader.isDone()
+        fixMessageReader.lastBeginStringIndex == 0
         fixMessage.getField(8).value.toString() == "FIX.4.2"
         fixMessage.getField(9).value == 145
         fixMessage.getField(35).value.toString() == "D"
@@ -65,6 +66,7 @@ class FixMessageParserTest extends Specification {
 
         then:
         fixMessageReader.isDone()
+        fixMessageReader.lastBeginStringIndex == 0
         fixMessage.getField(8).value.toString() == "FIX.4.2"
         fixMessage.getField(9).value == 378
         fixMessage.getField(35).value.toString() == "8"
@@ -124,6 +126,7 @@ class FixMessageParserTest extends Specification {
 
         then:
         fixMessageReader.isDone()
+        fixMessageReader.lastBeginStringIndex == 0
         fixMessage.getField(8).value.toString() == "FIX.4.2"
         fixMessage.getField(9).value == 378
         fixMessage.getField(35).value.toString() == "8"
@@ -187,6 +190,7 @@ class FixMessageParserTest extends Specification {
 
         then:
         fixMessageReader.isDone()
+        fixMessageReader.lastBeginStringIndex == 0
         fixMessage.getField(8).value.toString() == "FIX.4.4"
         fixMessage.getField(9).value == 378
         fixMessage.getField(35).value.toString() == "AK"
@@ -240,6 +244,7 @@ class FixMessageParserTest extends Specification {
 
         then:
         !fixMessageReader.isDone()
+        fixMessageReader.lastBeginStringIndex == 2
         fixMessage.getField(8).value.toString() == "FIX.4.4"
         fixMessage.getField(9).value == 378
         fixMessage.getField(35).value.toString() == "AK"
@@ -320,5 +325,20 @@ class FixMessageParserTest extends Specification {
         !fixMessageReader.fragmentationDetected
         existingBuffer.refCnt() == 0 //0 because we set field directly
         newBuffer.refCnt() == 1 //1 from creation
+    }
+
+    def "should set new fix message"() {
+        setup:
+        def existingBuffer = Unpooled.buffer(1, 300)
+        fixMessageReader.@parseableBytes = existingBuffer
+        fixMessageReader.lastBeginStringIndex = 666
+
+        when:
+        fixMessageReader.setFixMessage(fixMessage)
+
+        then:
+        fixMessageReader.lastBeginStringIndex == 0
+        fixMessage.messageByteSource == existingBuffer
+        existingBuffer.refCnt() == 2
     }
 }

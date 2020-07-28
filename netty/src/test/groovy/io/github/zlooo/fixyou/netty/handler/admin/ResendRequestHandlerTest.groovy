@@ -22,9 +22,10 @@ class ResendRequestHandlerTest extends Specification {
     private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
-    private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
+    private DefaultObjectPool<FixMessage> fixMessageObjectReadPool = Mock()
+    private DefaultObjectPool<FixMessage> fixMessageObjectWritePool = Mock()
     private SessionID sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), sessionID, fixMessageObjectPool, TestSpec.INSTANCE)
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), sessionID, fixMessageObjectReadPool, fixMessageObjectWritePool, TestSpec.INSTANCE)
 
     def "should start message retrieval and send when persistence is on"() {
         setup:
@@ -45,7 +46,7 @@ class ResendRequestHandlerTest extends Specification {
         1 * sessionStateAttribute.get() >> sessionState
         1 * fixMessageSubscriberPool.getAndRetain() >> fixMessageSubscriber
         1 * messageStore.getMessages(sessionID, 666L, 777L, fixMessageSubscriber)
-        fixMessageSubscriber.fixMessagePool == fixMessageObjectPool
+        fixMessageSubscriber.fixMessagePool == fixMessageObjectWritePool
         fixMessageSubscriber.channelHandlerContext == channelHandlerContext
         0 * _
     }

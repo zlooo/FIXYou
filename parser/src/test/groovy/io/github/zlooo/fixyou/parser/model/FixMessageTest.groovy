@@ -2,7 +2,6 @@ package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.parser.TestSpec
 import io.netty.buffer.ByteBuf
-import org.assertj.core.api.Assertions
 import spock.lang.Specification
 
 class FixMessageTest extends Specification {
@@ -47,7 +46,9 @@ class FixMessageTest extends Specification {
         fixMessage.setMessageByteSourceAndRetain(messageByteSource)
 
         then:
-        fixMessage.getField(TestSpec.LONG_FIELD_NUMBER).fieldData == null
+        fixMessage.getField(TestSpec.LONG_FIELD_NUMBER).fieldData.is(messageByteSource)
+        1 * messageByteSource.release()
+        1 * messageByteSource.retain()
         0 * _
     }
 
@@ -95,10 +96,15 @@ class FixMessageTest extends Specification {
     }
 
     def "should close fields when message is closed"() {
+        def field = Mock(AbstractField)
+        def fieldsOrdered = fixMessage.fieldsOrdered
+        (0..fieldsOrdered.length - 1).forEach { fieldsOrdered[it] = field }
+
         when:
         fixMessage.close()
 
         then:
-        Assertions.assertThat(fixMessage.getFieldsOrdered()).allMatch({ field -> field.encodedFieldNumber.refCnt() == 0 })
+        fieldsOrdered.length * field.close()
+        0 * _
     }
 }

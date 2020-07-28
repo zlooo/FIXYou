@@ -32,11 +32,12 @@ class LogonHandlerTest extends Specification {
     private LogonHandler logonHandler = new LogonHandler(authenticator, sessionRegistry, preMessageValidatorHandler, postMessageValidatorHandler)
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
-    private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
+    private DefaultObjectPool<FixMessage> fixMessageObjectReadPool = Mock()
+    private DefaultObjectPool<FixMessage> fixMessageObjectWritePool = Mock()
     private SessionID sessionID = new SessionID("beginString".toCharArray(), 11, "senderCompId".toCharArray(), 12, "targetCompId".toCharArray(), 12)
     private FixMessage fixMessage = createValidLogonMessage(sessionID)
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)).setConsolidateFlushes(false), sessionID, fixMessageObjectPool,
-                                                                                           TestSpec.INSTANCE) {
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)).setConsolidateFlushes(false), sessionID, fixMessageObjectReadPool,
+                                                                                           fixMessageObjectWritePool, TestSpec.INSTANCE) {
 
         private boolean resetCalled
 
@@ -143,7 +144,7 @@ class LogonHandlerTest extends Specification {
         interaction {
             sessionHandlersAddedToPipelineAssertions(channelPipeline, sessionAttribute, 15)
         }
-        1 * fixMessageObjectPool.getAndRetain() >> logonResponse
+        1 * fixMessageObjectWritePool.getAndRetain() >> logonResponse
         1 * channelHandlerContext.writeAndFlush(logonResponse) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
         1 * channelFuture.addListener(FixChannelListeners.LOGON_SENT) >> channelFuture
@@ -186,7 +187,7 @@ class LogonHandlerTest extends Specification {
         interaction {
             sessionHandlersAddedToPipelineAssertions(channelPipeline, sessionAttribute, 15)
         }
-        1 * fixMessageObjectPool.getAndRetain() >> logonResponse
+        1 * fixMessageObjectWritePool.getAndRetain() >> logonResponse
         1 * channelHandlerContext.writeAndFlush(logonResponse) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
         1 * channelFuture.addListener(FixChannelListeners.LOGON_SENT) >> channelFuture
@@ -229,7 +230,7 @@ class LogonHandlerTest extends Specification {
         interaction {
             sessionHandlersAddedToPipelineAssertions(channelPipeline, sessionAttribute, 15)
         }
-        1 * fixMessageObjectPool.getAndRetain() >> logonResponse
+        1 * fixMessageObjectWritePool.getAndRetain() >> logonResponse
         1 * channelHandlerContext.writeAndFlush(logonResponse) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
         1 * channelFuture.addListener(FixChannelListeners.LOGON_SENT) >> channelFuture
@@ -302,7 +303,7 @@ class LogonHandlerTest extends Specification {
         1 * channelHandlerContext.pipeline() >> channelPipeline
         1 * channelPipeline.get(Handlers.SESSION.getName()) >> sessionHandler
         !sessionState.getResettables().isEmpty()
-        1 * fixMessageObjectPool.getAndRetain() >> logonResponse
+        1 * fixMessageObjectWritePool.getAndRetain() >> logonResponse
         1 * channelHandlerContext.writeAndFlush(logonResponse) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
         1 * channelFuture.addListener(FixChannelListeners.LOGON_SENT) >> channelFuture
@@ -331,7 +332,7 @@ class LogonHandlerTest extends Specification {
 
         then:
         1 * sessionRegistry.getStateForSession(sessionID) >> sessionState
-        1 * fixMessageObjectPool.getAndRetain() >> reject
+        1 * fixMessageObjectWritePool.getAndRetain() >> reject
         1 * sessionOutChannelHandler.write(nmfCtx, reject, null)
         1 * channelHandlerContext.write(reject) >> rejectMessageFuture
         1 * rejectMessageFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)

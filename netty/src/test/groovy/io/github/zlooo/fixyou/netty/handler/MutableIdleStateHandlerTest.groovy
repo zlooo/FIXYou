@@ -19,8 +19,9 @@ class MutableIdleStateHandlerTest extends Specification {
 
     private SessionConfig sessionConfig = new SessionConfig()
     private SessionID sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
-    private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(sessionConfig, sessionID, fixMessageObjectPool, TestSpec.INSTANCE)
+    private DefaultObjectPool<FixMessage> fixMessageObjectReadPool = Mock()
+    private DefaultObjectPool<FixMessage> fixMessageObjectWritePool = Mock()
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(sessionConfig, sessionID, fixMessageObjectReadPool, fixMessageObjectWritePool, TestSpec.INSTANCE)
     private MutableIdleStateHandler idleStateHandler = new MutableIdleStateHandler(sessionState, 1, 2, 3)
     private ChannelHandlerContext channelHandlerContext = Mock()
     private ChannelFuture channelFuture = Mock()
@@ -53,7 +54,7 @@ class MutableIdleStateHandlerTest extends Specification {
         idleStateHandler.channelIdle(channelHandlerContext, IdleStateEvent.WRITER_IDLE_STATE_EVENT)
 
         then:
-        1 * fixMessageObjectPool.getAndRetain() >> fixMessage
+        1 * fixMessageObjectWritePool.getAndRetain() >> fixMessage
         1 * channelHandlerContext.writeAndFlush(fixMessage) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.HEARTBEAT)
@@ -69,7 +70,7 @@ class MutableIdleStateHandlerTest extends Specification {
         idleStateHandler.channelIdle(channelHandlerContext, IdleStateEvent.FIRST_READER_IDLE_STATE_EVENT)
 
         then:
-        1 * fixMessageObjectPool.getAndRetain() >> fixMessage
+        1 * fixMessageObjectWritePool.getAndRetain() >> fixMessage
         1 * channelHandlerContext.writeAndFlush(fixMessage) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.TEST_REQUEST)

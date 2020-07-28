@@ -13,7 +13,6 @@ import lombok.SneakyThrows;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
@@ -134,7 +133,7 @@ class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable 
         // implementation
         private final Deque<ByteBuf> messagesToProcess = new ArrayDeque<>(DefaultConfiguration.MESSAGE_DECODER_MESSAGES_QUEUE_SIZE);
         private final Deque<ByteBuf> processingQueue = new ArrayDeque<>(DefaultConfiguration.MESSAGE_DECODER_MESSAGES_QUEUE_SIZE);
-        private boolean taskScheduled = false;
+        private boolean taskScheduled;
 
         @SneakyThrows
         @Override

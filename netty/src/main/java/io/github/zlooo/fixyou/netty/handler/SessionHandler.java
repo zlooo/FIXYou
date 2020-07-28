@@ -29,6 +29,7 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
 
     private static final int DEFAULT_NEXT_EXPECTED_INBOUND_SEQUENCE_NUMBER = 1;
     private static final int DEFAULT_OUTBOUND_SEQUENCE_NUMBER = 0;
+    private static final String MESSAGE_WITH_BUF_LOG_TEMPLATE = "Message {}, underlying buffer {}";
 
     private long nextExpectedInboundSequenceNumber = DEFAULT_NEXT_EXPECTED_INBOUND_SEQUENCE_NUMBER;
     private long lastOutboundSequenceNumber = DEFAULT_OUTBOUND_SEQUENCE_NUMBER;
@@ -152,7 +153,7 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
                 fillMapWithPlaceholders(cutDownFromInclusive, cutDownToInclusive);
                 log.info("Message gap detected in session {}, sending resend request for sequence numbers <{}, {}>", sessionId, cutDownFromInclusive, cutDownToInclusive);
                 if (log.isTraceEnabled()) {
-                    log.trace("Message {}, underlying buffer {}", fixMessage.toString(true), fixMessage.getMessageByteSource().readerIndex(0).toString(StandardCharsets.US_ASCII));
+                    log.trace(MESSAGE_WITH_BUF_LOG_TEMPLATE, fixMessage.toString(true), fixMessage.getMessageByteSource().readerIndex(0).toString(StandardCharsets.US_ASCII));
                 }
                 final FixMessage resendRequest = FixMessageUtils.toResendRequest(sessionState.getFixMessageWritePool().getAndRetain(), cutDownFromInclusive, cutDownToInclusive);
                 SessionIDUtils.setSessionIdFields(resendRequest, sessionId);
@@ -168,7 +169,7 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
 
     private void handleSequenceLowerThanExpected(ChannelHandlerContext ctx, FixMessage fixMessage, long expectedSequenceNumber) {
         if (!FixMessageUtils.hasBooleanFieldSet(fixMessage, FixConstants.POSSIBLE_DUPLICATE_FLAG_FIELD_NUMBER)) {
-            /**
+            /*
              * According to fix specification:
              * "If the incoming message has a sequence number less than expected and the PossDupFlag is not set, it indicates a serious error. It is strongly recommended that
              * the session be terminated and manual intervention be initiated."
@@ -177,7 +178,7 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
             log.error("Sequence number for session {} is lower than expected({}) and PossDupFlag is not set, terminating this session",
                       sessionId, expectedSequenceNumber);
             if (log.isTraceEnabled()) {
-                log.trace("Message {}, underlying buffer {}", fixMessage.toString(true), fixMessage.getMessageByteSource().readerIndex(0).toString(StandardCharsets.US_ASCII));
+                log.trace(MESSAGE_WITH_BUF_LOG_TEMPLATE, fixMessage.toString(true), fixMessage.getMessageByteSource().readerIndex(0).toString(StandardCharsets.US_ASCII));
             }
             final FixMessage logoutMessage = FixMessageUtils.toLogoutMessage(fixMessage, LogoutTexts.SEQUENCE_NUMBER_LOWER_THAN_EXPECTED);
             SessionIDUtils.setSessionIdFields(logoutMessage, sessionId);

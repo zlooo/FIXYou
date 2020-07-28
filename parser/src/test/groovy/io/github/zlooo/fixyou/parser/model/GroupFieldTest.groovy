@@ -127,7 +127,7 @@ class GroupFieldTest extends Specification {
         def result = groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER)
 
         then:
-        groupField.repetitionCounter == repetitionsArrayLength+1
+        groupField.repetitionCounter == repetitionsArrayLength + 1
         result == fieldWithValue(FieldType.LONG, TestSpec.LONG_FIELD_NUMBER)
         !result.valueSet
         groupField.@repetitions.length > repetitionsArrayLength
@@ -221,12 +221,26 @@ class GroupFieldTest extends Specification {
     }
 
     def "should close child fields when group field is closed"() {
+        setup:
+        def field = Mock(AbstractField)
+        groupField.repetitionCounter = 1
+        groupField.ensureRepetitionsArrayCapacity()
+        def repetitions = groupField.@repetitions
+        def fieldCounter = 0
+        (0..repetitions.length - 1).forEach {
+            def fieldsOrdered = repetitions[it].fieldsOrdered
+            (0..fieldsOrdered.length - 1).forEach {
+                fieldsOrdered[it] = field
+                fieldCounter++
+            }
+        }
+
         when:
         groupField.close()
 
         then:
-        groupField.encodedFieldNumber.refCnt() == 0
-        groupField.@repetitions.collect { it.fieldsOrdered }.flatten().every { it.encodedFieldNumber.refCnt() == 0 }
+        fieldCounter * field.close()
+        0 * _
     }
 
     def "should check if group contains field with given number"() {

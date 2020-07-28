@@ -8,8 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.agrona.collections.Hashing;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.stream.Collectors;
 
 @Slf4j
 @EqualsAndHashCode(callSuper = true, exclude = {"value"})
@@ -22,14 +20,12 @@ public final class CharSequenceField extends AbstractField {
     private int length;
     private byte[] rawValue;
     private char[] value;
-    private final boolean isClordId;
 
     public CharSequenceField(int number) {
         super(number);
         rawValue = new byte[STARTING_LENGTH];
         value = new char[STARTING_LENGTH];
         returnValue.setState(value);
-        isClordId = number == 11;
     }
 
     @Override
@@ -43,26 +39,11 @@ public final class CharSequenceField extends AbstractField {
     }
 
     public CharSequence getValue() {
-        if (isClordId) {
-            final String stackTrace = Arrays.stream(Thread.currentThread().getStackTrace()).map(StackTraceElement::toString).collect(Collectors.joining("\n"));
-            if (!stackTrace.contains("NewOrderSingleReceivingMessageListener")) {
-                log.warn("{}@Get value on clordId from\n{}", hashCode(), stackTrace);
-            }
-        }
         if (length == 0 && valueSet) {
             length = endIndex - startIndex;
-            if (isClordId) {
-                log.trace("{}@Before parsing - return value {}@{}, value {}@{}, raw value {}@{}, length {}, startIndex {}, endIndex {}", hashCode(), returnValue, returnValue.hashCode(), value, value.hashCode(), rawValue,
-                          rawValue.hashCode(),
-                          length, startIndex, endIndex);
-            }
             ensureSufficientTablesLength();
             ParsingUtils.readChars(fieldData, startIndex, length, rawValue, value);
             returnValue.setLength(length);
-            if (isClordId) {
-                log.trace("{}@After parsing - return value {}@{}, value {}@{}, raw value {}@{}, length {}, startIndex {}, endIndex {}", hashCode(), returnValue, returnValue.hashCode(), value, value.hashCode(), rawValue, rawValue.hashCode(),
-                          length, startIndex, endIndex);
-            }
             boolean allZeros = true;
             for (final byte singleByte : rawValue) {
                 allZeros &= singleByte == 0;
@@ -70,10 +51,6 @@ public final class CharSequenceField extends AbstractField {
             if (allZeros) {
                 log.warn("{}@WTF, all raw bytes are zeros!!! Parsed value {}@{}, start index {}, end index {}, underlying buffer {}, content {}", hashCode(), returnValue, returnValue.hashCode(), startIndex, endIndex, fieldData,
                          fieldData.toString(0, fieldData.writerIndex(), StandardCharsets.US_ASCII));
-            }
-        } else {
-            if (isClordId) {
-                log.trace("{}@Returning cached value {}, length {}, valueSet {}, startIndex {}, endIndex {}", hashCode(), returnValue, length, valueSet, startIndex, endIndex);
             }
         }
         return returnValue;
@@ -93,9 +70,6 @@ public final class CharSequenceField extends AbstractField {
 
     private void ensureSufficientTablesLength() {
         if (rawValue.length < length) {
-            if (isClordId) {
-                log.warn("{}@Resize", hashCode());
-            }
             final int newTableLength = (int) ((length + 1) * (1.0 + Hashing.DEFAULT_LOAD_FACTOR));
             rawValue = new byte[newTableLength];
             value = new char[newTableLength];

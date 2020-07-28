@@ -1,16 +1,18 @@
 package io.github.zlooo.fixyou.fix.commons
 
+import io.github.zlooo.fixyou.FIXYouConfiguration
+import io.github.zlooo.fixyou.FIXYouException
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import org.assertj.core.api.Assertions
 import spock.lang.Specification
 
 class DictionaryRepositoryTest extends Specification {
 
-    private DictionaryRepository dictionaryRepository = new DictionaryRepository()
+    private DictionaryRepository dictionaryRepository = new DictionaryRepository(new FIXYouConfiguration.FIXYouConfigurationBuilder().build())
     private DictionaryRepository.Dictionary testDictionary1
 
     void setup() {
-        testDictionary1 = new DictionaryRepository.Dictionary(TestSpec.INSTANCE, Mock(DefaultObjectPool))
+        testDictionary1 = new DictionaryRepository.Dictionary(TestSpec.INSTANCE, Mock(DefaultObjectPool), Mock(DefaultObjectPool))
         dictionaryRepository.@dictionaries.put("testDictionary1", testDictionary1)
     }
 
@@ -26,7 +28,7 @@ class DictionaryRepositoryTest extends Specification {
 
     def "should register dictionary"() {
         setup:
-        def dictionary2 = new DictionaryRepository.Dictionary(TestSpec.INSTANCE, Mock(DefaultObjectPool))
+        def dictionary2 = new DictionaryRepository.Dictionary(TestSpec.INSTANCE, Mock(DefaultObjectPool), Mock(DefaultObjectPool))
 
         when:
         dictionaryRepository.registerDictionary("testDictionary2", TestSpec.INSTANCE)
@@ -41,7 +43,7 @@ class DictionaryRepositoryTest extends Specification {
         dictionaryRepository.registerDictionary("testDictionary1", TestSpec.INSTANCE)
 
         then:
-        thrown(io.github.zlooo.fixyou.FIXYouException)
+        thrown(FIXYouException)
         Assertions.assertThat(dictionaryRepository.@dictionaries).containsOnly(Assertions.entry("testDictionary1", testDictionary1))
     }
 }
