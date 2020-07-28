@@ -145,23 +145,27 @@ public class FixMessageParser {
                 log.debug(FIELD_NOT_FOUND_IN_MESSAGE_SPEC_LOG, fieldNum);
             }
             if (fieldNum == FixConstants.CHECK_SUM_FIELD_NUMBER) {
-                if (fragmentationDetected) {
-                    fragmentationDetected = false;
-                    final CompositeByteBuf fragmentationBuffer = (CompositeByteBuf) parseableBytes;
-                    final int bytesRead = fragmentationBuffer.readerIndex();
-                    parseableBytes = fragmentationBuffer.component(1);
-                    parseableBytes.readerIndex(bytesRead - fragmentationBuffer.component(0).writerIndex() + lastBeginStringIndex);
-                    fragmentationBuffer.release();
-                }
-                if (parseableBytes.writerIndex() == parseableBytes.readerIndex()) {
-                    parseableBytes.release();
-                    parseableBytes = Unpooled.EMPTY_BUFFER;
-                }
-                lastBeginStringIndex = 0;
+                endOfMessage();
                 return;
             }
         }
         parseable = false;
+    }
+
+    private void endOfMessage() {
+        if (fragmentationDetected) {
+            fragmentationDetected = false;
+            final CompositeByteBuf fragmentationBuffer = (CompositeByteBuf) parseableBytes;
+            final int bytesRead = fragmentationBuffer.readerIndex();
+            parseableBytes = fragmentationBuffer.component(1);
+            parseableBytes.readerIndex(bytesRead - fragmentationBuffer.component(0).writerIndex() + lastBeginStringIndex);
+            fragmentationBuffer.release();
+        }
+        if (parseableBytes.writerIndex() == parseableBytes.readerIndex()) {
+            parseableBytes.release();
+            parseableBytes = Unpooled.EMPTY_BUFFER;
+        }
+        lastBeginStringIndex = 0;
     }
 
     private void saveIndexIfBeginString(int fieldNum, int start) {
