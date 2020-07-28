@@ -13,6 +13,7 @@ import io.github.zlooo.fixyou.parser.model.BooleanField;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.LongField;
 import io.github.zlooo.fixyou.session.SessionID;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -153,7 +154,8 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
                 fillMapWithPlaceholders(cutDownFromInclusive, cutDownToInclusive);
                 log.info("Message gap detected in session {}, sending resend request for sequence numbers <{}, {}>", sessionId, cutDownFromInclusive, cutDownToInclusive);
                 if (log.isTraceEnabled()) {
-                    log.trace(MESSAGE_WITH_BUF_LOG_TEMPLATE, fixMessage.toString(true), fixMessage.getMessageByteSource().readerIndex(0).toString(StandardCharsets.US_ASCII));
+                    final ByteBuf messageByteSource = fixMessage.getMessageByteSource();
+                    log.trace(MESSAGE_WITH_BUF_LOG_TEMPLATE, fixMessage.toString(true), messageByteSource.toString(0, messageByteSource.writerIndex(), StandardCharsets.US_ASCII));
                 }
                 final FixMessage resendRequest = FixMessageUtils.toResendRequest(sessionState.getFixMessageWritePool().getAndRetain(), cutDownFromInclusive, cutDownToInclusive);
                 SessionIDUtils.setSessionIdFields(resendRequest, sessionId);
@@ -178,7 +180,8 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
             log.error("Sequence number for session {} is lower than expected({}) and PossDupFlag is not set, terminating this session",
                       sessionId, expectedSequenceNumber);
             if (log.isTraceEnabled()) {
-                log.trace(MESSAGE_WITH_BUF_LOG_TEMPLATE, fixMessage.toString(true), fixMessage.getMessageByteSource().readerIndex(0).toString(StandardCharsets.US_ASCII));
+                final ByteBuf messageByteSource = fixMessage.getMessageByteSource();
+                log.trace(MESSAGE_WITH_BUF_LOG_TEMPLATE, fixMessage.toString(true), messageByteSource.toString(0, messageByteSource.writerIndex(), StandardCharsets.US_ASCII));
             }
             final FixMessage logoutMessage = FixMessageUtils.toLogoutMessage(fixMessage, LogoutTexts.SEQUENCE_NUMBER_LOWER_THAN_EXPECTED);
             SessionIDUtils.setSessionIdFields(logoutMessage, sessionId);
