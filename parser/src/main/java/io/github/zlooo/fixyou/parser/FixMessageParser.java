@@ -20,6 +20,7 @@ package io.github.zlooo.fixyou.parser;
 
 import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.FixConstants;
+import io.github.zlooo.fixyou.Resettable;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.parser.model.AbstractField;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
@@ -39,7 +40,7 @@ import java.util.Deque;
 
 @Slf4j
 @NoArgsConstructor
-public class FixMessageParser {
+public class FixMessageParser implements Resettable {
 
     private static final ByteProcessor FIELD_TERMINATOR_FINDER = new ByteProcessor.IndexOfProcessor(FixMessage.FIELD_SEPARATOR);
     private static final String FIELD_NOT_FOUND_IN_MESSAGE_SPEC_LOG = "Field {} not found in message spec";
@@ -53,6 +54,21 @@ public class FixMessageParser {
     private int lastBeginStringIndex;
     private boolean parsingRepeatingGroup;
     private final Deque<GroupField> groupFieldsStack = new ArrayDeque<>(DefaultConfiguration.NESTED_REPEATING_GROUPS);
+
+    @Override
+    public void reset() {
+        parseableBytes.release();
+        parseableBytes = Unpooled.EMPTY_BUFFER;
+        if (fixMessage != null) {
+            fixMessage.release();
+            fixMessage = null;
+        }
+        parseable = false;
+        fragmentationDetected = false;
+        lastBeginStringIndex = 0;
+        parsingRepeatingGroup = false;
+        groupFieldsStack.clear();
+    }
 
     public void setFixBytes(@Nonnull ByteBuf fixMsgBufBytes) {
         parseable = true;
@@ -158,7 +174,8 @@ public class FixMessageParser {
             final CompositeByteBuf fragmentationBuffer = (CompositeByteBuf) parseableBytes;
             final int bytesRead = fragmentationBuffer.readerIndex();
             parseableBytes = fragmentationBuffer.component(1);
-            parseableBytes.readerIndex(bytesRead - fragmentationBuffer.component(0).writerIndex() + lastBeginStringIndex);
+            final int firstFragmentReadableBytes = fragmentationBuffer.component(0).readableBytes();
+            parseableBytes.readerIndex(bytesRead - firstFragmentReadableBytes);
             fragmentationBuffer.release();
         }
         if (parseableBytes.writerIndex() == parseableBytes.readerIndex()) {

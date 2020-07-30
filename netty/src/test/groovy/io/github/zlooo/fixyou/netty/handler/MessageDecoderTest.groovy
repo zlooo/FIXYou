@@ -124,12 +124,31 @@ class MessageDecoderTest extends Specification {
     def "should reset state"() {
         setup:
         messageDecoder.@state = MessageDecoder.State.DECODING
+        fixMessage.retain() //that's because it's going to be released when fixMessageParser is being reset
+        messageDecoder.@fixMessageParser.@fixMessage = fixMessage
 
         when:
         messageDecoder.reset()
 
         then:
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
+        messageDecoder.@fixMessageParser.@fixMessage == null
+    }
+
+    def "should reset state when channel becomes active"() {
+        setup:
+        messageDecoder.@state = MessageDecoder.State.DECODING
+        fixMessage.retain() //that's because it's going to be released when fixMessageParser is being reset
+        messageDecoder.@fixMessageParser.@fixMessage = fixMessage
+
+        when:
+        messageDecoder.channelActive(channelHandlerContext)
+
+        then:
+        messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
+        messageDecoder.@fixMessageParser.@fixMessage == null
+        1 * channelHandlerContext.fireChannelActive()
+        0 * _
     }
 
     def "should pass further message that's not ByteBuf"() {

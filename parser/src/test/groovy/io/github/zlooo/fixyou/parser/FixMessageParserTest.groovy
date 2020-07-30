@@ -21,9 +21,7 @@ class FixMessageParserTest extends Specification {
 
     def "should parse new order single message, simple message case"() {
         setup:
-        String message = "8=FIX.4.2\u00019=145\u000135=D\u000134=4\u000149=ABC_DEFG01\u000152=20090323-15:40:29\u000156=CCG\u0001115=XYZ\u000111=NF 0542/03232009\u000154=1\u000138=100\u000155=CVS\u000140=1\u000159=0\u000147=A\u0001" +
-                         "60=20090323-15:40:29\u000121=1\u0001207=N\u000110=139\u0001"
-        fixMessageReader.setFixBytes(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
+        fixMessageReader.setFixBytes(Unpooled.wrappedBuffer(simpleNewOrderSingle.getBytes(StandardCharsets.US_ASCII)))
         fixMessageReader.setFixMessage(fixMessage)
 
         when:
@@ -32,25 +30,21 @@ class FixMessageParserTest extends Specification {
         then:
         fixMessageReader.isDone()
         fixMessageReader.lastBeginStringIndex == 0
-        fixMessage.getField(8).value.toString() == "FIX.4.2"
-        fixMessage.getField(9).value == 145
-        fixMessage.getField(35).value.toString() == "D"
-        fixMessage.getField(34).value == 4
-        fixMessage.getField(49).value.toString() == "ABC_DEFG01"
-        fixMessage.getField(52).value == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090323-15:40:29", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
-        fixMessage.getField(56).value.toString() == "CCG"
-        fixMessage.getField(115).value.toString() == "XYZ"
-        fixMessage.getField(11).value.toString() == "NF 0542/03232009"
-        fixMessage.getField(54).value == "1" as char
-        fixMessage.getField(38).value == 100
-        fixMessage.getField(38).scale == 0
-        fixMessage.getField(55).value.toString() == "CVS"
-        fixMessage.getField(40).value == "1" as char
-        fixMessage.getField(59).value == "0" as char
-        fixMessage.getField(60).value == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090323-15:40:29", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
-        fixMessage.getField(21).value == "1" as char
-        fixMessage.getField(207).value.toString() == "N"
-        fixMessage.getField(10).value.toString() == "139"
+        assertSimpleNewOrderSingle(fixMessage)
+    }
+
+    def "should discard garbage data from fix message"() {
+        setup:
+        fixMessageReader.setFixBytes(Unpooled.wrappedBuffer(("garbage garbage" + simpleNewOrderSingle).getBytes(StandardCharsets.US_ASCII)))
+        fixMessageReader.setFixMessage(fixMessage)
+
+        when:
+        fixMessageReader.parseFixMsgBytes()
+
+        then:
+        fixMessageReader.isDone()
+        fixMessageReader.lastBeginStringIndex == 0
+        assertSimpleNewOrderSingle(fixMessage)
     }
 
     def "should parse execution report message, message with repeating group(382)"() {
@@ -340,5 +334,87 @@ class FixMessageParserTest extends Specification {
         fixMessageReader.lastBeginStringIndex == 0
         fixMessage.messageByteSource == existingBuffer
         existingBuffer.refCnt() == 2
+    }
+
+    def "should parse simple new order single fragmented with garbage"() {
+        setup:
+        def packet1 = Unpooled.wrappedBuffer(simpleNewOrderSingleWithGarbage.substring(0, packet1End).getBytes(StandardCharsets.US_ASCII))
+        fixMessageReader.setFixBytes(packet1)
+        fixMessageReader.setFixMessage(fixMessage)
+        fixMessageReader.parseFixMsgBytes()
+        fixMessageReader.setFixBytes(Unpooled.wrappedBuffer(simpleNewOrderSingleWithGarbage.substring(packet1End, simpleNewOrderSingleWithGarbage.length()).getBytes(StandardCharsets.US_ASCII)))
+
+        when:
+        fixMessageReader.parseFixMsgBytes()
+
+        then:
+        fixMessageReader.isDone()
+        fixMessageReader.lastBeginStringIndex == 0
+        assertSimpleNewOrderSingle(fixMessage)
+        println fixMessageReader.parseableBytes.toString(0, fixMessageReader.parseableBytes.capacity(), StandardCharsets.US_ASCII)
+        fixMessageReader.parseableBytes.readerIndex() == simpleNewOrderSingleWithGarbage.length() - packet1End - "garbage".length()
+
+        where:
+        packet1End | _
+        3          | _
+        6          | _
+        7          | _
+        10         | _
+        18         | _
+    }
+
+    def "should reset parser"() {
+        setup:
+        def buffer = Unpooled.wrappedBuffer("someMsg".getBytes(StandardCharsets.US_ASCII))
+        fixMessageReader.@parseableBytes = buffer
+        fixMessage.retain()
+        fixMessageReader.@fixMessage = fixMessage
+        fixMessageReader.@parseable = true
+        fixMessageReader.@fragmentationDetected = true
+        fixMessageReader.@lastBeginStringIndex = 666
+        fixMessageReader.@parsingRepeatingGroup = true
+        fixMessageReader.@groupFieldsStack.add(new GroupField(TestSpec.USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER, TestSpec.INSTANCE))
+
+        when:
+        fixMessageReader.reset()
+
+        then:
+        fixMessageReader.@parseableBytes.is(Unpooled.EMPTY_BUFFER)
+        fixMessageReader.@fixMessage == null
+        !fixMessageReader.@parseable
+        !fixMessageReader.@fragmentationDetected
+        fixMessageReader.@lastBeginStringIndex == 0
+        !fixMessageReader.@parsingRepeatingGroup
+        fixMessageReader.@groupFieldsStack.isEmpty()
+        buffer.refCnt() == 0
+        fixMessage.refCnt() == 0
+    }
+
+    private final static String simpleNewOrderSingle = "8=FIX.4.2\u00019=145\u000135=D\u000134=4\u000149=ABC_DEFG01\u000152=20090323-15:40:29\u000156=CCG\u0001115=XYZ\u000111=NF " +
+                                                       "0542/03232009\u000154=1\u000138=100\u000155=CVS\u000140=1\u000159=0\u000147=A\u000160=20090323-15:40:29\u000121=1\u0001207=N\u000110=139\u0001"
+
+    private final static String simpleNewOrderSingleWithGarbage = "garbae8=FIX.4.2\u00019=145\u000135=D\u000134=4\u000149=ABC_DEFG01\u000152=20090323-15:40:29\u000156=CCG\u0001115=XYZ\u000111=NF " +
+                                                                  "0542/03232009\u000154=1\u000138=100\u000155=CVS\u000140=1\u000159=0\u000147=A\u000160=20090323-15:40:29\u000121=1\u0001207=N\u000110=139\u0001garbage"
+
+    private static void assertSimpleNewOrderSingle(FixMessage fixMessage) {
+        assert fixMessage.getField(8).value.toString() == "FIX.4.2"
+        assert fixMessage.getField(9).value == 145
+        assert fixMessage.getField(35).value.toString() == "D"
+        assert fixMessage.getField(34).value == 4
+        assert fixMessage.getField(49).value.toString() == "ABC_DEFG01"
+        assert fixMessage.getField(52).value == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090323-15:40:29", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        assert fixMessage.getField(56).value.toString() == "CCG"
+        assert fixMessage.getField(115).value.toString() == "XYZ"
+        assert fixMessage.getField(11).value.toString() == "NF 0542/03232009"
+        assert fixMessage.getField(54).value == "1" as char
+        assert fixMessage.getField(38).value == 100
+        assert fixMessage.getField(38).scale == 0
+        assert fixMessage.getField(55).value.toString() == "CVS"
+        assert fixMessage.getField(40).value == "1" as char
+        assert fixMessage.getField(59).value == "0" as char
+        assert fixMessage.getField(60).value == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090323-15:40:29", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        assert fixMessage.getField(21).value == "1" as char
+        assert fixMessage.getField(207).value.toString() == "N"
+        assert fixMessage.getField(10).value.toString() == "139"
     }
 }

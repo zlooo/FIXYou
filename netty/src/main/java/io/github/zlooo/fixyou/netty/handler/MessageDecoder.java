@@ -122,8 +122,15 @@ class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable 
     }
 
     @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        reset();
+        ctx.fireChannelActive();
+    }
+
+    @Override
     public void reset() {
         this.state = State.READY_TO_DECODE;
+        this.fixMessageParser.reset();
     }
 
     @ToString(callSuper = true)
