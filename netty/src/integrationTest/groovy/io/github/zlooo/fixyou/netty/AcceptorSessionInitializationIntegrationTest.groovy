@@ -187,6 +187,7 @@ class AcceptorSessionInitializationIntegrationTest extends AbstractFixYOUAccepto
         sendMessage(channel, FixMessages.logon(sessionID, 1, 30, true)).sync()
         pollingConditions.eventually {
             !receivedMessages.empty
+            sessionSateListener.sessionState.logonSent
         }
 
         then:
