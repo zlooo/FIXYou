@@ -139,7 +139,7 @@ class AcceptorSessionInitializationIntegrationTest extends AbstractFixYOUAccepto
                                         StandardCharsets.US_ASCII))).
                 sync()
         pollingConditions.eventually {
-            receivedMessages.size() >= 2
+            !channel.isActive()
         }
 
         then:
