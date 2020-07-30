@@ -46,7 +46,7 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
     protected TestFixMessageListener testFixMessageListener = new TestFixMessageListener()
     protected PollingConditions pollingConditions = new PollingConditions(timeout: 30)
     private EventLoopGroup group
-    protected List<String> receivedMessages = []
+    protected List<String> receivedMessages = Collections.synchronizedList(new ArrayList())
 
     void setup() {
         LOGGER.info("Setup for test {}", getSpecificationContext().getCurrentFeature().getName())
