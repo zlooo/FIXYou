@@ -51,7 +51,7 @@ class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable 
         if (msg instanceof ByteBuf) {
             final ByteBuf in = (ByteBuf) msg;
             try {
-                final boolean resume = state == State.RESUME;
+                boolean resume = state == State.RESUME;
                 saveBuffer(in, resume);
                 while (fixMessageParser.isParseable() && fixMessageParser.isUnderlyingBufferReadable()) {
                     if (state == State.READY_TO_DECODE || resume) {
@@ -71,6 +71,7 @@ class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable 
                     } else {
                         state = State.DECODING;
                     }
+                    resume = false;
                 }
             } finally {
                 in.release();

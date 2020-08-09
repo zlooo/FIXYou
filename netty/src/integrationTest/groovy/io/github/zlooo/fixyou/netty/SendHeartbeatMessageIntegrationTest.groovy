@@ -15,11 +15,13 @@ class SendHeartbeatMessageIntegrationTest extends AbstractFixYOUAcceptorIntegrat
         sendMessage(channel, FixMessages.logon(sessionID, 1, 5))
         pollingConditions.eventually {
             receivedMessages.size() == 1
+            true
         }
 
         when:
         pollingConditions.eventually {
             receivedMessages.size() >= 2
+            true
         }
 
         then:

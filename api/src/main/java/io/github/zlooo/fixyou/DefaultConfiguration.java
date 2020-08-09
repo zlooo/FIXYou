@@ -19,4 +19,5 @@ public class DefaultConfiguration { //TODO move to config module and make this c
     public static final int NESTED_REPEATING_GROUPS = 6;
     public static final int MESSAGE_DECODER_MESSAGES_QUEUE_SIZE = 10_000;
     public static final int MESSAGE_DECODER_MAX_TASK_BATCH_SIZE = 1000;
+    public static final int BYTE_BUF_COMPOSER_DEFAULT_COMPONENT_NUMBER = 100;
 }
