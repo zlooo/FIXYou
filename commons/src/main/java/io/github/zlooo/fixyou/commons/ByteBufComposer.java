@@ -3,6 +3,7 @@ package io.github.zlooo.fixyou.commons;
 import io.github.zlooo.fixyou.Resettable;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
+import lombok.Data;
 
 /**
  * Class quite similar in concept to {@link CompositeByteBuf}. It also acts as a view that composes multiple {@link ByteBuf} into single, continuous stream of bytes. Main difference is that once component is removed this class reader
@@ -128,6 +129,7 @@ public class ByteBufComposer implements Resettable {
         }
     }
 
+    @Data
     private static final class Component implements Resettable {
         private int startIndex = -1;
         private int endIndex = -1;
@@ -144,61 +146,6 @@ public class ByteBufComposer implements Resettable {
             }
             startIndex = -1;
             endIndex = -1;
-        }
-
-        public int getStartIndex() {
-            return this.startIndex;
-        }
-
-        public int getEndIndex() {
-            return this.endIndex;
-        }
-
-        public ByteBuf getBuffer() {
-            return this.buffer;
-        }
-
-        public void setStartIndex(int startIndex) {
-            this.startIndex = startIndex;
-        }
-
-        public void setEndIndex(int endIndex) {
-            this.endIndex = endIndex;
-        }
-
-        public void setBuffer(ByteBuf buffer) {
-            this.buffer = buffer;
-        }
-
-        public boolean equals(final Object o) {
-            if (o == this)
-                return true;
-            if (!(o instanceof Component))
-                return false;
-            final Component other = (Component) o;
-            if (this.getStartIndex() != other.getStartIndex())
-                return false;
-            if (this.getEndIndex() != other.getEndIndex())
-                return false;
-            final Object this$buffer = this.getBuffer();
-            final Object other$buffer = other.getBuffer();
-            if (this$buffer == null ? other$buffer != null : !this$buffer.equals(other$buffer))
-                return false;
-            return true;
-        }
-
-        public int hashCode() {
-            final int PRIME = 59;
-            int result = 1;
-            result = result * PRIME + this.getStartIndex();
-            result = result * PRIME + this.getEndIndex();
-            final Object $buffer = this.getBuffer();
-            result = result * PRIME + ($buffer == null ? 43 : $buffer.hashCode());
-            return result;
-        }
-
-        public String toString() {
-            return "ByteBufComposer.Component(startIndex=" + this.getStartIndex() + ", endIndex=" + this.getEndIndex() + ", buffer=" + this.getBuffer() + ")";
         }
     }
 }
