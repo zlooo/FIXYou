@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.parser.model;
 
 import io.github.zlooo.fixyou.Closeable;
+import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.AsciiString;
@@ -13,7 +14,7 @@ public abstract class AbstractField implements Closeable {
     @Getter
     protected final int number;
     @Setter(AccessLevel.PROTECTED)
-    protected ByteBuf fieldData;
+    protected ByteBufComposer fieldData;
     @Getter
     protected volatile int startIndex;
     @Getter

@@ -13,15 +13,12 @@ import io.github.zlooo.fixyou.parser.model.BooleanField;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.LongField;
 import io.github.zlooo.fixyou.session.SessionID;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.agrona.collections.Hashing;
 import org.agrona.collections.Long2ObjectHashMap;
-
-import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Getter
@@ -30,7 +27,6 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
 
     private static final int DEFAULT_NEXT_EXPECTED_INBOUND_SEQUENCE_NUMBER = 1;
     private static final int DEFAULT_OUTBOUND_SEQUENCE_NUMBER = 0;
-    private static final String MESSAGE_WITH_BUF_LOG_TEMPLATE = "Message {}, underlying buffer {}";
 
     private long nextExpectedInboundSequenceNumber = DEFAULT_NEXT_EXPECTED_INBOUND_SEQUENCE_NUMBER;
     private long lastOutboundSequenceNumber = DEFAULT_OUTBOUND_SEQUENCE_NUMBER;
@@ -149,10 +145,6 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
             if (cutDownFromInclusive <= cutDownToInclusive) {
                 fillMapWithPlaceholders(cutDownFromInclusive, cutDownToInclusive);
                 log.info("Message gap detected in session {}, sending resend request for sequence numbers <{}, {}>", sessionId, cutDownFromInclusive, cutDownToInclusive);
-                if (log.isTraceEnabled()) {
-                    final ByteBuf messageByteSource = fixMessage.getMessageByteSource();
-                    log.trace(MESSAGE_WITH_BUF_LOG_TEMPLATE, fixMessage.toString(true), messageByteSource.toString(0, messageByteSource.writerIndex(), StandardCharsets.US_ASCII));
-                }
                 final FixMessage resendRequest = FixMessageUtils.toResendRequest(sessionState.getFixMessageWritePool().getAndRetain(), cutDownFromInclusive, cutDownToInclusive);
                 SessionIDUtils.setSessionIdFields(resendRequest, sessionId);
                 resendRequest.<LongField>getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).setValue(++lastOutboundSequenceNumber);
@@ -174,10 +166,6 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
              * Ok I'll follow this recommendation then
              */
             log.error("Sequence number for session {} is lower than expected({}) and PossDupFlag is not set, terminating this session", sessionId, expectedSequenceNumber);
-            if (log.isTraceEnabled()) {
-                final ByteBuf messageByteSource = fixMessage.getMessageByteSource();
-                log.trace(MESSAGE_WITH_BUF_LOG_TEMPLATE, fixMessage.toString(true), messageByteSource.toString(0, messageByteSource.writerIndex(), StandardCharsets.US_ASCII));
-            }
             final FixMessage logoutMessage = FixMessageUtils.toLogoutMessage(fixMessage, LogoutTexts.SEQUENCE_NUMBER_LOWER_THAN_EXPECTED);
             SessionIDUtils.setSessionIdFields(logoutMessage, sessionId);
             logoutMessage.<LongField>getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).setValue(++lastOutboundSequenceNumber);

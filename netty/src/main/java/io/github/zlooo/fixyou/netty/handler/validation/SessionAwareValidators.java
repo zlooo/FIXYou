@@ -7,10 +7,7 @@ import io.github.zlooo.fixyou.fix.commons.session.SessionIDUtils;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.netty.utils.FixChannelListeners;
-import io.github.zlooo.fixyou.parser.model.CharSequenceField;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
-import io.github.zlooo.fixyou.parser.model.LongField;
-import io.github.zlooo.fixyou.parser.model.TimestampField;
+import io.github.zlooo.fixyou.parser.model.*;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.github.zlooo.fixyou.session.ValidationConfig;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
@@ -48,12 +45,12 @@ public class SessionAwareValidators {
 
     public static final PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>> BEGIN_STRING_VALIDATOR = createBeginStringValidator();
 
-    public static final int CHECKSUM_FIELD_LENGTH = 7;
     public static final PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>> BODY_LENGTH_VALIDATOR =
             new PredicateWithValidator<>(ValidationConfig::isShouldCheckBodyLength, (fixMessage, sessionState) -> {
                 final LongField bodyLengthField = fixMessage.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER);
                 final long bodyLength = bodyLengthField.getValue();
-                final int numberOfBytesInMessage = fixMessage.getMessageByteSource().writerIndex() - CHECKSUM_FIELD_LENGTH - bodyLengthField.getEndIndex() - 1;
+                final AbstractField checksumField = fixMessage.getField(FixConstants.CHECK_SUM_FIELD_NUMBER);
+                final int numberOfBytesInMessage = checksumField.getStartIndex() - 3 - bodyLengthField.getEndIndex();
                 if (bodyLength != numberOfBytesInMessage) {
                     log.warn("Body length mismatch, value in message {}, calculated {}. Ignoring message and logging it on debug level", bodyLength, numberOfBytesInMessage);
                     log.debug("Ignored message {}", fixMessage);

@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.netty.handler;
 
 import io.github.zlooo.fixyou.FixConstants;
+import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.model.ApplicationVersionID;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
@@ -29,6 +30,7 @@ class SimplifiedMessageCodec extends AbstractMessageEncoder implements ChannelIn
 
     private static final SimplifiedSpec SIMPLIFIED_SPEC = new SimplifiedSpec();
     private final FixMessageParser fixMessageParser = new FixMessageParser();
+    private final ByteBufComposer byteBufComposer = new ByteBufComposer(1);
 
     @Inject
     SimplifiedMessageCodec() {
@@ -39,7 +41,8 @@ class SimplifiedMessageCodec extends AbstractMessageEncoder implements ChannelIn
         if (msg instanceof ByteBuf) {
             final ByteBuf in = (ByteBuf) msg;
             try {
-                fixMessageParser.setFixBytes(in);
+                byteBufComposer.addByteBuf(in);
+                fixMessageParser.setFixBytes(byteBufComposer);
                 /**
                  * This handler should handle 1 message only anyway, first logon, so we can afford invocation of {@link FixMessage#FixMessage(FixSpec)}. After that it's removed
                  * from

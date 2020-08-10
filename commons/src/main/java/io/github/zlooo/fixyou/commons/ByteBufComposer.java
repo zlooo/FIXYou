@@ -4,6 +4,7 @@ import io.github.zlooo.fixyou.Resettable;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import lombok.Data;
+import lombok.Getter;
 
 /**
  * Class quite similar in concept to {@link CompositeByteBuf}. It also acts as a view that composes multiple {@link ByteBuf} into single, continuous stream of bytes. Main difference is that once component is removed this class reader
@@ -13,12 +14,16 @@ import lombok.Data;
  */
 public class ByteBufComposer implements Resettable {
 
-    private static final int VALUE_NOT_FOUND = Integer.MIN_VALUE;
+    public static final int VALUE_NOT_FOUND = Integer.MIN_VALUE;
+    private static final int NOT_FOUND = -1;
     private static final String IOOBE_MESSAGE = "This instance does not contain data for index ";
     private final Component[] components;
     private int writeComponentIndex;
+    @Getter
     private int storedStartIndex = -1;
+    @Getter
     private int storedEndIndex = -1;
+    private int readerIndex;
 
     public ByteBufComposer(int initialNumberOfComponents) {
         this.components = new Component[initialNumberOfComponents];
@@ -69,36 +74,37 @@ public class ByteBufComposer implements Resettable {
         }
     }
 
-    private int previousComponentIndex(int componentIndex) {
-        if (componentIndex - 1 < 0) {
-            return components.length - 1;
-        } else {
-            return componentIndex - 1;
-        }
-    }
-
-    public void readBytes(int index, int length, byte[] destination) {
+    public void getBytes(int index, int length, byte[] destination) {
         checkIndex(index, length);
-        int readerComponentIndex = VALUE_NOT_FOUND;
-        for (int i = 0; i < components.length; i++) {
-            final Component component = components[i];
-            if (component.endIndex >= index && component.startIndex <= index) {
-                readerComponentIndex = i - 1;
-                break;
-            }
-        }
+        int readerComponentIndex = findReaderComponentIndex(index, true);
         int remainingBytesToRead = length;
         int bytesRead = 0;
-        int readerIndex = index;
+        int localReaderIndex = index;
         Component component;
         while (remainingBytesToRead > 0) {
             readerComponentIndex = nextComponentIndex(readerComponentIndex);
             component = components[readerComponentIndex];
-            final int bytesReadFromComponent = readDataFromComponent(component, readerIndex, remainingBytesToRead, destination, bytesRead);
+            final int bytesReadFromComponent = readDataFromComponent(component, localReaderIndex, remainingBytesToRead, destination, bytesRead);
             bytesRead += bytesReadFromComponent;
-            readerIndex += bytesReadFromComponent;
+            localReaderIndex += bytesReadFromComponent;
             remainingBytesToRead -= bytesReadFromComponent;
         }
+    }
+
+    public byte getByte(int index) {
+        checkIndex(index, 1);
+        final Component component = components[findReaderComponentIndex(index, false)];
+        return component.getBuffer().getByte(index - component.startIndex);
+    }
+
+    private int findReaderComponentIndex(int index, boolean decrement) {
+        for (int i = 0; i < components.length; i++) {
+            final Component component = components[i];
+            if (component.endIndex >= index && component.startIndex <= index) {
+                return decrement ? i - 1 : i;
+            }
+        }
+        return VALUE_NOT_FOUND;
     }
 
     private void checkIndex(int index, int length) {
@@ -127,6 +133,38 @@ public class ByteBufComposer implements Resettable {
         for (final Component component : components) {
             component.reset();
         }
+    }
+
+    public int readerIndex() {
+        return readerIndex;
+    }
+
+    public int readerIndex(int newReaderIndex) {
+        this.readerIndex = newReaderIndex;
+        return this.readerIndex;
+    }
+
+    /**
+     * Finds closest index of provided value that's greater than current reader index
+     *
+     * @param valueToFind value to look for
+     * @return index of given value or {@link #VALUE_NOT_FOUND}
+     */
+    public int indexOfClosest(byte valueToFind) {
+        int readerComponentIndex = findReaderComponentIndex(readerIndex, true);
+        while (true) {
+            readerComponentIndex = nextComponentIndex(readerComponentIndex);
+            final Component component = components[readerComponentIndex];
+            if (component.buffer != null && component.endIndex >= readerIndex) {
+                final int result = component.buffer.indexOf(readerIndex - component.startIndex, component.buffer.writerIndex(), valueToFind);
+                if (result != NOT_FOUND) {
+                    return result + component.startIndex;
+                }
+            } else {
+                break;
+            }
+        }
+        return VALUE_NOT_FOUND;
     }
 
     @Data

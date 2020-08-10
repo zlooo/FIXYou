@@ -21,15 +21,12 @@ package io.github.zlooo.fixyou.parser;
 import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.Resettable;
+import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.parser.model.AbstractField;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.GroupField;
 import io.github.zlooo.fixyou.parser.model.ParsingUtils;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.CompositeByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.util.ByteProcessor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,99 +39,46 @@ import java.util.Deque;
 @NoArgsConstructor
 public class FixMessageParser implements Resettable {
 
-    private static final ByteProcessor FIELD_TERMINATOR_FINDER = new ByteProcessor.IndexOfProcessor(FixMessage.FIELD_SEPARATOR);
     private static final String FIELD_NOT_FOUND_IN_MESSAGE_SPEC_LOG = "Field {} not found in message spec";
-    private static final int NOT_FOUND = -1;
-    private ByteBuf parseableBytes = Unpooled.EMPTY_BUFFER;
+    private ByteBufComposer parseableBytes;
     @Getter
     private FixMessage fixMessage;
-    @Getter
-    private boolean parseable;
-    private boolean fragmentationDetected;
-    private int lastBeginStringIndex;
     private boolean parsingRepeatingGroup;
     private final Deque<GroupField> groupFieldsStack = new ArrayDeque<>(DefaultConfiguration.NESTED_REPEATING_GROUPS);
+    private int indexOfLastUnfinishedMessage;
 
     @Override
     public void reset() {
-        parseableBytes.release();
-        parseableBytes = Unpooled.EMPTY_BUFFER;
+        parseableBytes = null;
         if (fixMessage != null) {
             fixMessage.release();
             fixMessage = null;
         }
-        parseable = false;
-        fragmentationDetected = false;
-        lastBeginStringIndex = 0;
         parsingRepeatingGroup = false;
         groupFieldsStack.clear();
     }
 
-    public void setFixBytes(@Nonnull ByteBuf fixMsgBufBytes) {
-        parseable = true;
-        fixMsgBufBytes.retain();
-        if (parseableBytes.writerIndex() == 0) {
-            parseableBytes.release();
-            parseableBytes = fixMsgBufBytes;
-        } else {
-            /*
-            If we're here this means we're dealing with fragmentation. This means following should be true:
-            1) fixMessage should already be set
-            2) current parseableBytes should contain first part of message
-            3) fixMsgBufBytes should contain rest of message or at least another part of it
-             */
-            if (fixMessage != null) {
-                final int alreadyParsedOffset = parseableBytes.readerIndex() - lastBeginStringIndex;
-                parseableBytes.readerIndex(lastBeginStringIndex);
-                for (final AbstractField field : fixMessage.getFieldsOrdered()) {
-                    if (field.isValueSet()) {
-                        reindexField(field, lastBeginStringIndex);
-                    }
-                }
-                final CompositeByteBuf fragmentationBuffer = fixMsgBufBytes.alloc().compositeBuffer(2);
-                /*
-                we should retain parseableBytes since CompositeByteBuf will call release on it but I'd be calling release anyway couple of lines later since this class no longer holds reference to parseableBytes after
-                parseableBytes = fragmentationBuffer is executed so no need to do that
-                 */
-                fragmentationBuffer.addComponent(true, parseableBytes);
-                fixMsgBufBytes.retain(); //that's because when releasing fragmentationBuffer when message is parsed to the end, this ByteBuf will be released as well
-                fragmentationBuffer.addComponent(true, fixMsgBufBytes);
-                fragmentationBuffer.readerIndex(alreadyParsedOffset);
-                parseableBytes = fragmentationBuffer;
-                fixMessage.setMessageByteSourceAndRetain(fragmentationBuffer);
-                fragmentationDetected = true;
-            } else {
-                log.error("FixMessage is not set? At this point we're supposed to be in the middle of parsing. Resetting parser");
-                parseableBytes.release();
-                fixMsgBufBytes.release();
-                parseableBytes = Unpooled.EMPTY_BUFFER;
-            }
-        }
+    public void setFixBytes(@Nonnull ByteBufComposer fixMsgBufBytes) {
+        parseableBytes = fixMsgBufBytes;
     }
 
-    private void reindexField(AbstractField field, int indexOffset) {
-        field.setIndexes(field.getStartIndex() - indexOffset, field.getEndIndex() - indexOffset);
+    public ByteBufComposer getFixBytes(){
+        return parseableBytes;
     }
 
     public void setFixMessage(FixMessage fixMessage) {
         this.fixMessage = fixMessage;
-        this.lastBeginStringIndex = 0;
         if (fixMessage != null) {
-            this.fixMessage.setMessageByteSourceAndRetain(parseableBytes);
+            this.fixMessage.setMessageByteSource(parseableBytes);
         }
-    }
-
-    public boolean isUnderlyingBufferReadable() {
-        return parseableBytes.isReadable();
     }
 
     public void parseFixMsgBytes() {
         int closestFieldTerminatorIndex;
 
-        while ((closestFieldTerminatorIndex = parseableBytes.forEachByte(FIELD_TERMINATOR_FINDER)) != NOT_FOUND) {
+        while ((closestFieldTerminatorIndex = parseableBytes.indexOfClosest(FixMessage.FIELD_SEPARATOR)) != ByteBufComposer.VALUE_NOT_FOUND) {
             final int fieldNum = ParsingUtils.parseInteger(parseableBytes, parseableBytes.readerIndex(), FixMessage.FIELD_VALUE_SEPARATOR, true);
             final int start = parseableBytes.readerIndex();
-            saveIndexIfBeginString(fieldNum, start);
             AbstractField field = null;
             if (!parsingRepeatingGroup) {
                 field = fixMessage.getField(fieldNum);
@@ -161,34 +105,15 @@ public class FixMessageParser implements Resettable {
                 log.debug(FIELD_NOT_FOUND_IN_MESSAGE_SPEC_LOG, fieldNum);
             }
             if (fieldNum == FixConstants.CHECK_SUM_FIELD_NUMBER) {
-                endOfMessage();
+                indexOfLastUnfinishedMessage = 0;
                 return;
             }
         }
-        parseable = false;
+        indexOfLastUnfinishedMessage = parseableBytes.getStoredEndIndex();
     }
 
-    private void endOfMessage() {
-        if (fragmentationDetected) {
-            fragmentationDetected = false;
-            final CompositeByteBuf fragmentationBuffer = (CompositeByteBuf) parseableBytes;
-            final int bytesRead = fragmentationBuffer.readerIndex();
-            parseableBytes = fragmentationBuffer.component(1);
-            final int firstFragmentReadableBytes = fragmentationBuffer.component(0).readableBytes();
-            parseableBytes.readerIndex(bytesRead - firstFragmentReadableBytes);
-            fragmentationBuffer.release();
-        }
-        if (parseableBytes.writerIndex() == parseableBytes.readerIndex()) {
-            parseableBytes.release();
-            parseableBytes = Unpooled.EMPTY_BUFFER;
-        }
-        lastBeginStringIndex = 0;
-    }
-
-    private void saveIndexIfBeginString(int fieldNum, int start) {
-        if (fieldNum == FixConstants.BEGIN_STRING_FIELD_NUMBER) {
-            lastBeginStringIndex = start;
-        }
+    public boolean canContinueParsing() {
+        return indexOfLastUnfinishedMessage == 0 || indexOfLastUnfinishedMessage < parseableBytes.getStoredEndIndex();
     }
 
     private AbstractField handleNestedRepeatingGroup(int fieldNum) {

@@ -108,7 +108,7 @@ class ByteBufComposerTest extends Specification {
         index << (0..8).toList()
     }
 
-    def "should read bytes after buffer overlap"() {
+    def "should get bytes after buffer overlap"() {
         setup:
         List<ByteBuf> buffers = []
         (0..9).forEach { buffers.add(Unpooled.wrappedBuffer([it] as byte[])) }
@@ -119,39 +119,39 @@ class ByteBufComposerTest extends Specification {
         def destination = new byte[10]
 
         when:
-        composer.readBytes(8, 3, destination)
+        composer.getBytes(8, 3, destination)
 
         then:
         Assertions.assertThat(destination).containsExactly(resize([8, 9, 10] as byte[], destination.length))
     }
 
-    def "should read bytes"() {
+    def "should get bytes"() {
         setup:
         def bytes = [1, 2, 3, 4, 5] as byte[]
         composer.addByteBuf(Unpooled.wrappedBuffer(bytes))
         def destination = new byte[10]
 
         when:
-        composer.readBytes(0, bytes.length, destination)
+        composer.getBytes(0, bytes.length, destination)
 
         then:
         Assertions.assertThat(destination).containsExactly(resize(bytes, destination.length))
     }
 
-    def "should read bytes from two buffers"() {
+    def "should get bytes from two buffers"() {
         setup:
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[]))
         composer.addByteBuf(Unpooled.wrappedBuffer([6, 7, 8] as byte[]))
         def destination = new byte[10]
 
         when:
-        composer.readBytes(0, 8, destination)
+        composer.getBytes(0, 8, destination)
 
         then:
         Assertions.assertThat(destination).containsExactly(resize([1, 2, 3, 4, 5, 6, 7, 8] as byte[], destination.length))
     }
 
-    def "should read bytes from three buffers"() {
+    def "should get bytes from three buffers"() {
         setup:
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3] as byte[]))
         composer.addByteBuf(Unpooled.wrappedBuffer([4, 5] as byte[]))
@@ -159,13 +159,13 @@ class ByteBufComposerTest extends Specification {
         def destination = new byte[10]
 
         when:
-        composer.readBytes(0, 8, destination)
+        composer.getBytes(0, 8, destination)
 
         then:
         Assertions.assertThat(destination).containsExactly(resize([1, 2, 3, 4, 5, 6, 7, 8] as byte[], destination.length))
     }
 
-    def "should read bytes from non zero index buffers"() {
+    def "should get bytes from non zero index buffers"() {
         setup:
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3] as byte[]))
         composer.addByteBuf(Unpooled.wrappedBuffer([4, 5] as byte[]))
@@ -173,33 +173,33 @@ class ByteBufComposerTest extends Specification {
         def destination = new byte[10]
 
         when:
-        composer.readBytes(4, 3, destination)
+        composer.getBytes(4, 3, destination)
 
         then:
         Assertions.assertThat(destination).containsExactly(resize([5, 6, 7] as byte[], destination.length))
     }
 
-    def "should read bytes from middle of component buffers"() {
+    def "should get bytes from middle of component buffers"() {
         setup:
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[]))
         composer.addByteBuf(Unpooled.wrappedBuffer([6, 7, 8] as byte[]))
         def destination = new byte[10]
 
         when:
-        composer.readBytes(2, 6, destination)
+        composer.getBytes(2, 6, destination)
 
         then:
         Assertions.assertThat(destination).containsExactly(resize([3, 4, 5, 6, 7, 8] as byte[], destination.length))
     }
 
-    def "should not read bytes because of wrong index or length requested"() {
+    def "should not get bytes because of wrong index or length requested"() {
         setup:
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[]))
         composer.addByteBuf(Unpooled.wrappedBuffer([6, 7, 8] as byte[]))
         def destination = new byte[10]
 
         when:
-        composer.readBytes(index, length, destination)
+        composer.getBytes(index, length, destination)
 
         then:
         thrown(IndexOutOfBoundsException)
@@ -210,6 +210,69 @@ class ByteBufComposerTest extends Specification {
         8     | 1
         0     | 9
         0     | 10
+    }
+
+    def "should get byte"() {
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([6, 7, 8] as byte[]))
+
+        expect:
+        composer.getByte(index) == expectedResult
+
+        where:
+        index | expectedResult
+        0     | 1 as byte
+        1     | 2 as byte
+        2     | 3 as byte
+        3     | 4 as byte
+        4     | 5 as byte
+        5     | 6 as byte
+        6     | 7 as byte
+        7     | 8 as byte
+    }
+
+    def "should find index of closest"() {
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([6, 7, 8] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([9, 10] as byte[]))
+
+        expect:
+        composer.indexOfClosest(elementToFind) == expectedResult
+
+        where:
+        elementToFind | expectedResult
+        1 as byte     | 0
+        3 as byte     | 2
+        5 as byte     | 4
+        6 as byte     | 5
+        7 as byte     | 6
+        8 as byte     | 7
+        9 as byte     | 8
+        10 as byte    | 9
+        11 as byte    | ByteBufComposer.VALUE_NOT_FOUND
+        128 as byte   | ByteBufComposer.VALUE_NOT_FOUND
+    }
+
+    def "should find index of closest when reader index is moved"() {
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 1, 2, 3] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 4] as byte[]))
+        composer.readerIndex(readerIndex)
+
+        expect:
+        composer.indexOfClosest(elementToFind) == expectedResult
+
+        where:
+        elementToFind | readerIndex | expectedResult
+        1 as byte     | 0           | 0
+        1 as byte     | 1           | 2
+        1 as byte     | 2           | 2
+        1 as byte     | 3           | 5
+        2 as byte     | 4           | 6
+        4 as byte     | 2           | 9
     }
 
     private byte[] resize(byte[] source, length) {

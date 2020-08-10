@@ -44,14 +44,6 @@ public final class CharSequenceField extends AbstractField {
             ensureSufficientTablesLength();
             ParsingUtils.readChars(fieldData, startIndex, length, rawValue, value);
             returnValue.setLength(length);
-            boolean allZeros = true;
-            for (final byte singleByte : rawValue) {
-                allZeros &= singleByte == 0;
-            }
-            if (allZeros) {
-                log.warn("{}@WTF, all raw bytes are zeros!!! Parsed value {}@{}, start index {}, end index {}, underlying buffer {}, content {}", hashCode(), returnValue, returnValue.hashCode(), startIndex, endIndex, fieldData,
-                         fieldData.toString(0, fieldData.writerIndex(), StandardCharsets.US_ASCII));
-            }
         }
         return returnValue;
     }

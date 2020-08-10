@@ -1,5 +1,6 @@
 package io.github.zlooo.fixyou.parser.model;
 
+import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
@@ -23,7 +24,7 @@ public class FixMessage extends AbstractPoolableObject {
 
     private final AbstractField[] fieldsOrdered;
     private final AbstractField[] fields;
-    private ByteBuf messageByteSource;
+    private ByteBufComposer messageByteSource;
 
     public FixMessage(@Nonnull FixSpec spec) {
         final int[] fieldsOrder = spec.getFieldsOrder();
@@ -39,15 +40,7 @@ public class FixMessage extends AbstractPoolableObject {
         }
     }
 
-    public void setMessageByteSourceAndRetain(@Nonnull ByteBuf newMessageByteSource) {
-        if (this.messageByteSource != null) {
-            messageByteSource.release();
-        }
-        newMessageByteSource.retain();
-        setMessageByteSource(newMessageByteSource);
-    }
-
-    public void setMessageByteSource(ByteBuf newMessageByteSource) {
+    public void setMessageByteSource(ByteBufComposer newMessageByteSource) {
         this.messageByteSource = newMessageByteSource;
         for (final AbstractField abstractField : fieldsOrdered) {
             abstractField.setFieldData(newMessageByteSource);
@@ -92,18 +85,26 @@ public class FixMessage extends AbstractPoolableObject {
     }
 
     private static ByteBuf fieldDataOrEmpty(AbstractField field) {
-        final ByteBuf fieldData = field.fieldData;
+        final ByteBufComposer fieldData = field.fieldData;
         if (fieldData != null) {
-            return fieldData;
+            byte[] buf = new byte[field.getLength()];
+            fieldData.getBytes(field.startIndex, field.getLength(), buf);
+            return Unpooled.wrappedBuffer(buf);
         } else {
             return Unpooled.EMPTY_BUFFER;
         }
     }
 
-    public void resetAllDataFields() {
+    public int resetAllDataFields() {
+        int maxEndIndex = 0;
         for (final AbstractField field : fieldsOrdered) {
+            final int endIndex = field.getEndIndex();
+            if (maxEndIndex < endIndex) {
+                maxEndIndex = endIndex;
+            }
             field.reset();
         }
+        return maxEndIndex;
     }
 
     public void resetDataFields(int... excludes) {
@@ -121,9 +122,9 @@ public class FixMessage extends AbstractPoolableObject {
 
     @Override
     protected void deallocate() {
-        resetAllDataFields();
+        int maxIndex = resetAllDataFields();
         if (messageByteSource != null) {
-            messageByteSource.release();
+            messageByteSource.releaseDataUpTo(maxIndex);
             setMessageByteSource(null);
         }
         super.deallocate();

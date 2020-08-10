@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.parser.model;
 
 import io.github.zlooo.fixyou.DefaultConfiguration;
+import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.commons.utils.FieldUtils;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
@@ -63,7 +64,7 @@ public final class GroupField extends AbstractField {
     }
 
     @Override
-    protected void setFieldData(ByteBuf fieldData) {
+    protected void setFieldData(ByteBufComposer fieldData) {
         super.setFieldData(fieldData);
         for (final Repetition repetition : repetitions) {
             for (final AbstractField repeatingGroupField : repetition.fieldsOrdered) {

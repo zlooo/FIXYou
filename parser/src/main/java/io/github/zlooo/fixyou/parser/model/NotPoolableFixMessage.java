@@ -1,7 +1,7 @@
 package io.github.zlooo.fixyou.parser.model;
 
+import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.model.FixSpec;
-import io.netty.buffer.ByteBuf;
 
 public final class NotPoolableFixMessage extends FixMessage {
 
@@ -14,9 +14,16 @@ public final class NotPoolableFixMessage extends FixMessage {
     @Override
     protected void deallocate() {
         close();
-        final ByteBuf messageByteSource = getMessageByteSource();
+        final ByteBufComposer messageByteSource = getMessageByteSource();
         if (messageByteSource != null) {
-            messageByteSource.release();
+            int maxIndex = 0;
+            for (AbstractField field : getFieldsOrdered()) {
+                final int endIndex = field.getEndIndex();
+                if (maxIndex < endIndex) {
+                    maxIndex = endIndex;
+                }
+            }
+            messageByteSource.releaseDataUpTo(maxIndex);
         }
     }
 }
