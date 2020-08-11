@@ -28,57 +28,50 @@ import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.GroupField;
 import io.github.zlooo.fixyou.parser.model.ParsingUtils;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
 @Slf4j
-@NoArgsConstructor
+@RequiredArgsConstructor
 public class FixMessageParser implements Resettable {
 
     private static final String FIELD_NOT_FOUND_IN_MESSAGE_SPEC_LOG = "Field {} not found in message spec";
-    private ByteBufComposer parseableBytes;
+    @Getter
+    private final ByteBufComposer bytesToParse;
     @Getter
     private FixMessage fixMessage;
     private boolean parsingRepeatingGroup;
     private final Deque<GroupField> groupFieldsStack = new ArrayDeque<>(DefaultConfiguration.NESTED_REPEATING_GROUPS);
-    private int indexOfLastUnfinishedMessage;
+    private int storedEndIndexOfLastUnfinishedMessage;
 
     @Override
     public void reset() {
-        parseableBytes = null;
         if (fixMessage != null) {
             fixMessage.release();
             fixMessage = null;
         }
         parsingRepeatingGroup = false;
         groupFieldsStack.clear();
-    }
-
-    public void setFixBytes(@Nonnull ByteBufComposer fixMsgBufBytes) {
-        parseableBytes = fixMsgBufBytes;
-    }
-
-    public ByteBufComposer getFixBytes(){
-        return parseableBytes;
+        storedEndIndexOfLastUnfinishedMessage = 0;
     }
 
     public void setFixMessage(FixMessage fixMessage) {
         this.fixMessage = fixMessage;
         if (fixMessage != null) {
-            this.fixMessage.setMessageByteSource(parseableBytes);
+            this.fixMessage.setMessageByteSource(bytesToParse);
         }
+        storedEndIndexOfLastUnfinishedMessage = 0;
     }
 
     public void parseFixMsgBytes() {
         int closestFieldTerminatorIndex;
 
-        while ((closestFieldTerminatorIndex = parseableBytes.indexOfClosest(FixMessage.FIELD_SEPARATOR)) != ByteBufComposer.VALUE_NOT_FOUND) {
-            final int fieldNum = ParsingUtils.parseInteger(parseableBytes, parseableBytes.readerIndex(), FixMessage.FIELD_VALUE_SEPARATOR, true);
-            final int start = parseableBytes.readerIndex();
+        while ((closestFieldTerminatorIndex = bytesToParse.indexOfClosest(FixMessage.FIELD_SEPARATOR)) != ByteBufComposer.VALUE_NOT_FOUND) {
+            final int fieldNum = ParsingUtils.parseInteger(bytesToParse, bytesToParse.readerIndex(), FixMessage.FIELD_VALUE_SEPARATOR, true);
+            final int start = bytesToParse.readerIndex();
             AbstractField field = null;
             if (!parsingRepeatingGroup) {
                 field = fixMessage.getField(fieldNum);
@@ -93,7 +86,7 @@ public class FixMessageParser implements Resettable {
                     field = handleNestedRepeatingGroup(fieldNum);
                 }
             }
-            parseableBytes.readerIndex(closestFieldTerminatorIndex + 1);
+            bytesToParse.readerIndex(closestFieldTerminatorIndex + 1);
             if (field != null) {
                 field.setIndexes(start, closestFieldTerminatorIndex);
                 if (field.getFieldType() == FieldType.GROUP) {
@@ -105,15 +98,15 @@ public class FixMessageParser implements Resettable {
                 log.debug(FIELD_NOT_FOUND_IN_MESSAGE_SPEC_LOG, fieldNum);
             }
             if (fieldNum == FixConstants.CHECK_SUM_FIELD_NUMBER) {
-                indexOfLastUnfinishedMessage = 0;
+                storedEndIndexOfLastUnfinishedMessage = 0;
                 return;
             }
         }
-        indexOfLastUnfinishedMessage = parseableBytes.getStoredEndIndex();
+        storedEndIndexOfLastUnfinishedMessage = bytesToParse.getStoredEndIndex();
     }
 
     public boolean canContinueParsing() {
-        return indexOfLastUnfinishedMessage == 0 || indexOfLastUnfinishedMessage < parseableBytes.getStoredEndIndex();
+        return bytesToParse.readerIndex() < bytesToParse.getStoredEndIndex() && (storedEndIndexOfLastUnfinishedMessage == 0 || storedEndIndexOfLastUnfinishedMessage < bytesToParse.getStoredEndIndex());
     }
 
     private AbstractField handleNestedRepeatingGroup(int fieldNum) {

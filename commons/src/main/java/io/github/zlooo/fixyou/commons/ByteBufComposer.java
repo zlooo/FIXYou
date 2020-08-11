@@ -26,7 +26,7 @@ public class ByteBufComposer implements Resettable {
     private int readerIndex;
 
     public ByteBufComposer(int initialNumberOfComponents) {
-        this.components = new Component[initialNumberOfComponents];
+        this.components = new Component[initialNumberOfComponents == 1 ? 2 : initialNumberOfComponents]; //TODO I know it's a bit of a hack which I have to get rid of, it works but it fucks up my feng shui
         for (int i = 0; i < components.length; i++) {
             components[i] = new Component();
         }

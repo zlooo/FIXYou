@@ -29,8 +29,8 @@ import javax.inject.Singleton;
 class SimplifiedMessageCodec extends AbstractMessageEncoder implements ChannelInboundHandler {
 
     private static final SimplifiedSpec SIMPLIFIED_SPEC = new SimplifiedSpec();
-    private final FixMessageParser fixMessageParser = new FixMessageParser();
     private final ByteBufComposer byteBufComposer = new ByteBufComposer(1);
+    private final FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer);
 
     @Inject
     SimplifiedMessageCodec() {
@@ -42,7 +42,6 @@ class SimplifiedMessageCodec extends AbstractMessageEncoder implements ChannelIn
             final ByteBuf in = (ByteBuf) msg;
             try {
                 byteBufComposer.addByteBuf(in);
-                fixMessageParser.setFixBytes(byteBufComposer);
                 /**
                  * This handler should handle 1 message only anyway, first logon, so we can afford invocation of {@link FixMessage#FixMessage(FixSpec)}. After that it's removed
                  * from

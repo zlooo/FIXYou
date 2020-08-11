@@ -49,7 +49,7 @@ public class ParsingPerformanceTest {
         @Setup
         public void setup() {
             startIndex = 0;
-            ByteBuf byteBuf = Unpooled.buffer(LongField.FIELD_DATA_LENGTH, LongField.FIELD_DATA_LENGTH);
+            final ByteBuf byteBuf = Unpooled.buffer(LongField.FIELD_DATA_LENGTH, LongField.FIELD_DATA_LENGTH);
             byteBuf.writeCharSequence(valueToParse, StandardCharsets.US_ASCII);
             endIndex = byteBuf.writerIndex();
             byteBuf.writeByte(FixMessage.FIELD_SEPARATOR);

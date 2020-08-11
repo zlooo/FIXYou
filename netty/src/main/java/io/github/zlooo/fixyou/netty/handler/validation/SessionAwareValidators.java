@@ -50,7 +50,7 @@ public class SessionAwareValidators {
                 final LongField bodyLengthField = fixMessage.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER);
                 final long bodyLength = bodyLengthField.getValue();
                 final AbstractField checksumField = fixMessage.getField(FixConstants.CHECK_SUM_FIELD_NUMBER);
-                final int numberOfBytesInMessage = checksumField.getStartIndex() - 3 - bodyLengthField.getEndIndex();
+                final int numberOfBytesInMessage = checksumField.getStartIndex() - 3 /*10=*/ - bodyLengthField.getEndIndex() - 1/*SOH after body length field*/;
                 if (bodyLength != numberOfBytesInMessage) {
                     log.warn("Body length mismatch, value in message {}, calculated {}. Ignoring message and logging it on debug level", bodyLength, numberOfBytesInMessage);
                     log.debug("Ignored message {}", fixMessage);

@@ -23,16 +23,15 @@ class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable 
         DECODING
     }
 
-    private final FixMessageParser fixMessageParser = new FixMessageParser();
     private final ReadTask readTask = new ReadTask();
     private final ObjectPool<FixMessage> fixMessagePool;
     private final ByteBufComposer byteBufComposer = new ByteBufComposer(DefaultConfiguration.BYTE_BUF_COMPOSER_DEFAULT_COMPONENT_NUMBER);
+    private final FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer);
     private State state = State.READY_TO_DECODE;
     private ChannelHandlerContext currentContext;
 
     public MessageDecoder(ObjectPool<FixMessage> fixMessagePool) {
         this.fixMessagePool = fixMessagePool;
-        fixMessageParser.setFixBytes(byteBufComposer);
     }
 
     @Override

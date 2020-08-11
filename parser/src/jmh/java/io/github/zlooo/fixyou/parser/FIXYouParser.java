@@ -16,12 +16,11 @@ public class FIXYouParser {
     @Setup
     public void setUp() {
         final byte[] msgBytes = SAMPLE_FIX_MESSAGE.replace('|', '\u0001').getBytes();
-        fixMessageParser = new FixMessageParser();
-        ByteBufComposer byteBufComposer = new ByteBufComposer(1);
-        ByteBuf byteBufBytes = Unpooled.directBuffer(msgBytes.length);
+        final ByteBufComposer byteBufComposer = new ByteBufComposer(1);
+        final ByteBuf byteBufBytes = Unpooled.directBuffer(msgBytes.length);
         byteBufBytes.writeBytes(msgBytes);
         byteBufComposer.addByteBuf(byteBufBytes);
-        fixMessageParser.setFixBytes(byteBufComposer);
+        fixMessageParser = new FixMessageParser(byteBufComposer);
     }
 
     @TearDown
@@ -30,7 +29,7 @@ public class FIXYouParser {
         if (fixMessage != null) {
             fixMessage.release();
         }
-        fixMessageParser.getFixBytes().releaseDataUpTo(Integer.MAX_VALUE);
+        fixMessageParser.getBytesToParse().releaseDataUpTo(Integer.MAX_VALUE);
     }
 
     @Benchmark

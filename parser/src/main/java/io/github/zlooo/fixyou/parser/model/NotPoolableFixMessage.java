@@ -17,7 +17,7 @@ public final class NotPoolableFixMessage extends FixMessage {
         final ByteBufComposer messageByteSource = getMessageByteSource();
         if (messageByteSource != null) {
             int maxIndex = 0;
-            for (AbstractField field : getFieldsOrdered()) {
+            for (final AbstractField field : getFieldsOrdered()) {
                 final int endIndex = field.getEndIndex();
                 if (maxIndex < endIndex) {
                     maxIndex = endIndex;

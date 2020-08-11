@@ -2,7 +2,6 @@ package io.github.zlooo.fixyou.parser.model;
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.utils.AsciiCodes;
-import io.netty.buffer.ByteBuf;
 import io.netty.util.AsciiString;
 import io.netty.util.internal.PlatformDependent;
 import lombok.experimental.UtilityClass;

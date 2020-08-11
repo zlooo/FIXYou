@@ -87,7 +87,7 @@ public class FixMessage extends AbstractPoolableObject {
     private static ByteBuf fieldDataOrEmpty(AbstractField field) {
         final ByteBufComposer fieldData = field.fieldData;
         if (fieldData != null) {
-            byte[] buf = new byte[field.getLength()];
+            final byte[] buf = new byte[field.getLength()];
             fieldData.getBytes(field.startIndex, field.getLength(), buf);
             return Unpooled.wrappedBuffer(buf);
         } else {
@@ -122,7 +122,7 @@ public class FixMessage extends AbstractPoolableObject {
 
     @Override
     protected void deallocate() {
-        int maxIndex = resetAllDataFields();
+        final int maxIndex = resetAllDataFields();
         if (messageByteSource != null) {
             messageByteSource.releaseDataUpTo(maxIndex);
             setMessageByteSource(null);

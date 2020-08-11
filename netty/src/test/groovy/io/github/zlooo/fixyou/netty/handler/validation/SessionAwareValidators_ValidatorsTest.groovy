@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.netty.handler.validation
 
 import io.github.zlooo.fixyou.FixConstants
+import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
@@ -63,8 +64,11 @@ class SessionAwareValidators_ValidatorsTest extends Specification {
     def "should validate body length"() {
         setup:
         def fixMessageAsString = "8=FIXT.1.1\u00019=$bodyLength\u000149=senderCompId\u000156=targetCompId\u000110=000\u0001"
-        fixMessage.setMessageByteSource(Unpooled.wrappedBuffer(fixMessageAsString.getBytes(StandardCharsets.US_ASCII)))
-        fixMessage.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER).setIndexes(13, 13 + bodyLength.toString().length())
+        ByteBufComposer byteBufComposer = new ByteBufComposer(1)
+        byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(fixMessageAsString.getBytes(StandardCharsets.US_ASCII)))
+        fixMessage.setMessageByteSource(byteBufComposer)
+        fixMessage.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER).setIndexes(fixMessageAsString.indexOf("9=") + 2, fixMessageAsString.indexOf("9=") + 2 + bodyLength.toString().length())
+        fixMessage.getField(FixConstants.CHECK_SUM_FIELD_NUMBER).setIndexes(fixMessageAsString.indexOf("10=") + 3, fixMessageAsString.indexOf("10=") + 3 + 3)
 
         when:
         def result = SessionAwareValidators.BODY_LENGTH_VALIDATOR.validator.apply(fixMessage, sessionState)

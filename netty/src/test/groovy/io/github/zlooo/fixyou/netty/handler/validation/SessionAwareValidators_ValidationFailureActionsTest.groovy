@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.netty.handler.validation
 
 import io.github.zlooo.fixyou.FixConstants
+import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.fix.commons.LogoutTexts
 import io.github.zlooo.fixyou.fix.commons.RejectReasons
@@ -110,7 +111,9 @@ class SessionAwareValidators_ValidationFailureActionsTest extends Specification 
     def "should do nothing if body length is incorrect"() {
         setup:
         def fixMessageAsString = "8=FIXT.1.1\u00019=1\u000149=senderCompId\u000156=targetCompId\u000110=000\u0001"
-        fixMessage.setMessageByteSource(Unpooled.wrappedBuffer(fixMessageAsString.getBytes(StandardCharsets.US_ASCII)))
+        ByteBufComposer byteBufComposer = new ByteBufComposer(1)
+        byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(fixMessageAsString.getBytes(StandardCharsets.US_ASCII)))
+        fixMessage.setMessageByteSource(byteBufComposer)
         fixMessage.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER).setIndexes(13, 14)
 
         expect:

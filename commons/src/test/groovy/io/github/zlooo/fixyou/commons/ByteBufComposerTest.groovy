@@ -7,6 +7,7 @@ import spock.lang.Specification
 
 class ByteBufComposerTest extends Specification {
 
+    public static final ByteBufComposer.Component EMPTY_COMPONENT = new ByteBufComposer.Component()
     private ByteBufComposer composer = new ByteBufComposer(10)
 
     def "should add buffer"() {
@@ -74,7 +75,7 @@ class ByteBufComposerTest extends Specification {
         composer.storedStartIndex == -1
         composer.storedEndIndex == -1
         composer.writeComponentIndex == 0
-        Assertions.assertThat(composer.components).containsOnly(new ByteBufComposer.Component())
+        Assertions.assertThat(composer.components).containsOnly(EMPTY_COMPONENT)
         bufferToAdd.refCnt() == 1
         bufferToAdd2.refCnt() == 1
 
@@ -100,7 +101,7 @@ class ByteBufComposerTest extends Specification {
         composer.storedStartIndex == index + 1
         composer.storedEndIndex == buffers.size() - 1
         composer.writeComponentIndex == 0
-        Assertions.assertThat(composer.components.toList().subList(0, index + 1)).containsOnly(new ByteBufComposer.Component())
+        Assertions.assertThat(composer.components.toList().subList(0, index + 1)).containsOnly(EMPTY_COMPONENT)
         Assertions.assertThat(composer.components.toList().subList(index + 1, buffers.size())).containsExactlyElementsOf(components(index + 1, buffers.size() - 1))
         buffers.subList(0, index + 1).every { it.refCnt() == 1 }
 
