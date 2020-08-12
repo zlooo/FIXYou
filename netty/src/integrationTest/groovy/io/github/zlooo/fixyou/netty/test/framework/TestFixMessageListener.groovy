@@ -25,9 +25,9 @@ class TestFixMessageListener implements FixMessageListener {
 
     private static void copyTo(FixMessage from, FixMessage to) {
         to.resetAllDataFields()
-        to.messageByteSource = from.messageByteSource.readerIndex(0).copy()
+        to.messageByteSource = from.messageByteSource//.copy()
         for (final AbstractField field : from.fields) {
-            if (field != null) {
+            if (field != null && field.isValueSet()) {
                 to.getField(field.number).setIndexes(field.getStartIndex(), field.getEndIndex())
             }
         }

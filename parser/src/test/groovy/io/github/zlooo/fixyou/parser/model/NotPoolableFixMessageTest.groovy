@@ -1,7 +1,7 @@
 package io.github.zlooo.fixyou.parser.model
 
+import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.parser.TestSpec
-import io.netty.buffer.ByteBuf
 import spock.lang.Specification
 
 class NotPoolableFixMessageTest extends Specification {
@@ -16,7 +16,7 @@ class NotPoolableFixMessageTest extends Specification {
 
     def "should close message and release buffer on deallocate"() {
         setup:
-        def messageByteSource = Mock(ByteBuf)
+        def messageByteSource = Mock(ByteBufComposer)
         fixMessage.messageByteSource = messageByteSource
 
         when:
@@ -24,7 +24,8 @@ class NotPoolableFixMessageTest extends Specification {
 
         then:
         fixMessage.fieldsOrdered.length * field.close()
-        1 * messageByteSource.release()
+        fixMessage.fieldsOrdered.length * field.getEndIndex() >> 10
+        1 * messageByteSource.releaseDataUpTo(11)
         0 * _
     }
 

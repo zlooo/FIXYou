@@ -219,17 +219,19 @@ class FixMessageParserTest extends Specification {
 
     def "should check if can continue parsing"() {
         setup:
-        fixMessageParser.setFixBytes(Unpooled.wrappedBuffer("message".getBytes(StandardCharsets.US_ASCII)))
         fixMessageParser.@bytesToParse.readerIndex(readerIndex)
-        fixMessageParser.@bytesToParse.writerIndex(writerIndex)
+        fixMessageParser.@bytesToParse.@storedEndIndex = storedEndIndex
+        fixMessageParser.storedEndIndexOfLastUnfinishedMessage = storedEndIndexOfLastUnfinishedMessage
 
         expect:
         fixMessageParser.canContinueParsing() == expectedResult
 
         where:
-        readerIndex | writerIndex | expectedResult
-        0           | 1           | true
-        1           | 1           | false
+        readerIndex | storedEndIndex | storedEndIndexOfLastUnfinishedMessage | expectedResult
+        0           | 2              | 0                                     | true
+        2           | 2              | 0                                     | false
+        0           | 2              | 1                                     | true
+        2           | 2              | 2                                     | false
     }
 
     def "should parse unfinished message"() {

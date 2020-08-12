@@ -6,8 +6,6 @@ import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.parser.utils.FieldTypeUtils;
 import io.github.zlooo.fixyou.utils.AsciiCodes;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import lombok.Getter;
 
 import javax.annotation.Nonnull;
@@ -80,18 +78,18 @@ public class FixMessage extends AbstractPoolableObject {
 
     private static void appendFieldToBuilderIfValueIsSet(StringBuilder builder, AbstractField field) {
         if (field.isValueSet()) {
-            builder.append(field.number).append((char) FIELD_VALUE_SEPARATOR).append(fieldDataOrEmpty(field).toString(field.startIndex, field.endIndex - field.startIndex, StandardCharsets.US_ASCII)).append(FIELD_DELIMITER);
+            builder.append(field.number).append((char) FIELD_VALUE_SEPARATOR).append(fieldDataValue(field)).append(FIELD_DELIMITER);
         }
     }
 
-    private static ByteBuf fieldDataOrEmpty(AbstractField field) {
+    private static String fieldDataValue(AbstractField field) {
         final ByteBufComposer fieldData = field.fieldData;
         if (fieldData != null) {
             final byte[] buf = new byte[field.getLength()];
             fieldData.getBytes(field.startIndex, field.getLength(), buf);
-            return Unpooled.wrappedBuffer(buf);
+            return new String(buf, StandardCharsets.US_ASCII);
         } else {
-            return Unpooled.EMPTY_BUFFER;
+            return "";
         }
     }
 
@@ -124,7 +122,7 @@ public class FixMessage extends AbstractPoolableObject {
     protected void deallocate() {
         final int maxIndex = resetAllDataFields();
         if (messageByteSource != null) {
-            messageByteSource.releaseDataUpTo(maxIndex);
+            messageByteSource.releaseDataUpTo(maxIndex + 1); //including SOH after last field
             setMessageByteSource(null);
         }
         super.deallocate();

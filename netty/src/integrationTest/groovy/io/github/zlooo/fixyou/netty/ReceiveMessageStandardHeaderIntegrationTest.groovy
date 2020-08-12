@@ -3,8 +3,8 @@ package io.github.zlooo.fixyou.netty
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.netty.test.framework.FixMessages
 import io.github.zlooo.fixyou.netty.test.framework.QuickfixTestUtils
-import io.github.zlooo.fixyou.parser.model.CharSequenceField
 import io.github.zlooo.fixyou.parser.model.CharField
+import io.github.zlooo.fixyou.parser.model.CharSequenceField
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.parser.model.TimestampField
 import quickfix.Message
@@ -21,7 +21,6 @@ import spock.lang.Timeout
 
 import java.time.LocalDateTime
 import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 @Timeout(10)
@@ -63,6 +62,8 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
 
         then:
         testFixMessageListener.messagesReceived.size() == 1
+        //sequence reset message releases underlying data in byteBufferComposer before listener, that's running in different thread, has a chance to copy data. Result? Exception here, since composer already released underlying ByteBuf
+        // before this field got parsed
         assertMinimalNewOrderSingle(newOrderSingle, testFixMessageListener.messagesReceived[0])
         def message = testQuickfixApplication.adminMessagesReceived[0]
         message instanceof Logon

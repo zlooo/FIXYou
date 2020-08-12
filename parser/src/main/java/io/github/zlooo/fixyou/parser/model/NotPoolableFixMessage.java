@@ -23,7 +23,7 @@ public final class NotPoolableFixMessage extends FixMessage {
                     maxIndex = endIndex;
                 }
             }
-            messageByteSource.releaseDataUpTo(maxIndex);
+            messageByteSource.releaseDataUpTo(maxIndex + 1); //including SOH after last field
         }
     }
 }

@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.DefaultConfiguration
+import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.model.FieldType
 import io.github.zlooo.fixyou.parser.TestSpec
 import io.github.zlooo.fixyou.parser.utils.FieldTypeUtils
@@ -54,7 +55,7 @@ class GroupFieldTest extends Specification {
 
     def "should set message byte source on all child fields"() {
         setup:
-        ByteBuf messageByteSource = Mock()
+        ByteBufComposer messageByteSource = Mock()
 
         when:
         groupField.fieldData = messageByteSource

@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.parser.model
 
-
+import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import spock.lang.Specification
 
@@ -9,12 +10,15 @@ import java.nio.charset.StandardCharsets
 class CharSequenceFieldTest extends Specification {
 
     private CharSequenceField field
+    private ByteBuf underlyingBuf = Unpooled.buffer(30, 30)
 
     void setup() {
         field = new CharSequenceField(1);
-        field.fieldData = Unpooled.buffer(30, 30)
-        field.fieldData.writerIndex(1)
-        field.fieldData.writeCharSequence("test", StandardCharsets.US_ASCII)
+        def byteBufComposer = new ByteBufComposer(1)
+        field.setFieldData(byteBufComposer)
+        underlyingBuf.writerIndex(1)
+        underlyingBuf.writeCharSequence("test", StandardCharsets.US_ASCII)
+        byteBufComposer.addByteBuf(underlyingBuf)
         field.setIndexes(1, 5)
     }
 
@@ -35,7 +39,7 @@ class CharSequenceFieldTest extends Specification {
     def "should cache value once parsed"() {
         setup:
         field.getValue()
-        field.fieldData.clear().writeCharSequence("valueThatShouldBeIgnored", StandardCharsets.US_ASCII)
+        underlyingBuf.clear().writeCharSequence("valueThatShouldBeIgnored", StandardCharsets.US_ASCII)
 
         expect:
         field.getValue().toString() == "test"

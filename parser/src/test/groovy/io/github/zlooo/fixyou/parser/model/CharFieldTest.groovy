@@ -1,5 +1,6 @@
 package io.github.zlooo.fixyou.parser.model
 
+import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import spock.lang.Specification
@@ -9,12 +10,15 @@ import java.nio.charset.StandardCharsets
 class CharFieldTest extends Specification {
 
     private CharField field
+    private ByteBuf underlyingBuf =Unpooled.buffer(10, 10)
 
     void setup() {
         field = new CharField(1)
-        field.fieldData = Unpooled.buffer(10, 10)
-        field.fieldData.writerIndex(5)
-        field.fieldData.writeCharSequence("A", StandardCharsets.US_ASCII)
+        def byteBufComposer = new ByteBufComposer(1)
+        field.setFieldData(byteBufComposer)
+        underlyingBuf.writerIndex(5)
+        underlyingBuf.writeCharSequence("A", StandardCharsets.US_ASCII)
+        byteBufComposer.addByteBuf(underlyingBuf)
         field.setIndexes(5, 6)
     }
 
@@ -38,7 +42,7 @@ class CharFieldTest extends Specification {
     def "should cache value once parsed"() {
         setup:
         field.getValue()
-        field.fieldData.clear().writeCharSequence("B", StandardCharsets.US_ASCII);
+        underlyingBuf.clear().writeCharSequence("B", StandardCharsets.US_ASCII);
         field.setIndexes(0,1)
 
         expect:
@@ -61,7 +65,7 @@ class CharFieldTest extends Specification {
         field.@value == 'B' as char
         field.getValue() == 'B' as char
         field.valueSet
-        field.fieldData.readerIndex(5).toString(StandardCharsets.US_ASCII) == "A"
+        underlyingBuf.readerIndex(5).toString(StandardCharsets.US_ASCII) == "A"
     }
 
     def "should append provided byte buf with value"() {

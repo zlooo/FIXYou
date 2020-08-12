@@ -70,7 +70,7 @@ public final class DoubleField extends AbstractField {
     }
 
     public short getScale() {
-        if (value == DEFAULT_VALUE) {
+        if (value == DEFAULT_VALUE && valueSet) {
             decodeValuesFromFieldData();
         }
         return scale;

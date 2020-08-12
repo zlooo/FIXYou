@@ -49,6 +49,27 @@ class ByteBufComposerTest extends Specification {
         composer.storedEndIndex == 6
     }
 
+    def "should add, release and add second buffer"(){
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[]))
+        composer.releaseDataUpTo(4)
+        def bufferToAdd = Unpooled.wrappedBuffer([6, 7] as byte[])
+
+        when:
+        composer.addByteBuf(bufferToAdd)
+
+        then:
+        composer.writeComponentIndex == 1
+        Assertions.assertThat(composer.components.toList().subList(1, 10).collect { it.buffer }).containsOnlyNulls()
+        def component = composer.components[0]
+        component.buffer == bufferToAdd
+        component.buffer.refCnt() == 2
+        component.startIndex == 0
+        component.endIndex == 1
+        composer.storedStartIndex ==0
+        composer.storedEndIndex == 1
+    }
+
     def "should not add more data than buffer capacity"() {
         setup:
         def buffers = (0..composer.components.length).collect { Unpooled.wrappedBuffer([it] as byte[]) }
@@ -67,6 +88,7 @@ class ByteBufComposerTest extends Specification {
         def bufferToAdd2 = Unpooled.wrappedBuffer([6, 7] as byte[])
         composer.addByteBuf(bufferToAdd)
         composer.addByteBuf(bufferToAdd2)
+        composer.readerIndex(2)
 
         when:
         composer.releaseDataUpTo(index)
@@ -75,6 +97,7 @@ class ByteBufComposerTest extends Specification {
         composer.storedStartIndex == -1
         composer.storedEndIndex == -1
         composer.writeComponentIndex == 0
+        composer.readerIndex == 0
         Assertions.assertThat(composer.components).containsOnly(EMPTY_COMPONENT)
         bufferToAdd.refCnt() == 1
         bufferToAdd2.refCnt() == 1
@@ -233,6 +256,22 @@ class ByteBufComposerTest extends Specification {
         7     | 8 as byte
     }
 
+    def "should find index of closest for single buffer"() {
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[]))
+
+        expect:
+        composer.indexOfClosest(elementToFind) == expectedResult
+
+        where:
+        elementToFind | expectedResult
+        1 as byte     | 0
+        3 as byte     | 2
+        5 as byte     | 4
+        11 as byte    | ByteBufComposer.VALUE_NOT_FOUND
+        128 as byte   | ByteBufComposer.VALUE_NOT_FOUND
+    }
+
     def "should find index of closest"() {
         setup:
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[]))
@@ -271,9 +310,26 @@ class ByteBufComposerTest extends Specification {
         1 as byte     | 0           | 0
         1 as byte     | 1           | 2
         1 as byte     | 2           | 2
+        3 as byte     | 3           | 4
         1 as byte     | 3           | 5
         2 as byte     | 4           | 6
         4 as byte     | 2           | 9
+    }
+
+    def "should reset composer"(){
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 1, 2, 3] as byte[]))
+        composer.readerIndex(2)
+
+        when:
+        composer.reset()
+
+        then:
+        composer.writeComponentIndex == 0;
+        composer.storedStartIndex == -1;
+        composer.storedEndIndex == -1;
+        composer.readerIndex == 0;
+        Assertions.assertThat(composer.components).containsOnly(EMPTY_COMPONENT)
     }
 
     private byte[] resize(byte[] source, length) {

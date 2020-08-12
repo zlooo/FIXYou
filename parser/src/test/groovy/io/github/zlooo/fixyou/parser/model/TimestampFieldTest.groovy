@@ -1,5 +1,7 @@
 package io.github.zlooo.fixyou.parser.model
 
+import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import spock.lang.Specification
 
@@ -10,11 +12,14 @@ class TimestampFieldTest extends Specification {
 
     private TimestampField field
     private long millis = Instant.parse("2020-06-08T22:45:16.666Z").toEpochMilli()
+    private ByteBuf underlyingBuf = Unpooled.buffer(30, 30)
 
     void setup() {
         field = new TimestampField(1)
-        field.fieldData = Unpooled.buffer(30, 30)
-        field.fieldData.clear().writeCharSequence("20200608-22:45:16.666", StandardCharsets.US_ASCII)
+        def byteBufComposer = new ByteBufComposer(1)
+        field.setFieldData(byteBufComposer)
+        underlyingBuf.clear().writeCharSequence("20200608-22:45:16.666", StandardCharsets.US_ASCII)
+        byteBufComposer.addByteBuf(underlyingBuf)
         field.setIndexes(0, 21)
     }
 
@@ -35,7 +40,7 @@ class TimestampFieldTest extends Specification {
     def "should cache value once parsed"() {
         setup:
         field.getValue()
-        field.fieldData.clear().writeCharSequence("!", StandardCharsets.US_ASCII)
+        underlyingBuf.clear().writeCharSequence("!", StandardCharsets.US_ASCII)
         field.setIndexes(0, 1)
 
         expect:

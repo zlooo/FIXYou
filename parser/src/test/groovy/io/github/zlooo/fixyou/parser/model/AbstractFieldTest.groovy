@@ -40,17 +40,6 @@ class AbstractFieldTest extends Specification {
         !field.valueSet
     }
 
-    def "should release field data when closed"() {
-        setup:
-        field.setFieldData(Unpooled.buffer(1, 1))
-
-        when:
-        field.close()
-
-        then:
-        field.fieldData.refCnt() == 1
-    }
-
     private static class TestField extends AbstractField {
 
         TestField(int number) {

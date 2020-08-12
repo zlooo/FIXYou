@@ -130,6 +130,7 @@ public class ByteBufComposer implements Resettable {
         writeComponentIndex = 0;
         storedStartIndex = -1;
         storedEndIndex = -1;
+        readerIndex = 0;
         for (final Component component : components) {
             component.reset();
         }
@@ -165,6 +166,24 @@ public class ByteBufComposer implements Resettable {
             }
         }
         return VALUE_NOT_FOUND;
+    }
+
+    public ByteBufComposer copy() {
+        final ByteBufComposer copy = new ByteBufComposer(components.length);
+        copy.readerIndex = readerIndex;
+        copy.storedStartIndex = storedStartIndex;
+        copy.storedEndIndex = storedEndIndex;
+        copy.writeComponentIndex = writeComponentIndex;
+        for (int i = 0; i < components.length; i++) {
+            final Component component = components[i];
+            final Component componentCopy = new Component();
+            componentCopy.startIndex = component.startIndex;
+            componentCopy.endIndex = component.endIndex;
+            componentCopy.buffer = component.buffer;
+            componentCopy.buffer.retain();
+            copy.components[i] = componentCopy;
+        }
+        return copy;
     }
 
     @Data

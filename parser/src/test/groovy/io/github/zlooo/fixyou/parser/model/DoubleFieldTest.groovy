@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.parser.model
 
-
+import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import spock.lang.Specification
 
@@ -9,11 +10,14 @@ import java.nio.charset.StandardCharsets
 class DoubleFieldTest extends Specification {
     private static final String VALUE_THATS_SUPPOSED_TO_BE_IGNORED = "!"
     private DoubleField field
+    private ByteBuf underlyingBuf = Unpooled.buffer(20, 20)
 
     void setup() {
         field = new DoubleField(10)
-        field.fieldData = Unpooled.buffer(20, 20)
-        field.fieldData.writeCharSequence("-123.666", StandardCharsets.US_ASCII)
+        def byteBufComposer = new ByteBufComposer(1)
+        field.setFieldData(byteBufComposer)
+        underlyingBuf.writeCharSequence("-123.666", StandardCharsets.US_ASCII)
+        byteBufComposer.addByteBuf(underlyingBuf)
         field.setIndexes(0, 8)
     }
 
@@ -27,9 +31,11 @@ class DoubleFieldTest extends Specification {
     def "should parse value"() {
         setup:
         field.reset()
+        field.fieldData.releaseDataUpTo(Integer.MAX_VALUE)
+        underlyingBuf.clear().writeCharSequence(valueToParse, StandardCharsets.US_ASCII)
+        field.fieldData.addByteBuf(underlyingBuf)
 
         when:
-        field.fieldData.clear().writeCharSequence(valueToParse, StandardCharsets.US_ASCII)
         field.setIndexes(0, valueToParse.length())
 
         then:
@@ -64,7 +70,7 @@ class DoubleFieldTest extends Specification {
         field.value
 
         when:
-        field.fieldData.clear().writeCharSequence(VALUE_THATS_SUPPOSED_TO_BE_IGNORED, StandardCharsets.US_ASCII)
+        underlyingBuf.clear().writeCharSequence(VALUE_THATS_SUPPOSED_TO_BE_IGNORED, StandardCharsets.US_ASCII)
         field.setIndexes(0, 1)
 
         then:
@@ -78,7 +84,7 @@ class DoubleFieldTest extends Specification {
         field.scale
 
         when:
-        field.fieldData.clear().writeCharSequence(VALUE_THATS_SUPPOSED_TO_BE_IGNORED, StandardCharsets.US_ASCII)
+        underlyingBuf.clear().writeCharSequence(VALUE_THATS_SUPPOSED_TO_BE_IGNORED, StandardCharsets.US_ASCII)
         field.setIndexes(0, 1)
 
         then:

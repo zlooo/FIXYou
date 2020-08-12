@@ -1,7 +1,7 @@
 package io.github.zlooo.fixyou.parser.model
 
+import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.parser.TestSpec
-import io.netty.buffer.ByteBuf
 import spock.lang.Specification
 
 class FixMessageTest extends Specification {
@@ -10,45 +10,15 @@ class FixMessageTest extends Specification {
 
     def "should set new message byte source"() {
         setup:
-        def oldMessageByteSource = Mock(ByteBuf)
-        def newMessageByteSource = Mock(ByteBuf)
+        def oldMessageByteSource = Mock(ByteBufComposer)
+        def newMessageByteSource = Mock(ByteBufComposer)
         fixMessage.@messageByteSource = oldMessageByteSource
 
         when:
-        fixMessage.setMessageByteSourceAndRetain(newMessageByteSource)
+        fixMessage.setMessageByteSource(newMessageByteSource)
 
         then:
-        1 * newMessageByteSource.retain()
-        1 * oldMessageByteSource.release()
         fixMessage.getField(TestSpec.LONG_FIELD_NUMBER).fieldData == newMessageByteSource
-        0 * _
-    }
-
-    def "should set first message byte source"() {
-        setup:
-        def newMessageByteSource = Mock(ByteBuf)
-
-        when:
-        fixMessage.setMessageByteSourceAndRetain(newMessageByteSource)
-
-        then:
-        1 * newMessageByteSource.retain()
-        fixMessage.getField(TestSpec.LONG_FIELD_NUMBER).fieldData == newMessageByteSource
-        0 * _
-    }
-
-    def "should not set new message byte source when new and old are the same buffer"() {
-        setup:
-        def messageByteSource = Mock(ByteBuf)
-        fixMessage.@messageByteSource = messageByteSource
-
-        when:
-        fixMessage.setMessageByteSourceAndRetain(messageByteSource)
-
-        then:
-        fixMessage.getField(TestSpec.LONG_FIELD_NUMBER).fieldData.is(messageByteSource)
-        1 * messageByteSource.release()
-        1 * messageByteSource.retain()
         0 * _
     }
 
@@ -80,18 +50,22 @@ class FixMessageTest extends Specification {
 
     def "should reset all data fields and release message byte source before deallocation"() {
         setup:
-        fixMessage.getField(TestSpec.LONG_FIELD_NUMBER).value = 666L
-        fixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER).value = true
-        def messageByteSource = Mock(ByteBuf)
+        def longField = fixMessage.getField(TestSpec.LONG_FIELD_NUMBER)
+        longField.value = 666L
+        longField.endIndex = 10
+        def booleanField = fixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER)
+        booleanField.value = true
+        booleanField.endIndex = 13
+        def messageByteSource = Mock(ByteBufComposer)
         fixMessage.@messageByteSource = messageByteSource
 
         when:
         fixMessage.deallocate()
 
         then:
-        !fixMessage.getField(TestSpec.LONG_FIELD_NUMBER).isValueSet()
-        !fixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER).isValueSet()
-        1 * messageByteSource.release()
+        !longField.isValueSet()
+        !booleanField.isValueSet()
+        1 * messageByteSource.releaseDataUpTo(booleanField.endIndex + 1)
         fixMessage.@messageByteSource == null
     }
 

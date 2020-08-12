@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.parser.model
 
-
+import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import spock.lang.Specification
 
@@ -9,12 +10,15 @@ import java.nio.charset.StandardCharsets
 class LongFieldTest extends Specification {
 
     private LongField field
+        private ByteBuf underlyingBuf = Unpooled.buffer(10, 10)
 
     void setup() {
         field = new LongField(1)
-        field.fieldData = Unpooled.buffer(10, 10)
-        field.fieldData.clear().writeCharSequence("123456", StandardCharsets.US_ASCII)
-        field.fieldData.writeByte(0x01)
+        def byteBufComposer = new ByteBufComposer(1)
+        field.setFieldData(byteBufComposer)
+        underlyingBuf.clear().writeCharSequence("123456", StandardCharsets.US_ASCII)
+        underlyingBuf.writeByte(0x01)
+        byteBufComposer.addByteBuf(underlyingBuf)
         field.setIndexes(0, 7)
     }
 
@@ -35,7 +39,7 @@ class LongFieldTest extends Specification {
     def "should cache value once parsed"() {
         setup:
         field.getValue()
-        field.fieldData.clear().writeCharSequence("!", StandardCharsets.US_ASCII)
+        underlyingBuf.clear().writeCharSequence("!", StandardCharsets.US_ASCII)
         field.setIndexes(0, 1)
 
         expect:

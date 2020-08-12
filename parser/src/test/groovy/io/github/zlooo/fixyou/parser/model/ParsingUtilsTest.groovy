@@ -1,5 +1,6 @@
 package io.github.zlooo.fixyou.parser.model
 
+import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.netty.buffer.Unpooled
 import spock.lang.Specification
 
@@ -15,11 +16,13 @@ class ParsingUtilsTest extends Specification {
         byteBuff.writeCharSequence("test", StandardCharsets.US_ASCII)
         byteBuff.writeCharSequence("test2", StandardCharsets.US_ASCII)
         byteBuff.readerIndex(4)
+        def composer = new ByteBufComposer(1)
+        composer.addByteBuf(byteBuff)
         def tempBuf = new byte[4]
         def chars = new char[4]
 
         when:
-        ParsingUtils.readChars(byteBuff, 0, 4, tempBuf, chars)
+        ParsingUtils.readChars(composer, 0, 4, tempBuf, chars)
 
         then:
         tempBuf == [116, 101, 115, 116] as byte[]
