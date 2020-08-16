@@ -128,33 +128,29 @@ class MessageDecoderTest extends Specification {
                   .containsOnly(expectedComponent1, expectedComponent2, new ByteBufComposer.Component())
         fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).value.toString() == "test"
 
-        fixMessage.resetAllDataFields()
+        fixMessage.resetAllDataFieldsAndReleaseByteSource()
 
         when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessage2Part1)
         messageDecoder.channelRead(channelHandlerContext, encodedMessage2Part2)
 
         then:
-        encodedMessage1Part1.refCnt() == 1
-        encodedMessage1Part2.refCnt() == 1
+        encodedMessage1Part1.refCnt() == 0
+        encodedMessage1Part2.refCnt() == 0 //because of fixMessage.resetAllDataFieldsAndReleaseByteSource() call couple of lines above
         encodedMessage2Part1.refCnt() == 1
         encodedMessage2Part2.refCnt() == 1
         1 * fixMessageObjectPool.tryGetAndRetain() >> fixMessage
         1 * channelHandlerContext.fireChannelRead(fixMessage)
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
         fixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
-        def expectedComponent3 = new ByteBufComposer.Component(startIndex: expectedComponent2.endIndex + 1, endIndex: expectedComponent2.endIndex + 1 + encodedMessage2Part1.writerIndex() - 1, buffer: encodedMessage2Part1)
+        def expectedComponent3 = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessage2Part1.writerIndex() - 1, buffer: encodedMessage2Part1)
         def expectedComponent4 = new ByteBufComposer.Component(startIndex: expectedComponent3.endIndex + 1, endIndex: expectedComponent3.endIndex + 1 + encodedMessage2Part2.writerIndex() - 1, buffer: encodedMessage2Part2)
         Assertions.assertThat(messageDecoder.byteBufComposer.components)
-                  .containsOnlyOnce(expectedComponent1)
-                  .containsOnlyOnce(expectedComponent2)
                   .containsOnlyOnce(expectedComponent3)
                   .containsOnlyOnce(expectedComponent4)
-                  .contains(expectedComponent1, Index.atIndex(0))
-                  .contains(expectedComponent2, Index.atIndex(1))
-                  .contains(expectedComponent3, Index.atIndex(2))
-                  .contains(expectedComponent4, Index.atIndex(3))
-                  .containsOnly(expectedComponent1, expectedComponent2, expectedComponent3, expectedComponent4, new ByteBufComposer.Component())
+                  .contains(expectedComponent3, Index.atIndex(0))
+                  .contains(expectedComponent4, Index.atIndex(1))
+                  .containsOnly(expectedComponent3, expectedComponent4, new ByteBufComposer.Component())
         fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).value.toString() == "test2"
         0 * _
     }

@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.netty.handler
 
 import io.github.zlooo.fixyou.FixConstants
+import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.fix.commons.LogoutTexts
 import io.github.zlooo.fixyou.fix.commons.RejectReasons
@@ -50,7 +51,14 @@ class SessionHandlerTest extends Specification {
     def "should set new expected sequence number when sequence reset in reset mode is received"() {
         setup:
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = FixConstants.SEQUENCE_RESET
-        fixMessage.getField(FixConstants.NEW_SEQUENCE_NUMBER_FIELD_NUMBER).value = 666L
+        def newSequenceNumberField = fixMessage.getField(FixConstants.NEW_SEQUENCE_NUMBER_FIELD_NUMBER)
+        newSequenceNumberField.value = 666L
+        newSequenceNumberField.endIndex = 123L
+        def beginStringField = fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER)
+        beginStringField.startIndex = 8
+        beginStringField.endIndex = 15
+        ByteBufComposer byteBufComposer = Mock()
+        fixMessage.setMessageByteSource(byteBufComposer)
 
         when:
         sessionHandler.channelRead(channelHandlerContext, fixMessage)
@@ -60,6 +68,7 @@ class SessionHandlerTest extends Specification {
         sessionHandler.@nextExpectedInboundSequenceNumber == 666L
         sessionHandler.@lastOutboundSequenceNumber == SessionHandler.DEFAULT_OUTBOUND_SEQUENCE_NUMBER
         sessionHandler.@sequenceNumberToQueuedFixMessages.isEmpty()
+        1 * byteBufComposer.releaseData(0 - 2, newSequenceNumberField.endIndex)
         0 * _
     }
 
@@ -69,6 +78,10 @@ class SessionHandlerTest extends Specification {
         fixMessage.getField(FixConstants.GAP_FILL_FLAG_FIELD_NUMBER).value = true
         fixMessage.getField(FixConstants.NEW_SEQUENCE_NUMBER_FIELD_NUMBER).value = 666L
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 1L
+        def beginStringField = fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER)
+        beginStringField.setIndexes(8, 15)
+        ByteBufComposer byteBufComposer = Mock()
+        fixMessage.setMessageByteSource(byteBufComposer)
 
         when:
         sessionHandler.channelRead(channelHandlerContext, fixMessage)
@@ -78,6 +91,7 @@ class SessionHandlerTest extends Specification {
         sessionHandler.@nextExpectedInboundSequenceNumber == 666L
         sessionHandler.@lastOutboundSequenceNumber == SessionHandler.DEFAULT_OUTBOUND_SEQUENCE_NUMBER
         sessionHandler.@sequenceNumberToQueuedFixMessages.isEmpty()
+        1 * byteBufComposer.releaseData(0 - 2, beginStringField.endIndex)
         0 * _
     }
 
@@ -139,6 +153,10 @@ class SessionHandlerTest extends Specification {
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 1L
         fixMessage.getField(FixConstants.POSSIBLE_DUPLICATE_FLAG_FIELD_NUMBER).value = true
         sessionHandler.@nextExpectedInboundSequenceNumber = 666L
+        def beginStringField = fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER)
+        beginStringField.setIndexes(8, 15)
+        ByteBufComposer byteBufComposer = Mock()
+        fixMessage.setMessageByteSource(byteBufComposer)
 
         when:
         sessionHandler.channelRead(channelHandlerContext, fixMessage)
@@ -148,6 +166,7 @@ class SessionHandlerTest extends Specification {
         sessionHandler.@nextExpectedInboundSequenceNumber == 666L
         sessionHandler.@lastOutboundSequenceNumber == SessionHandler.DEFAULT_OUTBOUND_SEQUENCE_NUMBER
         sessionHandler.@sequenceNumberToQueuedFixMessages.isEmpty()
+        1 * byteBufComposer.releaseData(0 - 2, beginStringField.endIndex)
         0 * _
     }
 
@@ -360,10 +379,14 @@ class SessionHandlerTest extends Specification {
     def "should reprocess queued message if it is sequence reset"() {
         setup:
         FixMessage sequenceReset = new FixMessage(TestSpec.INSTANCE)
-        sequenceReset.retain()
         sequenceReset.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = FixConstants.SEQUENCE_RESET
         sequenceReset.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 2L
         sequenceReset.getField(FixConstants.NEW_SEQUENCE_NUMBER_FIELD_NUMBER).value = 10L
+        def beginStringField = sequenceReset.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER)
+        beginStringField.setIndexes(8, 15)
+        ByteBufComposer byteBufComposer = Mock()
+        sequenceReset.setMessageByteSource(byteBufComposer)
+        sequenceReset.retain()
         sessionHandler.@sequenceNumberToQueuedFixMessages.putAll([(1L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (2L): sequenceReset])
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 1L
 
@@ -377,6 +400,7 @@ class SessionHandlerTest extends Specification {
         sessionHandler.@nextExpectedInboundSequenceNumber == 10L
         sessionHandler.@lastOutboundSequenceNumber == SessionHandler.DEFAULT_OUTBOUND_SEQUENCE_NUMBER
         Assertions.assertThat(sessionHandler.@sequenceNumberToQueuedFixMessages).isEmpty()
+        1 * byteBufComposer.releaseData(0 - 2, beginStringField.endIndex)
         0 * _
     }
 
@@ -388,6 +412,10 @@ class SessionHandlerTest extends Specification {
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = FixConstants.SEQUENCE_RESET
         fixMessage.getField(FixConstants.GAP_FILL_FLAG_FIELD_NUMBER).value = true
         fixMessage.getField(FixConstants.NEW_SEQUENCE_NUMBER_FIELD_NUMBER).value = 3
+        def beginStringField = fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER)
+        beginStringField.setIndexes(8, 15)
+        ByteBufComposer byteBufComposer = Mock()
+        fixMessage.setMessageByteSource(byteBufComposer)
 
         when:
         sessionHandler.channelRead(channelHandlerContext, fixMessage)
@@ -398,6 +426,7 @@ class SessionHandlerTest extends Specification {
         sessionHandler.@nextExpectedInboundSequenceNumber == 4L
         sessionHandler.@lastOutboundSequenceNumber == SessionHandler.DEFAULT_OUTBOUND_SEQUENCE_NUMBER
         Assertions.assertThat(sessionHandler.@sequenceNumberToQueuedFixMessages).isEmpty()
+        1 * byteBufComposer.releaseData(0 - 2, beginStringField.endIndex)
         0 * _
     }
 
@@ -407,6 +436,10 @@ class SessionHandlerTest extends Specification {
         sessionHandler.@sequenceNumberToQueuedFixMessages.putAll([(1L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (2L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (3L): someFixMessage])
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = FixConstants.SEQUENCE_RESET
         fixMessage.getField(FixConstants.NEW_SEQUENCE_NUMBER_FIELD_NUMBER).value = 3
+        def beginStringField = fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER)
+        beginStringField.setIndexes(8, 15)
+        ByteBufComposer byteBufComposer = Mock()
+        fixMessage.setMessageByteSource(byteBufComposer)
 
         when:
         sessionHandler.channelRead(channelHandlerContext, fixMessage)
@@ -417,6 +450,7 @@ class SessionHandlerTest extends Specification {
         sessionHandler.@nextExpectedInboundSequenceNumber == 4L
         sessionHandler.@lastOutboundSequenceNumber == SessionHandler.DEFAULT_OUTBOUND_SEQUENCE_NUMBER
         Assertions.assertThat(sessionHandler.@sequenceNumberToQueuedFixMessages).isEmpty()
+        1 * byteBufComposer.releaseData(0 - 2, beginStringField.endIndex)
         0 * _
     }
 
@@ -425,6 +459,10 @@ class SessionHandlerTest extends Specification {
         FixMessage someFixMessage = new FixMessage(TestSpec.INSTANCE)
         someFixMessage.retain()
         someFixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = FixConstants.HEARTBEAT
+        def beginStringField = someFixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER)
+        beginStringField.setIndexes(8, 15)
+        ByteBufComposer byteBufComposer = Mock()
+        someFixMessage.setMessageByteSource(byteBufComposer)
         sessionHandler.@sequenceNumberToQueuedFixMessages.putAll([(1L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (2L): someFixMessage])
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 1L
 
@@ -438,6 +476,7 @@ class SessionHandlerTest extends Specification {
         sessionHandler.@nextExpectedInboundSequenceNumber == 3L
         sessionHandler.@lastOutboundSequenceNumber == SessionHandler.DEFAULT_OUTBOUND_SEQUENCE_NUMBER
         Assertions.assertThat(sessionHandler.@sequenceNumberToQueuedFixMessages).isEmpty()
+        1 * byteBufComposer.releaseData(0 - 2, beginStringField.endIndex)
         0 * _
     }
 

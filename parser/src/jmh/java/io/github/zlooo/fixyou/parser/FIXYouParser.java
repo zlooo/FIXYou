@@ -29,7 +29,7 @@ public class FIXYouParser {
         if (fixMessage != null) {
             fixMessage.release();
         }
-        fixMessageParser.getBytesToParse().releaseDataUpTo(Integer.MAX_VALUE);
+        fixMessageParser.getBytesToParse().releaseData(0, Integer.MAX_VALUE);
     }
 
     @Benchmark

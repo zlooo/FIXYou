@@ -93,38 +93,31 @@ public class FixMessage extends AbstractPoolableObject {
         }
     }
 
-    public int resetAllDataFields() {
-        int maxEndIndex = 0;
+    public void resetAllDataFieldsAndReleaseByteSource() {
+        int maxIndex = 0;
+        int minIndex = Integer.MAX_VALUE;
         for (final AbstractField field : fieldsOrdered) {
-            final int endIndex = field.getEndIndex();
-            if (maxEndIndex < endIndex) {
-                maxEndIndex = endIndex;
-            }
-            field.reset();
-        }
-        return maxEndIndex;
-    }
-
-    public void resetDataFields(int... excludes) {
-        fieldLoop:
-        for (final AbstractField field : fieldsOrdered) {
-            final int fieldNumber = field.getNumber();
-            for (final int exclude : excludes) {
-                if (exclude == fieldNumber) {
-                    continue fieldLoop;
+            if (field.isValueSet()) {
+                final int endIndex = field.getEndIndex();
+                if (maxIndex < endIndex) {
+                    maxIndex = endIndex;
                 }
+                final int startIndex = field.getStartIndex();
+                if (minIndex > startIndex) {
+                    minIndex = startIndex;
+                }
+                field.reset();
             }
-            field.reset();
         }
+        if (messageByteSource != null) {
+            messageByteSource.releaseData(minIndex - 2/*-2 because 8=*/, maxIndex);
+        }
+        setMessageByteSource(null);
     }
 
     @Override
     protected void deallocate() {
-        final int maxIndex = resetAllDataFields();
-        if (messageByteSource != null) {
-            messageByteSource.releaseDataUpTo(maxIndex + 1); //including SOH after last field
-            setMessageByteSource(null);
-        }
+        resetAllDataFieldsAndReleaseByteSource();
         super.deallocate();
     }
 

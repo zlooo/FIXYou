@@ -12,16 +12,17 @@ class TestSpec implements FixSpec {
     static int USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER = 3
     static int LONG_FIELD_NUMBER = 1
     static int BOOLEAN_FIELD_NUMBER = 2
+    static int BEGIN_STRING_FIELD_NUMBER = 8
     static INSTANCE = new TestSpec()
 
     @Override
     int[] getFieldsOrder() {
-        return [LONG_FIELD_NUMBER, BOOLEAN_FIELD_NUMBER, USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER]
+        return [LONG_FIELD_NUMBER, BOOLEAN_FIELD_NUMBER, USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER, BEGIN_STRING_FIELD_NUMBER]
     }
 
     @Override
     FieldType[] getTypes() {
-        return [FieldType.LONG, FieldType.BOOLEAN, FieldType.GROUP]
+        return [FieldType.LONG, FieldType.BOOLEAN, FieldType.GROUP, FieldType.CHAR_ARRAY]
     }
 
     @Override

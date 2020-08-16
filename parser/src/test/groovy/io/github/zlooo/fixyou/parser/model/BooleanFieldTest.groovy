@@ -69,7 +69,7 @@ class BooleanFieldTest extends Specification {
     def "should cache value once parsed"() {
         setup:
         field.getValue()
-        field.fieldData.releaseDataUpTo(666)
+        field.fieldData.releaseData(0, 666)
 
         expect:
         field.getValue()

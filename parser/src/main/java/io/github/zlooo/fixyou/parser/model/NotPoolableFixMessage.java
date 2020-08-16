@@ -17,13 +17,20 @@ public final class NotPoolableFixMessage extends FixMessage {
         final ByteBufComposer messageByteSource = getMessageByteSource();
         if (messageByteSource != null) {
             int maxIndex = 0;
+            int minIndex = Integer.MAX_VALUE;
             for (final AbstractField field : getFieldsOrdered()) {
-                final int endIndex = field.getEndIndex();
-                if (maxIndex < endIndex) {
-                    maxIndex = endIndex;
+                if (field.isValueSet()) {
+                    final int endIndex = field.getEndIndex();
+                    if (maxIndex < endIndex) {
+                        maxIndex = endIndex;
+                    }
+                    final int startIndex = field.getStartIndex();
+                    if (minIndex > startIndex) {
+                        minIndex = startIndex;
+                    }
                 }
             }
-            messageByteSource.releaseDataUpTo(maxIndex + 1); //including SOH after last field
+            messageByteSource.releaseData(minIndex - 2/*-2 because 8=*/, maxIndex);
         }
     }
 }

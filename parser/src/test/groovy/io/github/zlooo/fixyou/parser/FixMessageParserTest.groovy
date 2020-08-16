@@ -21,7 +21,7 @@ class FixMessageParserTest extends Specification {
     private FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer)
 
     void cleanup() {
-        byteBufComposer.releaseDataUpTo(Integer.MAX_VALUE)
+        byteBufComposer.releaseData(0, Integer.MAX_VALUE)
     }
 
     def "should parse new order single message, simple message case"() {

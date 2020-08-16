@@ -31,7 +31,7 @@ class DoubleFieldTest extends Specification {
     def "should parse value"() {
         setup:
         field.reset()
-        field.fieldData.releaseDataUpTo(Integer.MAX_VALUE)
+        field.fieldData.releaseData(0, Integer.MAX_VALUE)
         underlyingBuf.clear().writeCharSequence(valueToParse, StandardCharsets.US_ASCII)
         field.fieldData.addByteBuf(underlyingBuf)
 

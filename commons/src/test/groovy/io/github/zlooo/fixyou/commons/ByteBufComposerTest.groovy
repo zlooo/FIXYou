@@ -49,10 +49,10 @@ class ByteBufComposerTest extends Specification {
         composer.storedEndIndex == 6
     }
 
-    def "should add, release and add second buffer"(){
+    def "should add, release and add second buffer"() {
         setup:
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[]))
-        composer.releaseDataUpTo(4)
+        composer.releaseData(0, 4)
         def bufferToAdd = Unpooled.wrappedBuffer([6, 7] as byte[])
 
         when:
@@ -66,7 +66,7 @@ class ByteBufComposerTest extends Specification {
         component.buffer.refCnt() == 2
         component.startIndex == 0
         component.endIndex == 1
-        composer.storedStartIndex ==0
+        composer.storedStartIndex == 0
         composer.storedEndIndex == 1
     }
 
@@ -91,7 +91,7 @@ class ByteBufComposerTest extends Specification {
         composer.readerIndex(2)
 
         when:
-        composer.releaseDataUpTo(index)
+        composer.releaseData(0, index)
 
         then:
         composer.storedStartIndex == -1
@@ -111,25 +111,127 @@ class ByteBufComposerTest extends Specification {
         666   | _
     }
 
-    def "should release part of buffer"() {
+    def "should not allow to leave holes after release"() {
         setup:
-        List<ByteBuf> buffers = []
-        (0..9).forEach { buffers.add(Unpooled.wrappedBuffer([it] as byte[])) }
-        buffers.forEach { composer.addByteBuf(it) }
+        def bufferToAdd = Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[])
+        composer.addByteBuf(bufferToAdd)
 
         when:
-        composer.releaseDataUpTo(index)
+        composer.releaseData(startIndex, endIndex)
 
         then:
-        composer.storedStartIndex == index + 1
-        composer.storedEndIndex == buffers.size() - 1
-        composer.writeComponentIndex == 0
-        Assertions.assertThat(composer.components.toList().subList(0, index + 1)).containsOnly(EMPTY_COMPONENT)
-        Assertions.assertThat(composer.components.toList().subList(index + 1, buffers.size())).containsExactlyElementsOf(components(index + 1, buffers.size() - 1))
-        buffers.subList(0, index + 1).every { it.refCnt() == 1 }
+        thrown(IllegalArgumentException)
 
         where:
-        index << (0..8).toList()
+        startIndex | endIndex
+        1          | 1
+        1          | 2
+        1          | 3
+        2          | 2
+        2          | 3
+        3          | 3
+    }
+
+    def "should release beginning of component"() {
+        setup:
+        def bufferToAdd1 = Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[])
+        def bufferToAdd2 = Unpooled.wrappedBuffer([6, 7, 8, 9, 10] as byte[])
+        def bufferToAdd3 = Unpooled.wrappedBuffer([11, 12, 13, 14, 15] as byte[])
+        composer.addByteBuf(bufferToAdd1)
+        composer.addByteBuf(bufferToAdd2)
+        composer.addByteBuf(bufferToAdd3)
+
+        when:
+        composer.releaseData(5, endIndex)
+
+        then:
+        composer.components[0].startIndex == 0
+        composer.components[0].endIndex == 4
+        composer.components[1].startIndex == endIndex+1
+        composer.components[1].endIndex == 9
+        composer.components[2].startIndex == 10
+        composer.components[2].endIndex == 14
+        composer.storedStartIndex == 0
+        composer.storedEndIndex == 14
+        bufferToAdd1.refCnt() == 2
+        bufferToAdd2.refCnt() == 2
+        bufferToAdd3.refCnt() == 2
+
+        where:
+        endIndex | _
+        5        | _
+        6        | _
+        7        | _
+        8        | _
+    }
+
+    def "should release whole component"() {
+        setup:
+        def bufferToAdd1 = Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[])
+        def bufferToAdd2 = Unpooled.wrappedBuffer([6, 7, 8, 9, 10] as byte[])
+        def bufferToAdd3 = Unpooled.wrappedBuffer([11, 12, 13, 14, 15] as byte[])
+        composer.addByteBuf(bufferToAdd1)
+        composer.addByteBuf(bufferToAdd2)
+        composer.addByteBuf(bufferToAdd3)
+
+        when:
+        composer.releaseData(5, 9)
+
+        then:
+        composer.components[0].startIndex == 0
+        composer.components[0].endIndex == 4
+        composer.components[1].startIndex == ByteBufComposer.INITIAL_VALUE
+        composer.components[1].endIndex == ByteBufComposer.INITIAL_VALUE
+        composer.components[2].startIndex == 10
+        composer.components[2].endIndex == 14
+        composer.storedStartIndex == 0
+        composer.storedEndIndex == 14
+        bufferToAdd1.refCnt() == 2
+        bufferToAdd2.refCnt() == 1
+        bufferToAdd3.refCnt() == 2
+    }
+
+    def "should release couple of consecutive components"() {
+        setup:
+        def bufferToAdd1 = Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[])
+        def bufferToAdd2 = Unpooled.wrappedBuffer([6, 7, 8, 9, 10] as byte[])
+        def bufferToAdd3 = Unpooled.wrappedBuffer([11, 12, 13, 14, 15] as byte[])
+        composer.addByteBuf(bufferToAdd1)
+        composer.addByteBuf(bufferToAdd2)
+        composer.addByteBuf(bufferToAdd3)
+
+        when:
+        composer.releaseData(0, 12)
+
+        then:
+        composer.components[0].startIndex == ByteBufComposer.INITIAL_VALUE
+        composer.components[0].endIndex == ByteBufComposer.INITIAL_VALUE
+        composer.components[1].startIndex == ByteBufComposer.INITIAL_VALUE
+        composer.components[1].endIndex == ByteBufComposer.INITIAL_VALUE
+        composer.components[2].startIndex == 13
+        composer.components[2].endIndex == 14
+        composer.storedStartIndex == 13
+        composer.storedEndIndex == 14
+        bufferToAdd1.refCnt() == 1
+        bufferToAdd2.refCnt() == 1
+        bufferToAdd3.refCnt() == 2
+    }
+
+    def "should not get released part of buffer"(){
+        setup:
+        def bufferToAdd1 = Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[])
+        def bufferToAdd2 = Unpooled.wrappedBuffer([6, 7, 8, 9, 10] as byte[])
+        def bufferToAdd3 = Unpooled.wrappedBuffer([11, 12, 13, 14, 15] as byte[])
+        composer.addByteBuf(bufferToAdd1)
+        composer.addByteBuf(bufferToAdd2)
+        composer.addByteBuf(bufferToAdd3)
+        composer.releaseData(5, 9)
+
+        when:
+        composer.getByte(6)
+
+        then:
+        thrown(IndexOutOfBoundsException)
     }
 
     def "should get bytes after buffer overlap"() {
@@ -137,7 +239,7 @@ class ByteBufComposerTest extends Specification {
         List<ByteBuf> buffers = []
         (0..9).forEach { buffers.add(Unpooled.wrappedBuffer([it] as byte[])) }
         buffers.forEach { composer.addByteBuf(it) }
-        composer.releaseDataUpTo(4)
+        composer.releaseData(0, 4)
         (10..13).forEach { buffers.add(Unpooled.wrappedBuffer([it] as byte[])) }
         buffers.subList(10, buffers.size()).forEach { composer.addByteBuf(it) }
         def destination = new byte[10]
@@ -316,7 +418,7 @@ class ByteBufComposerTest extends Specification {
         4 as byte     | 2           | 9
     }
 
-    def "should reset composer"(){
+    def "should reset composer"() {
         setup:
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 1, 2, 3] as byte[]))
         composer.readerIndex(2)

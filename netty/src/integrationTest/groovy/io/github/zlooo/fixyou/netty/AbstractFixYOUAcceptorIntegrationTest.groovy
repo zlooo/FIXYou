@@ -2,6 +2,7 @@ package io.github.zlooo.fixyou.netty
 
 import io.github.zlooo.fixyou.FIXYouConfiguration
 import io.github.zlooo.fixyou.Resettable
+import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject
 import io.github.zlooo.fixyou.commons.pool.ArrayBackedObjectPool
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
@@ -17,6 +18,7 @@ import io.netty.buffer.Unpooled
 import io.netty.channel.*
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioSocketChannel
+import org.assertj.core.api.Assertions
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.spockframework.util.Assert
@@ -126,6 +128,11 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
                 NettyResettablesNames.SESSION]
     }
 
+    protected Resettable messageDecoder() {
+        return ((FIXYouNettyAcceptor) engine).@fixYouNettyComponent.sessionRegistry().getStateForSession(fixYouSessionId).resettables[
+                NettyResettablesNames.MESSAGE_DECODER]
+    }
+
     protected void nextExpectedInboundSequenceNumber(long nextExpectedInboundSequenceNumber) {
         sessionHandler().@nextExpectedInboundSequenceNumber = nextExpectedInboundSequenceNumber
     }
@@ -172,6 +179,7 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
         if (!inUseFixMessages.isEmpty()) {
             Assert.fail("Not all FixMessages have been returned to the pool!!!! In use messages " + inUseFixMessages)
         }
+        asssertComposerState(messageDecoder().@byteBufComposer)
         group?.shutdownGracefully()?.sync()
         engine?.stop()?.get()
         initiator?.stop(true)
@@ -179,4 +187,9 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
         LOGGER.info("Cleanup done")
     }
 
+    void asssertComposerState(ByteBufComposer composer) {
+        assert composer.storedStartIndex == ByteBufComposer.INITIAL_VALUE
+        assert composer.storedEndIndex == ByteBufComposer.INITIAL_VALUE
+        Assertions.assertThat(composer.components).containsOnly(new ByteBufComposer.Component())
+    }
 }

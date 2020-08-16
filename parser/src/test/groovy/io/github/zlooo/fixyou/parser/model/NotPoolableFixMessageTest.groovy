@@ -24,8 +24,10 @@ class NotPoolableFixMessageTest extends Specification {
 
         then:
         fixMessage.fieldsOrdered.length * field.close()
+        fixMessage.fieldsOrdered.length * field.getStartIndex() >> 2
         fixMessage.fieldsOrdered.length * field.getEndIndex() >> 10
-        1 * messageByteSource.releaseDataUpTo(11)
+        fixMessage.fieldsOrdered.length * field.isValueSet() >> true
+        1 * messageByteSource.releaseData(0, 10)
         0 * _
     }
 

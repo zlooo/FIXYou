@@ -1,5 +1,6 @@
 package io.github.zlooo.fixyou.parser.model
 
+
 import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.parser.TestSpec
 import spock.lang.Specification
@@ -22,33 +23,30 @@ class FixMessageTest extends Specification {
         0 * _
     }
 
-    def "should reset all data fields"() {
+    def "should reset all data fields and release message byte source"() {
         setup:
-        fixMessage.getField(TestSpec.LONG_FIELD_NUMBER).value = 666L
-        fixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER).value = true
+        def longField = fixMessage.getField(TestSpec.LONG_FIELD_NUMBER)
+        longField.value = 666L
+        longField.startIndex = 7
+        longField.endIndex = 10
+        def booleanField = fixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER)
+        booleanField.value = true
+        booleanField.startIndex = 12
+        booleanField.endIndex = 13
+        def messageByteSource = Mock(ByteBufComposer)
+        fixMessage.@messageByteSource = messageByteSource
 
         when:
-        fixMessage.resetAllDataFields()
+        fixMessage.resetAllDataFieldsAndReleaseByteSource()
 
         then:
-        !fixMessage.getField(TestSpec.LONG_FIELD_NUMBER).isValueSet()
-        !fixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER).isValueSet()
+        !longField.isValueSet()
+        !booleanField.isValueSet()
+        1 * messageByteSource.releaseData(longField.startIndex - 2, booleanField.endIndex)
+        fixMessage.@messageByteSource == null
     }
 
-    def "should reset all but excluded data fields"() {
-        setup:
-        fixMessage.getField(TestSpec.LONG_FIELD_NUMBER).value = 666L
-        fixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER).value = true
-
-        when:
-        fixMessage.resetDataFields(TestSpec.BOOLEAN_FIELD_NUMBER)
-
-        then:
-        !fixMessage.getField(TestSpec.LONG_FIELD_NUMBER).isValueSet()
-        fixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER).isValueSet()
-    }
-
-    def "should reset all data fields and release message byte source before deallocation"() {
+    def "should reset all data fields and not release message byte source if message source is already scheduled for release"() {
         setup:
         def longField = fixMessage.getField(TestSpec.LONG_FIELD_NUMBER)
         longField.value = 666L
@@ -60,12 +58,11 @@ class FixMessageTest extends Specification {
         fixMessage.@messageByteSource = messageByteSource
 
         when:
-        fixMessage.deallocate()
+        fixMessage.resetAllDataFieldsAndReleaseByteSource()
 
         then:
         !longField.isValueSet()
         !booleanField.isValueSet()
-        1 * messageByteSource.releaseDataUpTo(booleanField.endIndex + 1)
         fixMessage.@messageByteSource == null
     }
 

@@ -16,13 +16,14 @@ public class ByteBufComposer implements Resettable {
 
     public static final int VALUE_NOT_FOUND = Integer.MIN_VALUE;
     private static final int NOT_FOUND = -1;
+    private static final int INITIAL_VALUE = -1;
     private static final String IOOBE_MESSAGE = "This instance does not contain data for index ";
     private final Component[] components;
     private int writeComponentIndex;
     @Getter
-    private int storedStartIndex = -1;
+    private int storedStartIndex = INITIAL_VALUE;
     @Getter
-    private int storedEndIndex = -1;
+    private int storedEndIndex = INITIAL_VALUE;
     private int readerIndex;
 
     public ByteBufComposer(int initialNumberOfComponents) {
@@ -40,7 +41,7 @@ public class ByteBufComposer implements Resettable {
             throw new BufferFullException();
         }
         component.buffer = byteBuf;
-        if (storedEndIndex == -1) {
+        if (storedEndIndex == INITIAL_VALUE) {
             storedStartIndex = 0;
             component.startIndex = 0;
         } else {
@@ -50,20 +51,48 @@ public class ByteBufComposer implements Resettable {
         component.endIndex = storedEndIndex;
     }
 
-    public void releaseDataUpTo(int indexInclusive) {
-        if (indexInclusive < storedStartIndex) {
-            throw new IndexOutOfBoundsException(IOOBE_MESSAGE + indexInclusive);
+    public void releaseData(int startIndexInclusive, int endIndexInclusive) {
+        if (startIndexInclusive > endIndexInclusive) {
+            throw new IllegalArgumentException("Start index(" + startIndexInclusive + ") bigger than end index(" + endIndexInclusive + ")? No can do");
         }
-        if (indexInclusive >= storedEndIndex) {
+        if (startIndexInclusive < storedStartIndex) {
+            throw new IndexOutOfBoundsException(IOOBE_MESSAGE + startIndexInclusive);
+        }
+        //maybe they want to release whole buffer?
+        if ((startIndexInclusive == storedStartIndex || storedStartIndex == INITIAL_VALUE) && endIndexInclusive >= storedEndIndex) {
             reset();
         } else {
-            storedStartIndex = indexInclusive + 1;
-            for (final Component component : components) {
-                if (component.endIndex <= indexInclusive) {
-                    component.reset();
-                }
+            final Component component = components[findReaderComponentIndex(startIndexInclusive, false)]; //here we're making sure that startIndexInclusive is between this component's start and end index
+            final int requestedEndComponentEndComparison = Integer.compare(endIndexInclusive, component.endIndex);
+            final int requestedStartComponentStartComparison = Integer.compare(startIndexInclusive, component.startIndex);
+            final int newStoredStartIndex;
+            if (requestedEndComponentEndComparison < 0) {
+                newStoredStartIndex = endIndexInsideComponent(startIndexInclusive, endIndexInclusive, component, requestedStartComponentStartComparison);
+            } else {
+                newStoredStartIndex = component.endIndex + 1;
+                component.endIndex = startIndexInclusive - 1;
+            }
+            if (storedStartIndex == startIndexInclusive) {
+                storedStartIndex = newStoredStartIndex;
+            }
+            if (component.startIndex == component.endIndex + 1) {
+                component.reset();
+            }
+            if (requestedEndComponentEndComparison > 0) {
+                releaseData(storedStartIndex, endIndexInclusive);
             }
         }
+    }
+
+    private int endIndexInsideComponent(int startIndexInclusive, int endIndexInclusive, Component component, int requestedStartComponentStartComparison) {
+        final int newStoredStartIndex;
+        if (requestedStartComponentStartComparison == 0) {
+            component.startIndex = endIndexInclusive + 1;
+            newStoredStartIndex = component.startIndex;
+        } else {
+            throw new IllegalArgumentException(String.format("Cannot leave holes after release, component<%d, %d>, requested <%d, %d>", component.startIndex, component.endIndex, startIndexInclusive, endIndexInclusive));
+        }
+        return newStoredStartIndex;
     }
 
     private int nextComponentIndex(int componentIndex) {
@@ -104,7 +133,7 @@ public class ByteBufComposer implements Resettable {
                 return decrement ? i - 1 : i;
             }
         }
-        return VALUE_NOT_FOUND;
+        throw new IndexOutOfBoundsException(IOOBE_MESSAGE + index);
     }
 
     private void checkIndex(int index, int length) {
@@ -128,8 +157,8 @@ public class ByteBufComposer implements Resettable {
     @Override
     public void reset() {
         writeComponentIndex = 0;
-        storedStartIndex = -1;
-        storedEndIndex = -1;
+        storedStartIndex = INITIAL_VALUE;
+        storedEndIndex = INITIAL_VALUE;
         readerIndex = 0;
         for (final Component component : components) {
             component.reset();
@@ -168,28 +197,10 @@ public class ByteBufComposer implements Resettable {
         return VALUE_NOT_FOUND;
     }
 
-    public ByteBufComposer copy() {
-        final ByteBufComposer copy = new ByteBufComposer(components.length);
-        copy.readerIndex = readerIndex;
-        copy.storedStartIndex = storedStartIndex;
-        copy.storedEndIndex = storedEndIndex;
-        copy.writeComponentIndex = writeComponentIndex;
-        for (int i = 0; i < components.length; i++) {
-            final Component component = components[i];
-            final Component componentCopy = new Component();
-            componentCopy.startIndex = component.startIndex;
-            componentCopy.endIndex = component.endIndex;
-            componentCopy.buffer = component.buffer;
-            componentCopy.buffer.retain();
-            copy.components[i] = componentCopy;
-        }
-        return copy;
-    }
-
     @Data
     private static final class Component implements Resettable {
-        private int startIndex = -1;
-        private int endIndex = -1;
+        private int startIndex = INITIAL_VALUE;
+        private int endIndex = INITIAL_VALUE;
         private ByteBuf buffer;
 
         public Component() {
@@ -201,8 +212,8 @@ public class ByteBufComposer implements Resettable {
                 buffer.release();
                 buffer = null;
             }
-            startIndex = -1;
-            endIndex = -1;
+            startIndex = INITIAL_VALUE;
+            endIndex = INITIAL_VALUE;
         }
     }
 }
