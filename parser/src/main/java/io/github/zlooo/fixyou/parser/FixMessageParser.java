@@ -69,7 +69,7 @@ public class FixMessageParser implements Resettable {
     public void parseFixMsgBytes() {
         int closestFieldTerminatorIndex;
 
-        while ((closestFieldTerminatorIndex = bytesToParse.indexOfClosest(FixMessage.FIELD_SEPARATOR)) != ByteBufComposer.VALUE_NOT_FOUND) {
+        while ((closestFieldTerminatorIndex = bytesToParse.indexOfClosest(FixMessage.FIELD_SEPARATOR)) != ByteBufComposer.NOT_FOUND) {
             final int fieldNum = ParsingUtils.parseInteger(bytesToParse, bytesToParse.readerIndex(), FixMessage.FIELD_VALUE_SEPARATOR, true);
             final int start = bytesToParse.readerIndex();
             AbstractField field = null;

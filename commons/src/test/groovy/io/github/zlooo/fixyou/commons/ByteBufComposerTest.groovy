@@ -18,14 +18,13 @@ class ByteBufComposerTest extends Specification {
         composer.addByteBuf(bufferToAdd)
 
         then:
-        composer.writeComponentIndex == 1
+        composer.arrayIndex == 1
         Assertions.assertThat(composer.components.toList().subList(1, 10).collect { it.buffer }).containsOnlyNulls()
         def component = composer.components[0]
         component.buffer == bufferToAdd
         component.buffer.refCnt() == 2
         component.startIndex == 0
         component.endIndex == 4
-        composer.storedStartIndex == 0
         composer.storedEndIndex == 4
     }
 
@@ -38,14 +37,13 @@ class ByteBufComposerTest extends Specification {
         composer.addByteBuf(bufferToAdd)
 
         then:
-        composer.writeComponentIndex == 2
+        composer.arrayIndex == 2
         Assertions.assertThat(composer.components.toList().subList(2, 10).collect { it.buffer }).containsOnlyNulls()
         def component = composer.components[1]
         component.buffer == bufferToAdd
         component.buffer.refCnt() == 2
         component.startIndex == 5
         component.endIndex == 6
-        composer.storedStartIndex == 0
         composer.storedEndIndex == 6
     }
 
@@ -59,14 +57,13 @@ class ByteBufComposerTest extends Specification {
         composer.addByteBuf(bufferToAdd)
 
         then:
-        composer.writeComponentIndex == 1
+        composer.arrayIndex == 1
         Assertions.assertThat(composer.components.toList().subList(1, 10).collect { it.buffer }).containsOnlyNulls()
         def component = composer.components[0]
         component.buffer == bufferToAdd
         component.buffer.refCnt() == 2
         component.startIndex == 0
         component.endIndex == 1
-        composer.storedStartIndex == 0
         composer.storedEndIndex == 1
     }
 
@@ -94,9 +91,8 @@ class ByteBufComposerTest extends Specification {
         composer.releaseData(0, index)
 
         then:
-        composer.storedStartIndex == -1
         composer.storedEndIndex == -1
-        composer.writeComponentIndex == 0
+        composer.arrayIndex == 0
         composer.readerIndex == 0
         Assertions.assertThat(composer.components).containsOnly(EMPTY_COMPONENT)
         bufferToAdd.refCnt() == 1
@@ -151,7 +147,6 @@ class ByteBufComposerTest extends Specification {
         composer.components[1].endIndex == 9
         composer.components[2].startIndex == 10
         composer.components[2].endIndex == 14
-        composer.storedStartIndex == 0
         composer.storedEndIndex == 14
         bufferToAdd1.refCnt() == 2
         bufferToAdd2.refCnt() == 2
@@ -184,7 +179,6 @@ class ByteBufComposerTest extends Specification {
         composer.components[1].endIndex == ByteBufComposer.INITIAL_VALUE
         composer.components[2].startIndex == 10
         composer.components[2].endIndex == 14
-        composer.storedStartIndex == 0
         composer.storedEndIndex == 14
         bufferToAdd1.refCnt() == 2
         bufferToAdd2.refCnt() == 1
@@ -210,7 +204,6 @@ class ByteBufComposerTest extends Specification {
         composer.components[1].endIndex == ByteBufComposer.INITIAL_VALUE
         composer.components[2].startIndex == 13
         composer.components[2].endIndex == 14
-        composer.storedStartIndex == 13
         composer.storedEndIndex == 14
         bufferToAdd1.refCnt() == 1
         bufferToAdd2.refCnt() == 1
@@ -427,8 +420,7 @@ class ByteBufComposerTest extends Specification {
         composer.reset()
 
         then:
-        composer.writeComponentIndex == 0;
-        composer.storedStartIndex == -1;
+        composer.arrayIndex == 0;
         composer.storedEndIndex == -1;
         composer.readerIndex == 0;
         Assertions.assertThat(composer.components).containsOnly(EMPTY_COMPONENT)

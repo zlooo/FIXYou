@@ -14,12 +14,13 @@ import lombok.Getter;
  */
 public class ByteBufComposer implements Resettable {
 
-    public static final int VALUE_NOT_FOUND = Integer.MIN_VALUE;
-    private static final int NOT_FOUND = -1;
+    //        public static final int VALUE_NOT_FOUND = Integer.MIN_VALUE;
+    public static final int NOT_FOUND = -1;
     private static final int INITIAL_VALUE = -1;
     private static final String IOOBE_MESSAGE = "This instance does not contain data for index ";
     private final Component[] components;
-    private int writeComponentIndex;
+    private final int mask;
+    private int arrayIndex;
     @Getter
     private int storedStartIndex = INITIAL_VALUE;
     @Getter
@@ -27,92 +28,99 @@ public class ByteBufComposer implements Resettable {
     private int readerIndex;
 
     public ByteBufComposer(int initialNumberOfComponents) {
-        this.components = new Component[initialNumberOfComponents == 1 ? 2 : initialNumberOfComponents]; //TODO I know it's a bit of a hack which I have to get rid of, it works but it fucks up my feng shui
+        int currentSize = 2;
+        while (currentSize < initialNumberOfComponents) {
+            currentSize = currentSize << 1;
+        }
+        this.components = new Component[currentSize];
         for (int i = 0; i < components.length; i++) {
             components[i] = new Component();
         }
+        mask = currentSize - 1;
     }
 
     public void addByteBuf(ByteBuf byteBuf) {
         byteBuf.retain();
-        final Component component = components[writeComponentIndex];
-        writeComponentIndex = nextComponentIndex(writeComponentIndex);
+        final Component component = components[toArrayIndex(arrayIndex++)];
         if (component.buffer != null) {
             throw new BufferFullException();
         }
         component.buffer = byteBuf;
-        if (storedEndIndex == INITIAL_VALUE) {
-            storedStartIndex = 0;
-            component.startIndex = 0;
-        } else {
+        if (storedStartIndex != INITIAL_VALUE) {
             component.startIndex = storedEndIndex + 1;
+        } else {
+            component.startIndex = 0;
+            storedStartIndex = 0;
         }
-        storedEndIndex += byteBuf.readableBytes();
-        component.endIndex = storedEndIndex;
+        component.endIndex = component.startIndex + byteBuf.readableBytes() - 1;
+        storedEndIndex = component.endIndex;
+        component.buffer = byteBuf;
     }
 
     public void releaseData(int startIndexInclusive, int endIndexInclusive) {
         if (startIndexInclusive > endIndexInclusive) {
             throw new IllegalArgumentException("Start index(" + startIndexInclusive + ") bigger than end index(" + endIndexInclusive + ")? No can do");
         }
-        if (startIndexInclusive < storedStartIndex) {
-            throw new IndexOutOfBoundsException(IOOBE_MESSAGE + startIndexInclusive);
-        }
-        //maybe they want to release whole buffer?
-        if ((startIndexInclusive == storedStartIndex || storedStartIndex == INITIAL_VALUE) && endIndexInclusive >= storedEndIndex) {
+        if (coversWholeBuffer(startIndexInclusive, endIndexInclusive)) {
             reset();
         } else {
-            final Component component = components[findReaderComponentIndex(startIndexInclusive, false)]; //here we're making sure that startIndexInclusive is between this component's start and end index
-            final int requestedEndComponentEndComparison = Integer.compare(endIndexInclusive, component.endIndex);
-            final int requestedStartComponentStartComparison = Integer.compare(startIndexInclusive, component.startIndex);
-            final int newStoredStartIndex;
-            if (requestedEndComponentEndComparison < 0) {
-                newStoredStartIndex = endIndexInsideComponent(startIndexInclusive, endIndexInclusive, component, requestedStartComponentStartComparison);
-            } else {
-                newStoredStartIndex = component.endIndex + 1;
-                component.endIndex = startIndexInclusive - 1;
+            int componentArrayIndex = findReaderComponentIndex(startIndexInclusive); //here we're making sure that startIndexInclusive is between this component's start and end index
+            Component component;
+            for (; ; ) {
+                component = components[toArrayIndex(componentArrayIndex++)];
+                if (isEmpty(component)) {
+                    break;
+                }
+                if (component.endIndex <= endIndexInclusive) {
+                    component.reset();
+                } else {
+                    component.startIndex = startIndexInclusive;
+                    component.endIndex = endIndexInclusive;
+                    break;
+                }
             }
-            if (storedStartIndex == startIndexInclusive) {
-                storedStartIndex = newStoredStartIndex;
-            }
-            if (component.startIndex == component.endIndex + 1) {
-                component.reset();
-            }
-            if (requestedEndComponentEndComparison > 0) {
-                releaseData(storedStartIndex, endIndexInclusive);
-            }
+            updateStoredIndexes();
         }
     }
 
-    private int endIndexInsideComponent(int startIndexInclusive, int endIndexInclusive, Component component, int requestedStartComponentStartComparison) {
-        final int newStoredStartIndex;
-        if (requestedStartComponentStartComparison == 0) {
-            component.startIndex = endIndexInclusive + 1;
-            newStoredStartIndex = component.startIndex;
-        } else {
-            throw new IllegalArgumentException(String.format("Cannot leave holes after release, component<%d, %d>, requested <%d, %d>", component.startIndex, component.endIndex, startIndexInclusive, endIndexInclusive));
+    //TODO this is an easy, brute force approach :/ think about something better
+    private void updateStoredIndexes() {
+        int maxEndIndex = Integer.MIN_VALUE;
+        int minStartIndex = Integer.MAX_VALUE;
+        for (final Component component : components) {
+            final int endIndex = component.endIndex;
+            final int startIndex = component.startIndex;
+            if (endIndex > maxEndIndex) {
+                maxEndIndex = endIndex;
+            }
+            if (startIndex < minStartIndex) {
+                minStartIndex = startIndex;
+            }
         }
-        return newStoredStartIndex;
+        storedStartIndex = minStartIndex;
+        storedEndIndex = maxEndIndex;
     }
 
-    private int nextComponentIndex(int componentIndex) {
-        if (componentIndex + 1 >= components.length) {
-            return 0;
-        } else {
-            return componentIndex + 1;
-        }
+    private boolean coversWholeBuffer(int startIndexInclusive, int endIndexInclusive) {
+        return storedStartIndex >= startIndexInclusive && storedEndIndex <= endIndexInclusive;
+    }
+
+    private static boolean isEmpty(Component component) {
+        return component.buffer == null;
+    }
+
+    private int toArrayIndex(int index) {
+        return index & mask;
     }
 
     public void getBytes(int index, int length, byte[] destination) {
-        checkIndex(index, length);
-        int readerComponentIndex = findReaderComponentIndex(index, true);
+        int readerComponentIndex = findReaderComponentIndex(index);
         int remainingBytesToRead = length;
         int bytesRead = 0;
         int localReaderIndex = index;
         Component component;
         while (remainingBytesToRead > 0) {
-            readerComponentIndex = nextComponentIndex(readerComponentIndex);
-            component = components[readerComponentIndex];
+            component = components[toArrayIndex(readerComponentIndex++)];
             final int bytesReadFromComponent = readDataFromComponent(component, localReaderIndex, remainingBytesToRead, destination, bytesRead);
             bytesRead += bytesReadFromComponent;
             localReaderIndex += bytesReadFromComponent;
@@ -121,29 +129,18 @@ public class ByteBufComposer implements Resettable {
     }
 
     public byte getByte(int index) {
-        checkIndex(index, 1);
-        final Component component = components[findReaderComponentIndex(index, false)];
+        final Component component = components[findReaderComponentIndex(index)];
         return component.getBuffer().getByte(index - component.startIndex);
     }
 
-    private int findReaderComponentIndex(int index, boolean decrement) {
+    private int findReaderComponentIndex(int index) {
         for (int i = 0; i < components.length; i++) {
             final Component component = components[i];
             if (component.endIndex >= index && component.startIndex <= index) {
-                return decrement ? i - 1 : i;
+                return i;
             }
         }
         throw new IndexOutOfBoundsException(IOOBE_MESSAGE + index);
-    }
-
-    private void checkIndex(int index, int length) {
-        if (index < storedStartIndex || index > storedEndIndex) {
-            throw new IndexOutOfBoundsException(IOOBE_MESSAGE + index);
-        }
-        final int requestedEndIndex = index + length - 1;
-        if (requestedEndIndex < storedStartIndex || requestedEndIndex > storedEndIndex) {
-            throw new IndexOutOfBoundsException(IOOBE_MESSAGE + requestedEndIndex);
-        }
     }
 
     private int readDataFromComponent(Component component, int index, int maxLength, byte[] destination, int destinationIndex) {
@@ -156,10 +153,9 @@ public class ByteBufComposer implements Resettable {
 
     @Override
     public void reset() {
-        writeComponentIndex = 0;
-        storedStartIndex = INITIAL_VALUE;
-        storedEndIndex = INITIAL_VALUE;
+        arrayIndex = 0;
         readerIndex = 0;
+        storedEndIndex = INITIAL_VALUE;
         for (final Component component : components) {
             component.reset();
         }
@@ -178,14 +174,13 @@ public class ByteBufComposer implements Resettable {
      * Finds closest index of provided value that's greater than current reader index
      *
      * @param valueToFind value to look for
-     * @return index of given value or {@link #VALUE_NOT_FOUND}
+     * @return index of given value or {@link #NOT_FOUND}
      */
     public int indexOfClosest(byte valueToFind) {
-        int readerComponentIndex = findReaderComponentIndex(readerIndex, true);
+        int readerComponentIndex = findReaderComponentIndex(readerIndex);
         while (true) {
-            readerComponentIndex = nextComponentIndex(readerComponentIndex);
-            final Component component = components[readerComponentIndex];
-            if (component.buffer != null && component.endIndex >= readerIndex) {
+            final Component component = components[toArrayIndex(readerComponentIndex++)];
+            if (!isEmpty(component) && component.endIndex >= readerIndex) {
                 final int result = component.buffer.indexOf(readerIndex - component.startIndex, component.buffer.writerIndex(), valueToFind);
                 if (result != NOT_FOUND) {
                     return result + component.startIndex;
@@ -194,7 +189,7 @@ public class ByteBufComposer implements Resettable {
                 break;
             }
         }
-        return VALUE_NOT_FOUND;
+        return NOT_FOUND;
     }
 
     @Data

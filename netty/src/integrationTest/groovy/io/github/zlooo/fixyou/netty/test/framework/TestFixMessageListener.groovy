@@ -40,7 +40,7 @@ class TestFixMessageListener implements FixMessageListener {
         copy.readerIndex = composer.readerIndex;
         copy.storedStartIndex = composer.storedStartIndex;
         copy.storedEndIndex = composer.storedEndIndex;
-        copy.writeComponentIndex = composer.writeComponentIndex;
+        copy.arrayIndex = composer.arrayIndex;
         for (int i = 0; i < composer.components.length; i++) {
             def component = composer.components[i];
             def componentCopy = new ByteBufComposer.Component();
