@@ -6,15 +6,16 @@ import io.netty.buffer.CompositeByteBuf;
 import lombok.Data;
 import lombok.Getter;
 
+import java.nio.charset.StandardCharsets;
+
 /**
- * Class quite similar in concept to {@link CompositeByteBuf}. It also acts as a view that composes multiple {@link ByteBuf} into single, continuous stream of bytes. Main difference is that once component is removed this class reader
- * index remains unchanged and points to the same place. This means that it's possible to have a situation where this class in unable to provide data for given reader index. Let's imagine a situation where component 1 holds 5 bytes,
- * component 2 holds 10 bytes. If a reader index is 6, data will be read from component 2 second byte, same as with {@link CompositeByteBuf}. However if composite 1 is removed before this theoretical read this class will read the same
- * data, {@link CompositeByteBuf} would read 6th byte of composite 2 instead
+ * Class quite similar in concept to {@link CompositeByteBuf} but tailored to FIXYou needs. It also acts as a view that composes multiple {@link ByteBuf} into single, continuous stream of bytes. Main difference is that once component is
+ * removed this class reader index remains unchanged and points to the same place. This means that it's possible to have a situation where this class in unable to provide data for given reader index. Let's imagine a situation where
+ * component 1 holds 5 bytes, component 2 holds 10 bytes. If a reader index is 6, data will be read from component 2 second byte, same as with {@link CompositeByteBuf}. However if composite 1 is removed before this theoretical read this
+ * class will read the same data, {@link CompositeByteBuf} would read 6th byte of composite 2 instead. Generally speaking this is <B>NOT</B> a general purpose class so you use it in your code at your own risk.
  */
 public class ByteBufComposer implements Resettable {
 
-    //        public static final int VALUE_NOT_FOUND = Integer.MIN_VALUE;
     public static final int NOT_FOUND = -1;
     private static final int INITIAL_VALUE = -1;
     private static final String IOOBE_MESSAGE = "This instance does not contain data for index ";
@@ -71,11 +72,20 @@ public class ByteBufComposer implements Resettable {
                 if (isEmpty(component)) {
                     break;
                 }
-                if (component.endIndex <= endIndexInclusive) {
+                final boolean endEqualsOrExceedsComponentsEnd = component.endIndex <= endIndexInclusive;
+                final boolean startEqualsOrPrecedesComponentsStart = startIndexInclusive <= component.startIndex;
+                if (!(startEqualsOrPrecedesComponentsStart || endEqualsOrExceedsComponentsEnd)) {
+                    throw new IllegalArgumentException(
+                            String.format("No holes allowed, after releasing <%1$d, %2$d> from <%3$d, %4$d> we'd have 1 ranges", startIndexInclusive, endIndexInclusive, component.startIndex, component.endIndex));
+                }
+                if (endEqualsOrExceedsComponentsEnd && startEqualsOrPrecedesComponentsStart) {
                     component.reset();
                 } else {
-                    component.startIndex = startIndexInclusive;
-                    component.endIndex = endIndexInclusive;
+                    if (startEqualsOrPrecedesComponentsStart) {
+                        component.startIndex = endIndexInclusive + 1;
+                    } else {
+                        component.endIndex = startIndexInclusive - 1;
+                    }
                     break;
                 }
             }
@@ -93,7 +103,7 @@ public class ByteBufComposer implements Resettable {
             if (endIndex > maxEndIndex) {
                 maxEndIndex = endIndex;
             }
-            if (startIndex < minStartIndex) {
+            if (startIndex != INITIAL_VALUE && startIndex < minStartIndex) {
                 minStartIndex = startIndex;
             }
         }
@@ -114,6 +124,7 @@ public class ByteBufComposer implements Resettable {
     }
 
     public void getBytes(int index, int length, byte[] destination) {
+        checkIndex(index, length);
         int readerComponentIndex = findReaderComponentIndex(index);
         int remainingBytesToRead = length;
         int bytesRead = 0;
@@ -125,6 +136,16 @@ public class ByteBufComposer implements Resettable {
             bytesRead += bytesReadFromComponent;
             localReaderIndex += bytesReadFromComponent;
             remainingBytesToRead -= bytesReadFromComponent;
+        }
+    }
+
+    private void checkIndex(int index, int length) {
+        if (index < storedStartIndex || index > storedEndIndex) {
+            throw new IndexOutOfBoundsException(IOOBE_MESSAGE + index);
+        }
+        final int requestedEndIndex = index + length - 1;
+        if (requestedEndIndex < storedStartIndex || requestedEndIndex > storedEndIndex) {
+            throw new IndexOutOfBoundsException(IOOBE_MESSAGE + requestedEndIndex);
         }
     }
 
@@ -155,6 +176,7 @@ public class ByteBufComposer implements Resettable {
     public void reset() {
         arrayIndex = 0;
         readerIndex = 0;
+        storedStartIndex = INITIAL_VALUE;
         storedEndIndex = INITIAL_VALUE;
         for (final Component component : components) {
             component.reset();
@@ -209,6 +231,12 @@ public class ByteBufComposer implements Resettable {
             }
             startIndex = INITIAL_VALUE;
             endIndex = INITIAL_VALUE;
+        }
+
+        @Override
+        public String toString() {
+            return "ByteBufComposer.Component(startIndex=" + this.getStartIndex() + ", endIndex=" + this.getEndIndex() + ", buffer=" + (this.getBuffer() != null ?
+                    this.getBuffer().toString(0, this.getBuffer().writerIndex(), StandardCharsets.US_ASCII) : null) + ")";
         }
     }
 }

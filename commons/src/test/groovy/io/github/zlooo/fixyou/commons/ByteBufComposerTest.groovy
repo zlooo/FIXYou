@@ -92,6 +92,7 @@ class ByteBufComposerTest extends Specification {
 
         then:
         composer.storedEndIndex == -1
+        composer.storedStartIndex == -1
         composer.arrayIndex == 0
         composer.readerIndex == 0
         Assertions.assertThat(composer.components).containsOnly(EMPTY_COMPONENT)
@@ -143,7 +144,7 @@ class ByteBufComposerTest extends Specification {
         then:
         composer.components[0].startIndex == 0
         composer.components[0].endIndex == 4
-        composer.components[1].startIndex == endIndex+1
+        composer.components[1].startIndex == endIndex + 1
         composer.components[1].endIndex == 9
         composer.components[2].startIndex == 10
         composer.components[2].endIndex == 14
@@ -210,7 +211,61 @@ class ByteBufComposerTest extends Specification {
         bufferToAdd3.refCnt() == 2
     }
 
-    def "should not get released part of buffer"(){
+    def "should release data not in order which they were added"() {
+        setup:
+        def bufferToAdd1 = Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[])
+        def bufferToAdd2 = Unpooled.wrappedBuffer([6, 7, 8, 9, 10] as byte[])
+        def bufferToAdd3 = Unpooled.wrappedBuffer([11, 12, 13, 14, 15] as byte[])
+        composer.addByteBuf(bufferToAdd1)
+        composer.addByteBuf(bufferToAdd2)
+        composer.addByteBuf(bufferToAdd3)
+
+        when:
+        composer.releaseData(5, 9)
+        composer.releaseData(0, 4)
+        composer.releaseData(10, 12)
+
+        then:
+        composer.components[0].startIndex == ByteBufComposer.INITIAL_VALUE
+        composer.components[0].endIndex == ByteBufComposer.INITIAL_VALUE
+        composer.components[1].startIndex == ByteBufComposer.INITIAL_VALUE
+        composer.components[1].endIndex == ByteBufComposer.INITIAL_VALUE
+        composer.components[2].startIndex == 13
+        composer.components[2].endIndex == 14
+        composer.storedEndIndex == 14
+        bufferToAdd1.refCnt() == 1
+        bufferToAdd2.refCnt() == 1
+        bufferToAdd3.refCnt() == 2
+    }
+
+    def "should allow to release more than buffer contains"() {
+        setup:
+        def bufferToAdd = Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[])
+        composer.addByteBuf(bufferToAdd)
+        composer.releaseData(0, 1)
+
+        when:
+        composer.releaseData(startIndex, endIndex)
+
+        then:
+        composer.storedEndIndex == -1
+        composer.storedStartIndex == -1
+        composer.arrayIndex == 0
+        composer.readerIndex == 0
+        Assertions.assertThat(composer.components).containsOnly(EMPTY_COMPONENT)
+        bufferToAdd.refCnt() == 1
+
+        where:
+        startIndex | endIndex
+        0          | 4
+        0          | 5
+        0          | 10
+        1          | 4
+        1          | 5
+        1          | 10
+    }
+
+    def "should not get released part of buffer"() {
         setup:
         def bufferToAdd1 = Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[])
         def bufferToAdd2 = Unpooled.wrappedBuffer([6, 7, 8, 9, 10] as byte[])
@@ -230,18 +285,18 @@ class ByteBufComposerTest extends Specification {
     def "should get bytes after buffer overlap"() {
         setup:
         List<ByteBuf> buffers = []
-        (0..9).forEach { buffers.add(Unpooled.wrappedBuffer([it] as byte[])) }
+        (0..15).forEach { buffers.add(Unpooled.wrappedBuffer([it] as byte[])) }
         buffers.forEach { composer.addByteBuf(it) }
         composer.releaseData(0, 4)
-        (10..13).forEach { buffers.add(Unpooled.wrappedBuffer([it] as byte[])) }
-        buffers.subList(10, buffers.size()).forEach { composer.addByteBuf(it) }
+        (16..18).forEach { buffers.add(Unpooled.wrappedBuffer([it] as byte[])) }
+        buffers.subList(16, buffers.size()).forEach { composer.addByteBuf(it) }
         def destination = new byte[10]
 
         when:
-        composer.getBytes(8, 3, destination)
+        composer.getBytes(14, 3, destination)
 
         then:
-        Assertions.assertThat(destination).containsExactly(resize([8, 9, 10] as byte[], destination.length))
+        Assertions.assertThat(destination).containsExactly(resize([14, 15, 16] as byte[], destination.length))
     }
 
     def "should get bytes"() {
@@ -363,8 +418,8 @@ class ByteBufComposerTest extends Specification {
         1 as byte     | 0
         3 as byte     | 2
         5 as byte     | 4
-        11 as byte    | ByteBufComposer.VALUE_NOT_FOUND
-        128 as byte   | ByteBufComposer.VALUE_NOT_FOUND
+        11 as byte    | ByteBufComposer.NOT_FOUND
+        128 as byte   | ByteBufComposer.NOT_FOUND
     }
 
     def "should find index of closest"() {
@@ -386,8 +441,8 @@ class ByteBufComposerTest extends Specification {
         8 as byte     | 7
         9 as byte     | 8
         10 as byte    | 9
-        11 as byte    | ByteBufComposer.VALUE_NOT_FOUND
-        128 as byte   | ByteBufComposer.VALUE_NOT_FOUND
+        11 as byte    | ByteBufComposer.NOT_FOUND
+        128 as byte   | ByteBufComposer.NOT_FOUND
     }
 
     def "should find index of closest when reader index is moved"() {
@@ -421,6 +476,7 @@ class ByteBufComposerTest extends Specification {
 
         then:
         composer.arrayIndex == 0;
+        composer.storedStartIndex == -1;
         composer.storedEndIndex == -1;
         composer.readerIndex == 0;
         Assertions.assertThat(composer.components).containsOnly(EMPTY_COMPONENT)

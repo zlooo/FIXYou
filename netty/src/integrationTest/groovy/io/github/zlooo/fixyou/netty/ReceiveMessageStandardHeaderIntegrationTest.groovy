@@ -152,7 +152,10 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
         sendMessage(channel, FixMessages.newOrderSingle(sessionID, 4))
-        def sequence2Resend = FixMessages.newOrderSingle(sessionID, 2, { msg -> msg.getHeader().setBoolean(PossDupFlag.FIELD, true) })
+        def sequence2Resend = FixMessages.newOrderSingle(sessionID, 2, { msg ->
+            msg.getHeader().setBoolean(PossDupFlag.FIELD, true)
+            msg.getHeader().setUtcTimeStamp(OrigSendingTime.FIELD, LocalDateTime.now(ZoneOffset.UTC).minusHours(1))
+        })
         sendMessage(channel, sequence2Resend)
 
         when:
