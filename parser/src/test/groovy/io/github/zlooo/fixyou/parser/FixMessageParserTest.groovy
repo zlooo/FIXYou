@@ -36,6 +36,8 @@ class FixMessageParserTest extends Specification {
         fixMessageParser.isDone()
         fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
         assertSimpleNewOrderSingle(fixMessage)
+        fixMessage.getStartIndex() == 0
+        fixMessage.getEndIndex() == simpleNewOrderSingle.length() - 1
     }
 
     def "should discard garbage data from fix message"() {
@@ -50,6 +52,8 @@ class FixMessageParserTest extends Specification {
         fixMessageParser.isDone()
         fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
         assertSimpleNewOrderSingle(fixMessage)
+        fixMessage.getStartIndex() == 0
+        fixMessage.getEndIndex() == simpleNewOrderSingle.length() + "garbage garbage".length() - 1
     }
 
     def "should parse execution report message, message with repeating group(382)"() {
@@ -110,6 +114,8 @@ class FixMessageParserTest extends Specification {
         fixMessage.getField(29).value == "1" as char
         fixMessage.getField(63).value.toString() == "0"
         fixMessage.getField(10).value.toString() == "080"
+        fixMessage.getStartIndex() == 0
+        fixMessage.getEndIndex() == message.length() - 1
     }
 
     def "should parse execution report message, message with multiple occurrences of repeating group(382)"() {
@@ -175,6 +181,8 @@ class FixMessageParserTest extends Specification {
         fixMessage.getField(29).value == "1" as char
         fixMessage.getField(63).value.toString() == "0"
         fixMessage.getField(10).value.toString() == "080"
+        fixMessage.getStartIndex() == 0
+        fixMessage.getEndIndex() == message.length() - 1
     }
 
     def "should parse fake confirmation message, message with nested repeating groups"() {
@@ -215,6 +223,8 @@ class FixMessageParserTest extends Specification {
         settlPartiesGroup2.@repetitionCounter == 1
         settlPartiesGroup2.getField(0, 782).value.toString() == 'ID3'
         settlPartiesGroup2.getField(1, 782).value.toString() == 'ID4'
+        fixMessage.getStartIndex() == 0
+        fixMessage.getEndIndex() == message.length() - 1
     }
 
     def "should check if can continue parsing"() {
@@ -254,11 +264,14 @@ class FixMessageParserTest extends Specification {
         fixMessage.getField(56).value.toString() == "ABC_DEFG01"
         !fixMessage.getField(52).isValueSet()
         !fixMessageParser.canContinueParsing()
+        fixMessage.getStartIndex() == 0
+        fixMessage.getEndIndex() == 0
     }
 
     def "should set new fix message"() {
         setup:
         def byteBufComposer = new ByteBufComposer(1)
+        byteBufComposer.readerIndex(10)
         fixMessageParser = new FixMessageParser(byteBufComposer)
         fixMessageParser.storedEndIndexOfLastUnfinishedMessage = 666
 
@@ -268,6 +281,7 @@ class FixMessageParserTest extends Specification {
         then:
         fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
         fixMessage.messageByteSource == byteBufComposer
+        fixMessage.getStartIndex() == byteBufComposer.readerIndex()
     }
 
     def "should parse simple new order single fragmented with garbage"() {

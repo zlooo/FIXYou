@@ -59,6 +59,8 @@ class SessionHandlerTest extends Specification {
         beginStringField.endIndex = 15
         ByteBufComposer byteBufComposer = Mock()
         fixMessage.setMessageByteSource(byteBufComposer)
+        fixMessage.startIndex = 1
+        fixMessage.endIndex = 10
 
         when:
         sessionHandler.channelRead(channelHandlerContext, fixMessage)
@@ -68,7 +70,7 @@ class SessionHandlerTest extends Specification {
         sessionHandler.@nextExpectedInboundSequenceNumber == 666L
         sessionHandler.@lastOutboundSequenceNumber == SessionHandler.DEFAULT_OUTBOUND_SEQUENCE_NUMBER
         sessionHandler.@sequenceNumberToQueuedFixMessages.isEmpty()
-        1 * byteBufComposer.releaseData(0 - 2, newSequenceNumberField.endIndex)
+        1 * byteBufComposer.releaseData(1, 10)
         0 * _
     }
 
@@ -82,6 +84,8 @@ class SessionHandlerTest extends Specification {
         beginStringField.setIndexes(8, 15)
         ByteBufComposer byteBufComposer = Mock()
         fixMessage.setMessageByteSource(byteBufComposer)
+        fixMessage.startIndex = 1
+        fixMessage.endIndex = 10
 
         when:
         sessionHandler.channelRead(channelHandlerContext, fixMessage)
@@ -91,7 +95,7 @@ class SessionHandlerTest extends Specification {
         sessionHandler.@nextExpectedInboundSequenceNumber == 666L
         sessionHandler.@lastOutboundSequenceNumber == SessionHandler.DEFAULT_OUTBOUND_SEQUENCE_NUMBER
         sessionHandler.@sequenceNumberToQueuedFixMessages.isEmpty()
-        1 * byteBufComposer.releaseData(0 - 2, beginStringField.endIndex)
+        1 * byteBufComposer.releaseData(1, 10)
         0 * _
     }
 
@@ -157,6 +161,8 @@ class SessionHandlerTest extends Specification {
         beginStringField.setIndexes(8, 15)
         ByteBufComposer byteBufComposer = Mock()
         fixMessage.setMessageByteSource(byteBufComposer)
+        fixMessage.startIndex = 1
+        fixMessage.endIndex = 10
 
         when:
         sessionHandler.channelRead(channelHandlerContext, fixMessage)
@@ -166,7 +172,7 @@ class SessionHandlerTest extends Specification {
         sessionHandler.@nextExpectedInboundSequenceNumber == 666L
         sessionHandler.@lastOutboundSequenceNumber == SessionHandler.DEFAULT_OUTBOUND_SEQUENCE_NUMBER
         sessionHandler.@sequenceNumberToQueuedFixMessages.isEmpty()
-        1 * byteBufComposer.releaseData(0 - 2, beginStringField.endIndex)
+        1 * byteBufComposer.releaseData(1, 10)
         0 * _
     }
 
@@ -387,6 +393,8 @@ class SessionHandlerTest extends Specification {
         ByteBufComposer byteBufComposer = Mock()
         sequenceReset.setMessageByteSource(byteBufComposer)
         sequenceReset.retain()
+        sequenceReset.startIndex = 1
+        sequenceReset.endIndex = 10
         sessionHandler.@sequenceNumberToQueuedFixMessages.putAll([(1L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (2L): sequenceReset])
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 1L
 
@@ -400,7 +408,7 @@ class SessionHandlerTest extends Specification {
         sessionHandler.@nextExpectedInboundSequenceNumber == 10L
         sessionHandler.@lastOutboundSequenceNumber == SessionHandler.DEFAULT_OUTBOUND_SEQUENCE_NUMBER
         Assertions.assertThat(sessionHandler.@sequenceNumberToQueuedFixMessages).isEmpty()
-        1 * byteBufComposer.releaseData(0 - 2, beginStringField.endIndex)
+        1 * byteBufComposer.releaseData(1, 10)
         0 * _
     }
 
@@ -416,6 +424,8 @@ class SessionHandlerTest extends Specification {
         beginStringField.setIndexes(8, 15)
         ByteBufComposer byteBufComposer = Mock()
         fixMessage.setMessageByteSource(byteBufComposer)
+        fixMessage.startIndex = 1
+        fixMessage.endIndex = 10
 
         when:
         sessionHandler.channelRead(channelHandlerContext, fixMessage)
@@ -426,7 +436,7 @@ class SessionHandlerTest extends Specification {
         sessionHandler.@nextExpectedInboundSequenceNumber == 4L
         sessionHandler.@lastOutboundSequenceNumber == SessionHandler.DEFAULT_OUTBOUND_SEQUENCE_NUMBER
         Assertions.assertThat(sessionHandler.@sequenceNumberToQueuedFixMessages).isEmpty()
-        1 * byteBufComposer.releaseData(0 - 2, beginStringField.endIndex)
+        1 * byteBufComposer.releaseData(1, 10)
         0 * _
     }
 
@@ -440,6 +450,8 @@ class SessionHandlerTest extends Specification {
         beginStringField.setIndexes(8, 15)
         ByteBufComposer byteBufComposer = Mock()
         fixMessage.setMessageByteSource(byteBufComposer)
+        fixMessage.startIndex = 1
+        fixMessage.endIndex = 10
 
         when:
         sessionHandler.channelRead(channelHandlerContext, fixMessage)
@@ -450,7 +462,7 @@ class SessionHandlerTest extends Specification {
         sessionHandler.@nextExpectedInboundSequenceNumber == 4L
         sessionHandler.@lastOutboundSequenceNumber == SessionHandler.DEFAULT_OUTBOUND_SEQUENCE_NUMBER
         Assertions.assertThat(sessionHandler.@sequenceNumberToQueuedFixMessages).isEmpty()
-        1 * byteBufComposer.releaseData(0 - 2, beginStringField.endIndex)
+        1 * byteBufComposer.releaseData(1, 10)
         0 * _
     }
 
@@ -463,6 +475,8 @@ class SessionHandlerTest extends Specification {
         beginStringField.setIndexes(8, 15)
         ByteBufComposer byteBufComposer = Mock()
         someFixMessage.setMessageByteSource(byteBufComposer)
+        someFixMessage.startIndex = 1
+        someFixMessage.endIndex = 10
         sessionHandler.@sequenceNumberToQueuedFixMessages.putAll([(1L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (2L): someFixMessage])
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 1L
 
@@ -476,7 +490,7 @@ class SessionHandlerTest extends Specification {
         sessionHandler.@nextExpectedInboundSequenceNumber == 3L
         sessionHandler.@lastOutboundSequenceNumber == SessionHandler.DEFAULT_OUTBOUND_SEQUENCE_NUMBER
         Assertions.assertThat(sessionHandler.@sequenceNumberToQueuedFixMessages).isEmpty()
-        1 * byteBufComposer.releaseData(0 - 2, beginStringField.endIndex)
+        1 * byteBufComposer.releaseData(1, 10)
         0 * _
     }
 

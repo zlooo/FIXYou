@@ -7,6 +7,7 @@ import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.parser.utils.FieldTypeUtils;
 import io.github.zlooo.fixyou.utils.AsciiCodes;
 import lombok.Getter;
+import lombok.Setter;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -23,6 +24,10 @@ public class FixMessage extends AbstractPoolableObject {
     private final AbstractField[] fieldsOrdered;
     private final AbstractField[] fields;
     private ByteBufComposer messageByteSource;
+    @Setter
+    private int startIndex;
+    @Setter
+    private int endIndex;
 
     public FixMessage(@Nonnull FixSpec spec) {
         final int[] fieldsOrder = spec.getFieldsOrder();
@@ -94,25 +99,17 @@ public class FixMessage extends AbstractPoolableObject {
     }
 
     public void resetAllDataFieldsAndReleaseByteSource() {
-        int maxIndex = 0;
-        int minIndex = Integer.MAX_VALUE;
         for (final AbstractField field : fieldsOrdered) {
             if (field.isValueSet()) {
-                final int endIndex = field.getEndIndex();
-                if (maxIndex < endIndex) {
-                    maxIndex = endIndex;
-                }
-                final int startIndex = field.getStartIndex();
-                if (minIndex > startIndex) {
-                    minIndex = startIndex;
-                }
                 field.reset();
             }
         }
         if (messageByteSource != null) {
-            messageByteSource.releaseData(minIndex - 2/*-2 because 8=*/, maxIndex);
+            messageByteSource.releaseData(startIndex, endIndex);
         }
         setMessageByteSource(null);
+        startIndex = 0;
+        endIndex = 0;
     }
 
     @Override

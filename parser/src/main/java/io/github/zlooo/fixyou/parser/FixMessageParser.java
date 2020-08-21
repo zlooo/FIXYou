@@ -62,6 +62,7 @@ public class FixMessageParser implements Resettable {
         this.fixMessage = fixMessage;
         if (fixMessage != null) {
             this.fixMessage.setMessageByteSource(bytesToParse);
+            this.fixMessage.setStartIndex(bytesToParse.readerIndex());
         }
         storedEndIndexOfLastUnfinishedMessage = 0;
     }
@@ -99,6 +100,7 @@ public class FixMessageParser implements Resettable {
             }
             if (fieldNum == FixConstants.CHECK_SUM_FIELD_NUMBER) {
                 storedEndIndexOfLastUnfinishedMessage = 0;
+                fixMessage.setEndIndex(closestFieldTerminatorIndex);
                 return;
             }
         }

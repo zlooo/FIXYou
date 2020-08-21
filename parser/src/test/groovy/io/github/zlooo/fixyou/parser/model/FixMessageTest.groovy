@@ -35,6 +35,8 @@ class FixMessageTest extends Specification {
         booleanField.endIndex = 13
         def messageByteSource = Mock(ByteBufComposer)
         fixMessage.@messageByteSource = messageByteSource
+        fixMessage.startIndex = 1
+        fixMessage.endIndex = 2
 
         when:
         fixMessage.resetAllDataFieldsAndReleaseByteSource()
@@ -42,28 +44,10 @@ class FixMessageTest extends Specification {
         then:
         !longField.isValueSet()
         !booleanField.isValueSet()
-        1 * messageByteSource.releaseData(longField.startIndex - 2, booleanField.endIndex)
+        1 * messageByteSource.releaseData(1, 2)
         fixMessage.@messageByteSource == null
-    }
-
-    def "should reset all data fields and not release message byte source if message source is already scheduled for release"() {
-        setup:
-        def longField = fixMessage.getField(TestSpec.LONG_FIELD_NUMBER)
-        longField.value = 666L
-        longField.endIndex = 10
-        def booleanField = fixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER)
-        booleanField.value = true
-        booleanField.endIndex = 13
-        def messageByteSource = Mock(ByteBufComposer)
-        fixMessage.@messageByteSource = messageByteSource
-
-        when:
-        fixMessage.resetAllDataFieldsAndReleaseByteSource()
-
-        then:
-        !longField.isValueSet()
-        !booleanField.isValueSet()
-        fixMessage.@messageByteSource == null
+        fixMessage.startIndex == 0
+        fixMessage.endIndex == 0
     }
 
     def "should close fields when message is closed"() {
