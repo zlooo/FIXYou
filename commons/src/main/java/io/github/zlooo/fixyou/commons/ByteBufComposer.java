@@ -53,6 +53,7 @@ public class ByteBufComposer implements Resettable {
             component.startIndex = 0;
             storedStartIndex = 0;
         }
+        component.offset = component.startIndex;
         component.endIndex = component.startIndex + byteBuf.readableBytes() - 1;
         storedEndIndex = component.endIndex;
         component.buffer = byteBuf;
@@ -151,7 +152,7 @@ public class ByteBufComposer implements Resettable {
 
     public byte getByte(int index) {
         final Component component = components[findReaderComponentIndex(index)];
-        return component.getBuffer().getByte(index - component.startIndex);
+        return component.getBuffer().getByte(index - component.offset);
     }
 
     private int findReaderComponentIndex(int index) {
@@ -165,7 +166,7 @@ public class ByteBufComposer implements Resettable {
     }
 
     private int readDataFromComponent(Component component, int index, int maxLength, byte[] destination, int destinationIndex) {
-        final int startIndex = index - component.startIndex;
+        final int startIndex = index - component.offset;
         final ByteBuf buffer = component.buffer;
         final int numberOfBytesToTransfer = Math.min(maxLength, buffer.capacity() - startIndex);
         buffer.getBytes(startIndex, destination, destinationIndex, numberOfBytesToTransfer);
@@ -218,6 +219,7 @@ public class ByteBufComposer implements Resettable {
     private static final class Component implements Resettable {
         private int startIndex = INITIAL_VALUE;
         private int endIndex = INITIAL_VALUE;
+        private int offset;
         private ByteBuf buffer;
 
         public Component() {
@@ -231,6 +233,7 @@ public class ByteBufComposer implements Resettable {
             }
             startIndex = INITIAL_VALUE;
             endIndex = INITIAL_VALUE;
+            offset = 0;
         }
 
         @Override

@@ -5,6 +5,8 @@ import io.netty.buffer.Unpooled
 import org.assertj.core.api.Assertions
 import spock.lang.Specification
 
+import java.nio.charset.StandardCharsets
+
 class ByteBufComposerTest extends Specification {
 
     public static final ByteBufComposer.Component EMPTY_COMPONENT = new ByteBufComposer.Component()
@@ -384,6 +386,19 @@ class ByteBufComposerTest extends Specification {
         8     | 1
         0     | 9
         0     | 10
+    }
+
+    def "should get bytes from partially released buffer"() {
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer("abcdef".getBytes(StandardCharsets.US_ASCII)))
+        composer.releaseData(0, 2)
+        def dest = new byte[10]
+
+        when:
+        composer.getBytes(3, 3, dest)
+
+        then:
+        Assertions.assertThat(dest).containsExactly(resize("def".getBytes(StandardCharsets.US_ASCII), dest.length))
     }
 
     def "should get byte"() {
