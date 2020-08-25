@@ -238,7 +238,7 @@ public class ByteBufComposer implements Resettable {
 
         @Override
         public String toString() {
-            return "ByteBufComposer.Component(startIndex=" + this.getStartIndex() + ", endIndex=" + this.getEndIndex() + ", buffer=" + (this.getBuffer() != null ?
+            return "ByteBufComposer.Component(startIndex=" + this.getStartIndex() + ", endIndex=" + this.getEndIndex() + ", offset=" + this.getOffset() + ", buffer=" + (this.getBuffer() != null ?
                     this.getBuffer().toString(0, this.getBuffer().writerIndex(), StandardCharsets.US_ASCII) : null) + ")";
         }
     }

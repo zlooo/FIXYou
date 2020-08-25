@@ -82,8 +82,9 @@ class MessageDecoderTest extends Specification {
         this.fixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
         messageDecoder.byteBufComposer.storedStartIndex == 0
         messageDecoder.byteBufComposer.storedEndIndex == encodedMessagePart1.writerIndex() + encodedMessagePart2.writerIndex() - 1
-        def expectedComponent1 = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessagePart1.writerIndex() - 1, buffer: encodedMessagePart1)
-        def expectedComponent2 = new ByteBufComposer.Component(startIndex: expectedComponent1.endIndex + 1, endIndex: expectedComponent1.endIndex + 1 + encodedMessagePart2.writerIndex() - 1, buffer: encodedMessagePart2)
+        def expectedComponent1 = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessagePart1.writerIndex() - 1, buffer: encodedMessagePart1, offset: 0)
+        def expectedComponent2 = new ByteBufComposer.Component(startIndex: expectedComponent1.endIndex + 1, endIndex: expectedComponent1.endIndex + 1 + encodedMessagePart2.writerIndex() - 1, buffer: encodedMessagePart2,
+                                                               offset: expectedComponent1.endIndex + 1)
         Assertions.assertThat(messageDecoder.byteBufComposer.components)
                   .containsOnlyOnce(expectedComponent1)
                   .containsOnlyOnce(expectedComponent2)
@@ -118,8 +119,9 @@ class MessageDecoderTest extends Specification {
         encodedMessage1Part2.refCnt() == 1
         messageDecoder.byteBufComposer.storedStartIndex == 0
         messageDecoder.byteBufComposer.storedEndIndex == encodedMessage1Part1.writerIndex() + encodedMessage1Part2.writerIndex() - 1
-        def expectedComponent1 = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessage1Part1.writerIndex() - 1, buffer: encodedMessage1Part1)
-        def expectedComponent2 = new ByteBufComposer.Component(startIndex: expectedComponent1.endIndex + 1, endIndex: expectedComponent1.endIndex + 1 + encodedMessage1Part2.writerIndex() - 1, buffer: encodedMessage1Part2)
+        def expectedComponent1 = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessage1Part1.writerIndex() - 1, buffer: encodedMessage1Part1, offset: 0)
+        def expectedComponent2 = new ByteBufComposer.Component(startIndex: expectedComponent1.endIndex + 1, endIndex: expectedComponent1.endIndex + 1 + encodedMessage1Part2.writerIndex() - 1, buffer: encodedMessage1Part2,
+                                                               offset: expectedComponent1.endIndex + 1)
         Assertions.assertThat(messageDecoder.byteBufComposer.components)
                   .containsOnlyOnce(expectedComponent1)
                   .containsOnlyOnce(expectedComponent2)
@@ -143,8 +145,9 @@ class MessageDecoderTest extends Specification {
         1 * channelHandlerContext.fireChannelRead(fixMessage)
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
         fixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
-        def expectedComponent3 = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessage2Part1.writerIndex() - 1, buffer: encodedMessage2Part1)
-        def expectedComponent4 = new ByteBufComposer.Component(startIndex: expectedComponent3.endIndex + 1, endIndex: expectedComponent3.endIndex + 1 + encodedMessage2Part2.writerIndex() - 1, buffer: encodedMessage2Part2)
+        def expectedComponent3 = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessage2Part1.writerIndex() - 1, buffer: encodedMessage2Part1, offset: 0)
+        def expectedComponent4 = new ByteBufComposer.Component(startIndex: expectedComponent3.endIndex + 1, endIndex: expectedComponent3.endIndex + 1 + encodedMessage2Part2.writerIndex() - 1, buffer: encodedMessage2Part2,
+                                                               offset: expectedComponent3.endIndex + 1)
         Assertions.assertThat(messageDecoder.byteBufComposer.components)
                   .containsOnlyOnce(expectedComponent3)
                   .containsOnlyOnce(expectedComponent4)
@@ -245,8 +248,9 @@ class MessageDecoderTest extends Specification {
         fixMessage2.messageByteSource.is(messageDecoder.byteBufComposer)
         encodedMessagePart1.refCnt() == 1
         encodedMessagePart2.refCnt() == 1
-        def expectedComponent = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessagePart1.writerIndex() - 1, buffer: encodedMessagePart1)
-        def expectedComponent2 = new ByteBufComposer.Component(startIndex: expectedComponent.endIndex + 1, endIndex: expectedComponent.endIndex + 1 + encodedMessagePart2.writerIndex() - 1, buffer: encodedMessagePart2)
+        def expectedComponent = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessagePart1.writerIndex() - 1, buffer: encodedMessagePart1, offset: 0)
+        def expectedComponent2 = new ByteBufComposer.Component(startIndex: expectedComponent.endIndex + 1, endIndex: expectedComponent.endIndex + 1 + encodedMessagePart2.writerIndex() - 1, buffer: encodedMessagePart2,
+                                                               offset: expectedComponent.endIndex + 1)
         Assertions.assertThat(messageDecoder.byteBufComposer.components)
                   .containsOnlyOnce(expectedComponent)
                   .containsOnlyOnce(expectedComponent2)
