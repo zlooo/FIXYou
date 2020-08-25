@@ -46,6 +46,7 @@ class TestFixMessageListener implements FixMessageListener {
             def componentCopy = new ByteBufComposer.Component();
             componentCopy.startIndex = component.startIndex;
             componentCopy.endIndex = component.endIndex;
+            componentCopy.offset = component.offset
             if (componentCopy.startIndex != ByteBufComposer.INITIAL_VALUE) {
                 componentCopy.buffer = component.buffer;
                 componentCopy.buffer.retain();
