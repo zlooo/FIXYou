@@ -7,7 +7,9 @@ import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
+import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.EventLoop
 import org.assertj.core.api.Assertions
 import org.assertj.core.data.Index
 import spock.lang.Specification
@@ -284,5 +286,56 @@ class MessageDecoderTest extends Specification {
         fixMessage2.messageByteSource == null
         encodedMessagePart1.refCnt() == 0
         encodedMessagePart2.refCnt() == 0
+    }
+
+    def "should schedule task when message pool is empty"() {
+        setup:
+        ByteBuf encodedMessage = Unpooled.wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
+        Channel channel = Mock()
+        EventLoop eventLoop = Mock()
+        messageDecoder.readTask.taskScheduled = false
+
+        when:
+        messageDecoder.channelRead(channelHandlerContext, encodedMessage)
+
+        then:
+        encodedMessage.refCnt() == 1
+        1 * fixMessageObjectPool.tryGetAndRetain() >> null
+        1 * channelHandlerContext.channel() >> channel
+        1 * channel.eventLoop() >> eventLoop
+        1 * eventLoop.execute(messageDecoder.readTask)
+        messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
+        messageDecoder.byteBufComposer.storedStartIndex == 0
+        messageDecoder.byteBufComposer.storedEndIndex == encodedMessage.writerIndex() - 1
+        def expectedComponent = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessage.writerIndex() - 1, buffer: encodedMessage)
+        Assertions.assertThat(messageDecoder.byteBufComposer.components)
+                  .containsOnlyOnce(expectedComponent)
+                  .contains(expectedComponent, Index.atIndex(0))
+                  .containsOnly(expectedComponent, new ByteBufComposer.Component())
+        messageDecoder.readTask.taskScheduled
+        0 * _
+    }
+
+    def "should not schedule task when message pool is empty and task is already scheduled"() {
+        setup:
+        ByteBuf encodedMessage = Unpooled.wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
+        messageDecoder.readTask.taskScheduled = true
+
+        when:
+        messageDecoder.channelRead(channelHandlerContext, encodedMessage)
+
+        then:
+        encodedMessage.refCnt() == 1
+        1 * fixMessageObjectPool.tryGetAndRetain() >> null
+        messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
+        messageDecoder.byteBufComposer.storedStartIndex == 0
+        messageDecoder.byteBufComposer.storedEndIndex == encodedMessage.writerIndex() - 1
+        def expectedComponent = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessage.writerIndex() - 1, buffer: encodedMessage)
+        Assertions.assertThat(messageDecoder.byteBufComposer.components)
+                  .containsOnlyOnce(expectedComponent)
+                  .contains(expectedComponent, Index.atIndex(0))
+                  .containsOnly(expectedComponent, new ByteBufComposer.Component())
+        messageDecoder.readTask.taskScheduled
+        0 * _
     }
 }

@@ -133,6 +133,13 @@ class ArrayBackedObjectPoolTest extends Specification {
         objectPool.@objectArray.length > originalPoolSize
     }
 
+    def "should not resize pool if it would exceed max pool size"() {
+        expect:
+        objectPool.resizeObjectArray() //32
+        objectPool.resizeObjectArray() //64
+        !objectPool.resizeObjectArray() //128 - size limit breach
+    }
+
     def "should try get and receive null when all elements from pool are taken"() {
         setup:
         def originalPoolSize = objectPool.@objectArray.length
@@ -168,6 +175,38 @@ class ArrayBackedObjectPoolTest extends Specification {
         Assertions.assertThat(objectPool.@objectArray).containsOnlyNulls()
         objectPool.@objectPutPosition == 17
         objectPool.@objGetPosition == 17
+    }
+
+    def "should interpret nulls in backing array as not returned objects"() {
+        setup:
+        objectPool.@objectArray[0] = null
+
+        expect:
+        !objectPool.areAllObjectsReturned()
+    }
+
+    def "should interpret in use state in object as not returned objects"() {
+        setup:
+        objectPool.@objectArray[0].getState().set(AbstractPoolableObject.IN_USE_STATE)
+
+        expect:
+        !objectPool.areAllObjectsReturned()
+    }
+
+    def "should check if all objects are returned"() {
+        setup:
+        def object = objectPool.tryGetAndRetain()
+        if (shouldReturn) {
+            objectPool.returnObject(object)
+        }
+
+        expect:
+        objectPool.areAllObjectsReturned() == result
+
+        where:
+        shouldReturn || result
+        false        || false
+        true         || true
     }
 
     static class TestPoolableObject extends AbstractPoolableObject {

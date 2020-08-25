@@ -11,15 +11,12 @@ import lombok.Setter;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.nio.charset.StandardCharsets;
 
 @Getter
 public class FixMessage extends AbstractPoolableObject {
 
     public static final byte FIELD_SEPARATOR = AsciiCodes.SOH;
     public static final byte FIELD_VALUE_SEPARATOR = AsciiCodes.EQUALS;
-    private static final char FIELD_DELIMITER = '|';
-    private static final int LONG_MESSAGE_FIELD_NUMBER_THRESHOLD = 10;
 
     private final AbstractField[] fieldsOrdered;
     private final AbstractField[] fields;
@@ -64,38 +61,7 @@ public class FixMessage extends AbstractPoolableObject {
     }
 
     public String toString(boolean wholeMessage) {
-        final StringBuilder builder = new StringBuilder("FixMessage -> ");
-        final boolean longMessage = fieldsOrdered.length > LONG_MESSAGE_FIELD_NUMBER_THRESHOLD;
-        final boolean shortenOutput = longMessage && !wholeMessage;
-        if (shortenOutput) {
-            for (int i = 0; i < LONG_MESSAGE_FIELD_NUMBER_THRESHOLD; i++) {
-                final AbstractField field = fieldsOrdered[i];
-                appendFieldToBuilderIfValueIsSet(builder, field);
-            }
-        } else {
-            for (final AbstractField field : fieldsOrdered) {
-                appendFieldToBuilderIfValueIsSet(builder, field);
-            }
-        }
-        builder.deleteCharAt(builder.length() - 1).append(shortenOutput ? "..." : "").append(", refCnt=").append(refCnt());
-        return builder.toString();
-    }
-
-    private static void appendFieldToBuilderIfValueIsSet(StringBuilder builder, AbstractField field) {
-        if (field.isValueSet()) {
-            builder.append(field.number).append((char) FIELD_VALUE_SEPARATOR).append(fieldDataValue(field)).append(FIELD_DELIMITER);
-        }
-    }
-
-    private static String fieldDataValue(AbstractField field) {
-        final ByteBufComposer fieldData = field.fieldData;
-        if (fieldData != null) {
-            final byte[] buf = new byte[field.getLength()];
-            fieldData.getBytes(field.startIndex, field.getLength(), buf);
-            return new String(buf, StandardCharsets.US_ASCII);
-        } else {
-            return "";
-        }
+        return FixMessageToString.toString(this, wholeMessage);
     }
 
     public void resetAllDataFieldsAndReleaseByteSource() {

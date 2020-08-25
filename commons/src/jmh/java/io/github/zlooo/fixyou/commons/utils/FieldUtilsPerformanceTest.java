@@ -1,12 +1,9 @@
 package io.github.zlooo.fixyou.commons.utils;
 
-import io.github.zlooo.fixyou.commons.ReusableCharArray;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.util.ReferenceCountUtil;
 import org.openjdk.jmh.annotations.*;
 
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 @State(Scope.Benchmark)
@@ -22,13 +19,5 @@ public class FieldUtilsPerformanceTest {
     @BenchmarkMode({Mode.Throughput})
     public void directWriteTest() {
         FieldUtils.writeEncoded(WORST_CASE_VALUE, byteBuf.clear());
-    }
-
-    @Benchmark
-    @BenchmarkMode({Mode.Throughput})
-    public void writeViaCharSequenceTest() {
-        final ReusableCharArray charSequence = FieldUtils.toCharSequence(WORST_CASE_VALUE);
-        byteBuf.clear().writeCharSequence(charSequence, StandardCharsets.US_ASCII);
-        ReferenceCountUtil.release(charSequence);
     }
 }

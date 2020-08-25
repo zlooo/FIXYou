@@ -42,4 +42,15 @@ class ArrayUtilsTest extends Specification {
         ["e1", "e2", "e3"] as String[] | "e3"           | true
         ["e1", "e2", "e3"] as String[] | "e4"           | false
     }
+
+    def "should check if array equals char sequence"() {
+        expect:
+        ArrayUtils.equals(array, charSequence) == result
+
+        where:
+        array                     | charSequence || result
+        ['a', 'b', 'c'] as char[] | "abc"         | true
+        ['a', 'b', 'c'] as char[] | "abcd"         | false
+        ['a', 'b', 'c'] as char[] | "adc"         | false
+    }
 }

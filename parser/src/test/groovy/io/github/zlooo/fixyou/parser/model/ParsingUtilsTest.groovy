@@ -30,4 +30,30 @@ class ParsingUtilsTest extends Specification {
         byteBuff.readerIndex() == 4
         byteBuff.writerIndex() == 9
     }
+
+    def "should parse integer"() {
+        expect:
+        ParsingUtils.parseInteger(source, srcIndex, endIndicator, false) == result
+
+        where:
+        source                     | srcIndex | endIndicator || result
+        comp("-123|")              | 0        | 124 as byte  || -123
+        comp("garbage123garbage|") | 0        | 124 as byte  || 123
+    }
+
+    def "should parse long"() {
+        expect:
+        ParsingUtils.parseLong(source, srcIndex, endIndicator) == result
+
+        where:
+        source                     | srcIndex | endIndicator || result
+        comp("-123|")              | 0        | 124 as byte  || -123L
+        comp("garbage123garbage|") | 0        | 124 as byte  || 123L
+    }
+
+    private static ByteBufComposer comp(String value) {
+        ByteBufComposer composer = new ByteBufComposer(1)
+        composer.addByteBuf(Unpooled.wrappedBuffer(value.getBytes(StandardCharsets.US_ASCII)))
+        return composer
+    }
 }

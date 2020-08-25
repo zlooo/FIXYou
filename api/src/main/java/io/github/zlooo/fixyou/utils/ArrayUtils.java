@@ -47,16 +47,4 @@ public final class ArrayUtils {
         }
         return true;
     }
-
-    public static boolean equals(char[] array, int arrayLength, char[] secondArray) { //TODO JMH if this method makes sense, maybe it ok to just use above equals all the time?
-        if (arrayLength != secondArray.length) {
-            return false;
-        }
-        for (int i = 0; i < arrayLength; i++) {
-            if (array[i] != secondArray[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
 }
