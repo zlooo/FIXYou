@@ -23,7 +23,7 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 
-@Timeout(10)
+@Timeout(30)
 class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should process message with correct header normally 2-a,h,j,l,n,p,s"() {

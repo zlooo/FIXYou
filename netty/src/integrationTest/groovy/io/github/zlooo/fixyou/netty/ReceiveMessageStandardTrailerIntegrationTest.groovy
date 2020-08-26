@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
 @Ignore("for now checksum validation is not implemented, will have to add that in the future")
-@Timeout(10)
+@Timeout(30)
 class ReceiveMessageStandardTrailerIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should process message with correct checksum 3-a,d"() {

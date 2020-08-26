@@ -5,7 +5,7 @@ import quickfix.field.RefSeqNum
 import quickfix.fixt11.Reject
 import spock.lang.Timeout
 
-@Timeout(10)
+@Timeout(30)
 class ReceiveRejectMessageIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should receive valid reject message 7-a"() {

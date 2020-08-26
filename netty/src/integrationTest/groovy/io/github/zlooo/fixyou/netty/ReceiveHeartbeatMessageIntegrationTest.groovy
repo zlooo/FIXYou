@@ -7,7 +7,7 @@ import spock.lang.Timeout
 
 import java.util.concurrent.TimeUnit
 
-@Timeout(10)
+@Timeout(30)
 class ReceiveHeartbeatMessageIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should respond with heartbeat to test message 5-a"() {

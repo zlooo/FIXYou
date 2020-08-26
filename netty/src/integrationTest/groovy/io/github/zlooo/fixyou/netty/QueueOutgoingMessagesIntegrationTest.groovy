@@ -14,7 +14,7 @@ import spock.lang.Timeout
 
 import java.util.function.Function
 
-@Timeout(10)
+@Timeout(30)
 class QueueOutgoingMessagesIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     private MessageStore<FixMessage> messageStore = new MemoryMessageStore()

@@ -8,7 +8,7 @@ import quickfix.fixt11.Logon
 import quickfix.fixt11.Logout
 import spock.lang.Timeout
 
-@Timeout(10)
+@Timeout(30)
 class ReceiveLogoutMessageIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should disconnect when logout response is received 13-a"() {

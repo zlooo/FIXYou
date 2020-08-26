@@ -7,7 +7,7 @@ import quickfix.fixt11.Logon
 import quickfix.fixt11.TestRequest
 import spock.lang.Timeout
 
-@Timeout(10)
+@Timeout(30)
 class SendTestRequestIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should send test request after read timeout 6-a"() {

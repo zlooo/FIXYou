@@ -25,7 +25,7 @@ import java.nio.charset.StandardCharsets
  * This class contains mostly test cases from fix transport 1.1 specification. They are referenced at the end of each test method name, for example 1S-a-1, which means Ref ID 1S,
  * Condition/Stimulus a, Expected Behaviour 1
  */
-@Timeout(10)
+@Timeout(30)
 class AcceptorSessionInitializationIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should initialize session test case 1S-a-1"() {

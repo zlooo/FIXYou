@@ -12,7 +12,7 @@ import spock.lang.Timeout
 
 import java.util.concurrent.TimeUnit
 
-@Timeout(10)
+@Timeout(30)
 class ReceiveSequenceResetGapFillIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
     def "should send resend when sequence reset - gap fill is received which indicates message gap 10-a"() {
         setup:

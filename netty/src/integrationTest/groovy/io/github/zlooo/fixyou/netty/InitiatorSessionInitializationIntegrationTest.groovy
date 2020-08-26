@@ -24,7 +24,7 @@ import spock.lang.Timeout
 
 import java.nio.charset.StandardCharsets
 
-@Timeout(10)
+@Timeout(30)
 class InitiatorSessionInitializationIntegrationTest extends Specification {
 
     private static final String senderCompId = "testInitiator"

@@ -6,7 +6,7 @@ import quickfix.fixt11.Heartbeat
 import quickfix.fixt11.Logon
 import spock.lang.Timeout
 
-@Timeout(10)
+@Timeout(30)
 class SendHeartbeatMessageIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should send heartbeat after inactivity period 4-a"() {
