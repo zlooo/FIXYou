@@ -2,21 +2,22 @@ package io.github.zlooo.fixyou.parser.model;
 
 import io.github.zlooo.fixyou.commons.utils.FieldUtils;
 import io.github.zlooo.fixyou.model.FieldType;
-import io.netty.util.AsciiString;
-import io.netty.util.ReferenceCountUtil;
+import io.netty.buffer.ByteBuf;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
-import java.nio.charset.StandardCharsets;
-
+@EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class LongField extends AbstractField {
+public final class LongField extends AbstractField {
 
     public static final long DEFAULT_VALUE = Long.MIN_VALUE;
-    public static final int FIELD_DATA_LENGTH = 6; // 5 digits plus optional sign
+    public static final int FIELD_DATA_LENGTH = 8; // 7 digits plus optional sign
     private long value = DEFAULT_VALUE;
+    private byte[] rawValue = new byte[FIELD_DATA_LENGTH];
+    private char[] unparsedValue = new char[FIELD_DATA_LENGTH];
 
     public LongField(int number) {
-        super(number, FIELD_DATA_LENGTH, false);
+        super(number);
     }
 
     @Override
@@ -24,19 +25,21 @@ public class LongField extends AbstractField {
         return FieldType.LONG;
     }
 
+    @Override
+    public void appendByteBufWithValue(ByteBuf out) {
+        FieldUtils.writeEncoded(value, out);
+    }
+
     public long getValue() {
-        if (value == DEFAULT_VALUE) { //I know it's not "thread safe" but this method is supposed to be called by single thread at a time anyway so no need to synchronize
-            fieldData.readerIndex(0);
-            value = ((AsciiString) fieldData.readCharSequence(fieldData.writerIndex(), StandardCharsets.US_ASCII)).parseLong();
+        if (value == DEFAULT_VALUE && valueSet) {
+            value = ParsingUtils.parseLong(fieldData, startIndex, FixMessage.FIELD_SEPARATOR); //TODO run JMH test and see if you're right
         }
         return value;
     }
 
     public void setValue(long value) {
         this.value = value;
-        final CharSequence charSequence = FieldUtils.toCharSequence(value);
-        fieldData.clear().writeCharSequence(charSequence, StandardCharsets.US_ASCII);
-        ReferenceCountUtil.release(charSequence);
+        this.valueSet = true;
     }
 
     @Override

@@ -2,7 +2,10 @@ package io.github.zlooo.fixyou.netty
 
 import io.github.zlooo.fixyou.FIXYouConfiguration
 import io.github.zlooo.fixyou.Resettable
+import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject
+import io.github.zlooo.fixyou.commons.pool.ArrayBackedObjectPool
+import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.fix.commons.session.AbstractMessagePoolingSessionState
 import io.github.zlooo.fixyou.netty.handler.NettyResettablesNames
 import io.github.zlooo.fixyou.netty.test.framework.*
@@ -15,6 +18,7 @@ import io.netty.buffer.Unpooled
 import io.netty.channel.*
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioSocketChannel
+import org.assertj.core.api.Assertions
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.spockframework.util.Assert
@@ -35,7 +39,7 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
     protected static final String qualifier = "secondSession"
     private static final char[] CHECKSUM_TAG_INDICATOR = ['1', '0', '='] as char[]
     protected SessionID sessionID = new SessionID("FIXT.1.1", targetCompId, senderCompId)
-    protected fixYouSessionId = new io.github.zlooo.fixyou.session.SessionID("FIXT.1.1".toCharArray(), senderCompId.toCharArray(), targetCompId.toCharArray())
+    protected fixYouSessionId = new io.github.zlooo.fixyou.session.SessionID("FIXT.1.1".toCharArray(), 8, senderCompId.toCharArray(), senderCompId.length(), targetCompId.toCharArray(), targetCompId.length())
     protected TestSessionSateListener sessionSateListener = new TestSessionSateListener()
     protected FIXYouNettyAcceptor engine
     protected Initiator initiator
@@ -44,7 +48,7 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
     protected TestFixMessageListener testFixMessageListener = new TestFixMessageListener()
     protected PollingConditions pollingConditions = new PollingConditions(timeout: 30)
     private EventLoopGroup group
-    protected List<String> receivedMessages = []
+    protected List<String> receivedMessages = Collections.synchronizedList(new ArrayList())
 
     void setup() {
         LOGGER.info("Setup for test {}", getSpecificationContext().getCurrentFeature().getName())
@@ -86,6 +90,13 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
         }).connect("localhost", acceptorPort).sync().channel()
     }
 
+    protected void waitForLogonResponse(){
+        pollingConditions.eventually {
+            !receivedMessages.isEmpty()
+            receivedMessages.any {it.contains("35=A")}
+        }
+    }
+
     static List<String> splitMessagesIfNecessary(CharSequence message) {
         def result = []
         int messageStartIndex = 0
@@ -112,7 +123,7 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
     }
 
     protected ChannelFuture sendMessage(Channel channel, String message) {
-        return channel.writeAndFlush(Unpooled.wrappedBuffer(message.replaceAll("\n", "").replaceAll(" ", "").getBytes(StandardCharsets.US_ASCII))).sync()
+        return channel.writeAndFlush(Unpooled.wrappedBuffer(message.replaceAll("\n", "").replaceAll(" ", "").getBytes(StandardCharsets.US_ASCII))).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE).sync()
     }
 
     protected long nextExpectedInboundSequenceNumber() {
@@ -122,6 +133,11 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
     protected Resettable sessionHandler() {
         return ((FIXYouNettyAcceptor) engine).@fixYouNettyComponent.sessionRegistry().getStateForSession(fixYouSessionId).resettables[
                 NettyResettablesNames.SESSION]
+    }
+
+    protected Resettable messageDecoder() {
+        return ((FIXYouNettyAcceptor) engine).@fixYouNettyComponent.sessionRegistry().getStateForSession(fixYouSessionId).resettables[
+                NettyResettablesNames.MESSAGE_DECODER]
     }
 
     protected void nextExpectedInboundSequenceNumber(long nextExpectedInboundSequenceNumber) {
@@ -138,18 +154,29 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
     }
 
     protected Collection<FixMessage> getInUseFixMessages() {
-        def fixMessageObjectPool = ((AbstractMessagePoolingSessionState) ((FIXYouNettyAcceptor) engine).@fixYouNettyComponent.sessionRegistry().
-                getStateForSession(fixYouSessionId)).fixMessageObjectPool
-        if (fixMessageObjectPool.@objectArray.contains(null)) {
+        def fixMessageReadPool = ((AbstractMessagePoolingSessionState) ((FIXYouNettyAcceptor) engine).@fixYouNettyComponent.sessionRegistry().
+                getStateForSession(fixYouSessionId)).fixMessageReadPool
+        Collection inUseMessages = checkPool(fixMessageReadPool)
+        def fixMessageWritePool = ((AbstractMessagePoolingSessionState) ((FIXYouNettyAcceptor) engine).@fixYouNettyComponent.sessionRegistry().
+                getStateForSession(fixYouSessionId)).fixMessageWritePool
+        inUseMessages.addAll(checkPool(fixMessageWritePool))
+        return inUseMessages
+    }
+
+    protected Collection checkPool(ArrayBackedObjectPool objectPool) {
+        if (objectPool.@objectArray.contains(null)) {
             Assert.fail("Array in FixMessage object pool contains nulls, this means something has not been returned to the pool, which is baaaaaaaad")
         }
-        def inUseMessages = fixMessageObjectPool.@objectArray.findAll { it.getState().get() == AbstractPoolableObject.IN_USE_STATE }
-        if (fixMessageObjectPool.@firstObject.getState()?.get() == AbstractPoolableObject.IN_USE_STATE) {
-            inUseMessages.add(fixMessageObjectPool.@firstObject)
+        def inUseMessages = objectPool.@objectArray.findAll { it.getState().get() == AbstractPoolableObject.IN_USE_STATE }
+        if (objectPool instanceof DefaultObjectPool) {
+            if (objectPool.@firstObject.getState()?.get() == AbstractPoolableObject.IN_USE_STATE) {
+                inUseMessages.add(objectPool.@firstObject)
+            }
+            if (objectPool.@secondObject.getState()?.get() == AbstractPoolableObject.IN_USE_STATE) {
+                inUseMessages.add(objectPool.@secondObject)
+            }
         }
-        if (fixMessageObjectPool.@secondObject.getState()?.get() == AbstractPoolableObject.IN_USE_STATE) {
-            inUseMessages.add(fixMessageObjectPool.@secondObject)
-        }
+
         return inUseMessages
     }
 
@@ -159,10 +186,17 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
         if (!inUseFixMessages.isEmpty()) {
             Assert.fail("Not all FixMessages have been returned to the pool!!!! In use messages " + inUseFixMessages)
         }
+        asssertComposerState(messageDecoder().@byteBufComposer)
         group?.shutdownGracefully()?.sync()
         engine?.stop()?.get()
         initiator?.stop(true)
         receivedMessages?.clear()
         LOGGER.info("Cleanup done")
+    }
+
+    void asssertComposerState(ByteBufComposer composer) {
+        assert composer.storedStartIndex == ByteBufComposer.INITIAL_VALUE
+        assert composer.storedEndIndex == ByteBufComposer.INITIAL_VALUE
+        Assertions.assertThat(composer.components).containsOnly(new ByteBufComposer.Component())
     }
 }

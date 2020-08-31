@@ -24,21 +24,21 @@ package io.github.zlooo.fixyou.commons.pool;
 import io.github.zlooo.fixyou.commons.utils.UnsafeAccessor;
 import lombok.extern.slf4j.Slf4j;
 
+import javax.annotation.Nullable;
 import java.util.function.Supplier;
 
 @Slf4j
-public class NoThreadLocalObjectPool<T extends AbstractPoolableObject> extends AbstractArrayBasedObjectPool<T> {
+public class ArrayBackedObjectPool<T extends AbstractPoolableObject> extends AbstractArrayBackedObjectPool<T> {
 
     private static final int FLOOR_LOG_2_CALCULATION_BASE = 31;
-    private static final String GET_OBJECT_LOG = "Grabbing object {} from pool {}. Object resides in {}";
 
     private final long baseAddress;
     private final int tailAdjustment;
 
 
     @SuppressWarnings("unchecked")
-    public NoThreadLocalObjectPool(int poolSize, Supplier<T> objectSupplier, Class<T> clazz) {
-        super(poolSize, objectSupplier, clazz);
+    public ArrayBackedObjectPool(int poolSize, Supplier<T> objectSupplier, Class<T> clazz, int maxSize) {
+        super(poolSize, objectSupplier, clazz, maxSize);
         baseAddress = UnsafeAccessor.UNSAFE.arrayBaseOffset(objectArray.getClass());
         final long arrayIndexScale = UnsafeAccessor.UNSAFE.arrayIndexScale(objectArray.getClass());
         tailAdjustment = FLOOR_LOG_2_CALCULATION_BASE - Integer.numberOfLeadingZeros((int) arrayIndexScale);
@@ -46,6 +46,20 @@ public class NoThreadLocalObjectPool<T extends AbstractPoolableObject> extends A
 
     @Override
     public T getAndRetain() {
+        final T objectFromPool = tryGetAndRetain();
+        if (objectFromPool == null) {
+            synchronized (this) { //yeah looks shitty, but it should not come to this. If we have to resize the pool is too small!!!!
+                resizeObjectArray();
+            }
+            return getAndRetain();
+        } else {
+            return objectFromPool;
+        }
+    }
+
+    @Nullable
+    @Override
+    public T tryGetAndRetain() {
         int localTakePointer;
         while (objectPutPosition != (localTakePointer = objGetPosition)) {
             final int index = localTakePointer & mask;
@@ -54,29 +68,25 @@ public class NoThreadLocalObjectPool<T extends AbstractPoolableObject> extends A
                 objGetPosition = localTakePointer + 1;
                 if (pooledObject.getState().compareAndSet(AbstractPoolableObject.AVAILABLE_STATE, AbstractPoolableObject.IN_USE_STATE)) {
                     pooledObject.retain();
-                    log.debug(GET_OBJECT_LOG, pooledObject, this, "object array");
+                    log.debug(GET_OBJECT_LOG, pooledObject, pooledObject.hashCode(), this, "object array");
                     return pooledObject;
                 }
             }
         }
-
-        synchronized (this) { //yeah looks shitty, but it should not come to this. If we have to resize the pool is too small!!!!
-            resizeObjectArray();
-        }
-        return getAndRetain();
+        return null;
     }
 
     @Override
     public void returnObject(T objectToBeReturned) {
-        log.debug("Returning object {} to pool {}", objectToBeReturned, this);
-        final int localPosition = objectPutPosition;
-        final long index = ((localPosition & mask) << tailAdjustment) + baseAddress;
         if (objectToBeReturned.getState().compareAndSet(AbstractPoolableObject.IN_USE_STATE, AbstractPoolableObject.AVAILABLE_STATE)) {
+            log.debug(RETURN_OBJECT_LOG, objectToBeReturned, objectToBeReturned.hashCode(), this);
+            final int localPosition = objectPutPosition;
+            final long index = ((localPosition & mask) << tailAdjustment) + baseAddress;
             UnsafeAccessor.UNSAFE.putOrderedObject(objectArray, index, objectToBeReturned);
             objectPutPosition = localPosition + 1;
-        } else {
+        } else if (objectToBeReturned.getState().get() != AbstractPoolableObject.AVAILABLE_STATE) {
             throw new IllegalStateException(
-                    "Unexpected object state, expecting in use(" + AbstractPoolableObject.IN_USE_STATE + ") but got " + objectToBeReturned.getState().get());
+                    "Unexpected object state, expecting in use(" + AbstractPoolableObject.IN_USE_STATE + ") but got " + objectToBeReturned.getState().get() + ". Object details " + objectToBeReturned + "@" + objectToBeReturned.hashCode());
         }
     }
 
@@ -96,8 +106,11 @@ public class NoThreadLocalObjectPool<T extends AbstractPoolableObject> extends A
     @Override
     public void close() {
         for (int i = 0; i < objectArray.length; i++) {
-            objectArray[i].close();
-            objectArray[i] = null;
+            final T pooledObject = objectArray[i];
+            if (pooledObject != null) {
+                pooledObject.close();
+                objectArray[i] = null;
+            }
         }
     }
 }

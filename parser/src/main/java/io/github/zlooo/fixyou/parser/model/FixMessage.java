@@ -1,26 +1,31 @@
 package io.github.zlooo.fixyou.parser.model;
 
+import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.parser.utils.FieldTypeUtils;
+import io.github.zlooo.fixyou.utils.AsciiCodes;
 import lombok.Getter;
+import lombok.Setter;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.nio.charset.StandardCharsets;
 
 @Getter
 public class FixMessage extends AbstractPoolableObject {
 
-    public static final byte FIELD_SEPARATOR = 0x01;
-    private static final char FIELD_DELIMITER = '|';
-    private static final char EQUALS_CHAR = '=';
-    private static final String SOH = "\u0001";
-    private static final int LONG_MESSAGE_FIELD_NUMBER_THRESHOLD = 10;
+    public static final byte FIELD_SEPARATOR = AsciiCodes.SOH;
+    public static final byte FIELD_VALUE_SEPARATOR = AsciiCodes.EQUALS;
+    private static final int NOT_SET = -1;
 
     private final AbstractField[] fieldsOrdered;
     private final AbstractField[] fields;
+    private ByteBufComposer messageByteSource;
+    @Setter
+    private int startIndex = NOT_SET;
+    @Setter
+    private int endIndex = NOT_SET;
 
     public FixMessage(@Nonnull FixSpec spec) {
         final int[] fieldsOrder = spec.getFieldsOrder();
@@ -36,6 +41,13 @@ public class FixMessage extends AbstractPoolableObject {
         }
     }
 
+    public void setMessageByteSource(ByteBufComposer newMessageByteSource) {
+        this.messageByteSource = newMessageByteSource;
+        for (final AbstractField abstractField : fieldsOrdered) {
+            abstractField.setFieldData(newMessageByteSource);
+        }
+    }
+
     @Nullable
     public <T extends AbstractField> T getField(int number) {
         return (T) fields[number];
@@ -46,58 +58,40 @@ public class FixMessage extends AbstractPoolableObject {
      */
     @Override
     public String toString() {
-        final StringBuilder builder = new StringBuilder("FixMessage -> ");
-        final boolean longMessage = fieldsOrdered.length > LONG_MESSAGE_FIELD_NUMBER_THRESHOLD;
-        if (longMessage) {
-            for (int i = 0; i < LONG_MESSAGE_FIELD_NUMBER_THRESHOLD; i++) {
-                final AbstractField field = fieldsOrdered[i];
-                builder.append(field.number).append(EQUALS_CHAR).append(field.fieldData.toString(StandardCharsets.US_ASCII)).append(FIELD_DELIMITER);
-            }
-        } else {
-            for (final AbstractField field : fieldsOrdered) {
-                builder.append(field.number).append(EQUALS_CHAR).append(field.fieldData.toString(StandardCharsets.US_ASCII)).append(FIELD_DELIMITER);
-            }
-        }
-        builder.deleteCharAt(builder.length() - 1).append(longMessage ? "..." : "").append(", refCnt=").append(refCnt());
-        return builder.toString();
+        return toString(false);
     }
 
-    public void resetAllDataFields() {
-        for (final AbstractField field : fields) { //TODO run JMH and see if there is a difference between fields and fieldsOrdered. Probably not but make sure
-            if (field != null) { //since index in fields table is equal to field number, it's quite possible not all positions in this table will be filled with actual objects
+    public String toString(boolean wholeMessage) {
+        return FixMessageToString.toString(this, wholeMessage);
+    }
+
+    public void resetAllDataFieldsAndReleaseByteSource() {
+        for (final AbstractField field : fieldsOrdered) {
+            if (field.isValueSet()) {
                 field.reset();
             }
         }
+        if (messageByteSource != null && holdsData()) {
+            messageByteSource.releaseData(startIndex, endIndex);
+        }
+        startIndex = NOT_SET;
+        endIndex = NOT_SET;
     }
 
-    public void resetDataFields(int... excludes) {
-        fieldLoop:
-        for (final AbstractField field : fields) {
-            if (field == null) { //since index in fields table is equal to field number, it's quite possible not all positions in this table will be filled with actual objects
-                continue;
-            }
-            final int fieldNumber = field.getNumber();
-            for (final int exclude : excludes) {
-                if (exclude == fieldNumber) {
-                    continue fieldLoop;
-                }
-            }
-            field.reset();
-        }
+    private boolean holdsData() {
+        return startIndex != NOT_SET && endIndex != NOT_SET;
     }
 
     @Override
     protected void deallocate() {
-        resetAllDataFields();
+        resetAllDataFieldsAndReleaseByteSource();
         super.deallocate();
     }
 
     @Override
     public void close() {
-        for (final AbstractField field : fields) {
-            if (field != null) {
-                field.close();
-            }
+        for (final AbstractField field : fieldsOrdered) {
+            field.close();
         }
     }
 

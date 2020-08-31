@@ -27,7 +27,7 @@ public class FIXYouNetty {
 
     @Nonnull
     public static <T extends FixMessageListener> Engine create(@Nonnull FIXYouConfiguration fixYouConfiguration, @Nonnull T fixMessageListener) {
-        final FixYouNettyComponent fixYouNettyComponent = DaggerFixYouNettyComponent.builder().fixMessageListener(fixMessageListener).build();
+        final FixYouNettyComponent fixYouNettyComponent = DaggerFixYouNettyComponent.builder().fixMessageListener(fixMessageListener).fixYouConfiguration(fixYouConfiguration).build();
         final ConfigValidator configValidator =
                 fixYouConfiguration.isInitiator() ? fixYouNettyComponent.initiatorConfigValidator() : fixYouNettyComponent.acceptorConfigValidator();
         final Set<String> errorMessages = configValidator.validateConfig(fixYouConfiguration);
@@ -48,13 +48,13 @@ public class FIXYouNetty {
         final Channel channel = sessionState.getChannel();
         if (channel != null) {
             return channel.eventLoop().submit(() -> {
-                final FixMessage fixMessage = sessionState.getFixMessageObjectPool().getAndRetain();
+                final FixMessage fixMessage = sessionState.getFixMessageWritePool().getAndRetain();
                 fixMessageCreator.accept(fixMessage);
                 return channel.writeAndFlush(fixMessage).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
             });
         } else {
             return engine.eventLoopGroup.submit(() -> {
-                final FixMessage fixMessage = sessionState.getFixMessageObjectPool().getAndRetain();
+                final FixMessage fixMessage = sessionState.getFixMessageWritePool().getAndRetain();
                 fixMessageCreator.accept(fixMessage);
                 sessionState.queueMessage(fixMessage);
             });
@@ -68,7 +68,7 @@ public class FIXYouNetty {
         final Channel channel = sessionState.getChannel();
         if (channel != null) {
             return channel.eventLoop()
-                          .submit(() -> channel.writeAndFlush(FixMessageUtils.toLogoutMessage(sessionState.getFixMessageObjectPool().getAndRetain(), null))
+                          .submit(() -> channel.writeAndFlush(FixMessageUtils.toLogoutMessage(sessionState.getFixMessageWritePool().getAndRetain(), null))
                                                .addListener(FixChannelListeners.LOGOUT_SENT)
                                                .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE));
         } else {

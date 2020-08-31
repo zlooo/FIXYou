@@ -4,7 +4,7 @@ import spock.lang.Specification
 
 class ReflectionUtilsTest extends Specification {
 
-    def "should set final field"(){
+    def "should set final field"() {
         setup:
         ClassWithFinalField classWithFinalField = new ClassWithFinalField()
 
@@ -12,10 +12,10 @@ class ReflectionUtilsTest extends Specification {
         ReflectionUtils.setFinalField(classWithFinalField, "field", -1)
 
         then:
-        classWithFinalField.@field==-1
+        classWithFinalField.@field == -1
     }
 
-    def "should set final field which is declared in parent class"(){
+    def "should set final field which is declared in parent class"() {
         setup:
         ClassWithFinalFieldInSuper classWithFinalField = new ClassWithFinalFieldInSuper()
 
@@ -23,10 +23,10 @@ class ReflectionUtilsTest extends Specification {
         ReflectionUtils.setFinalField(classWithFinalField, "field", -1)
 
         then:
-        classWithFinalField.@field==-1
+        classWithFinalField.@field == -1
     }
 
-    def "should throw exception when cannot find field to set"(){
+    def "should throw exception when cannot find field to set"() {
         setup:
         ClassWithFinalField classWithFinalField = new ClassWithFinalField()
 
@@ -37,11 +37,16 @@ class ReflectionUtilsTest extends Specification {
         thrown(NoSuchFieldException)
     }
 
-    private static class ClassWithFinalField{
+    def "should get field value"() {
+        expect:
+        ReflectionUtils.getFieldValue(new ClassWithFinalFieldInSuper(), "field2", int.class) == 666
+    }
+
+    private static class ClassWithFinalField {
         protected final int field = 0
     }
 
-    private static class ClassWithFinalFieldInSuper extends ClassWithFinalField{
+    private static class ClassWithFinalFieldInSuper extends ClassWithFinalField {
         private int field2 = 666
     }
 }

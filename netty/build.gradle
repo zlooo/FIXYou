@@ -6,6 +6,7 @@ dependencies {
     implementation group: 'io.netty', name: 'netty-handler', version: "$nettyVersion"
     implementation group: 'javax.inject', name: 'javax.inject', version: "$javaxInjectVersion"
     implementation group: 'org.agrona', name: 'agrona', version: "$agronaVersion"
+    implementation group: 'com.lmax', name: 'disruptor', version: "$disruptorVersion"
 
     integrationTestImplementation group: 'org.quickfixj', name: 'quickfixj-core', version: "$quickfixVersion"
     integrationTestImplementation group: 'org.quickfixj', name: 'quickfixj-messages-all', version: "$quickfixVersion"

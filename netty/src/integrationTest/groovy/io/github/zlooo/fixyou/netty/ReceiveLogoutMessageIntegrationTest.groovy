@@ -8,16 +8,14 @@ import quickfix.fixt11.Logon
 import quickfix.fixt11.Logout
 import spock.lang.Timeout
 
-@Timeout(10)
+@Timeout(30)
 class ReceiveLogoutMessageIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should disconnect when logout response is received 13-a"() {
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
-        pollingConditions.eventually {
-            receivedMessages.size() == 1
-        }
+        waitForLogonResponse()
         FIXYouNetty.logoutSession(engine, fixYouSessionId).sync()
         pollingConditions.eventually {
             receivedMessages.size() == 2

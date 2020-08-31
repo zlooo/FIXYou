@@ -14,7 +14,7 @@ import spock.lang.Timeout
 
 import java.util.function.Function
 
-@Timeout(10)
+@Timeout(30)
 class QueueOutgoingMessagesIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     private MessageStore<FixMessage> messageStore = new MemoryMessageStore()
@@ -36,6 +36,7 @@ class QueueOutgoingMessagesIntegrationTest extends AbstractFixYOUAcceptorIntegra
         }
 
         then:
+        future.get() == null //in reality we're checking if future is successful
         messageStore.getMessages(fixYouSessionId, 1, 1, testSub)
         Assertions.assertThat(testSub.messages).hasSize(1)
         testSub.started
@@ -43,10 +44,10 @@ class QueueOutgoingMessagesIntegrationTest extends AbstractFixYOUAcceptorIntegra
         testSub.throwable == null
         def fixMessage = testSub.messages.get(1L)
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value == 1
-        fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).value == fixYouSessionId.beginString
-        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value == fixYouSessionId.senderCompID
-        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value == fixYouSessionId.targetCompID
-        fixMessage.getField(ClOrdID.FIELD).value == clordid.toString().toCharArray()
+        fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).value.toString() == String.valueOf(fixYouSessionId.beginString)
+        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value.toString() == String.valueOf(fixYouSessionId.senderCompID)
+        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value.toString() == String.valueOf(fixYouSessionId.targetCompID)
+        fixMessage.getField(ClOrdID.FIELD).value.toString() == clordid.toString()
 
         cleanup:
         messageStore.@sessionToMessagesMap.get(fixYouSessionId).values().forEach({ msg -> msg.release() }) //message store retains messages, but since this is end of test we want to release all FixMessages

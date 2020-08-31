@@ -7,16 +7,14 @@ import quickfix.fixt11.Logon
 import quickfix.fixt11.TestRequest
 import spock.lang.Timeout
 
-@Timeout(10)
+@Timeout(30)
 class SendTestRequestIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should send test request after read timeout 6-a"() {
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID, 1, 5))
-        pollingConditions.eventually {
-            receivedMessages.size() == 1
-        }
+        waitForLogonResponse()
 
         when:
         pollingConditions.eventually {

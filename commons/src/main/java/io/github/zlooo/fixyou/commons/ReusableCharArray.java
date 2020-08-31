@@ -16,7 +16,7 @@ import javax.annotation.Nonnull;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReusableCharArray extends AbstractReferenceCounted implements CharSequence {
+public class ReusableCharArray extends AbstractReferenceCounted implements CharSequence { //TODO get rid of this class!!!!
 
     private char[] state;
 

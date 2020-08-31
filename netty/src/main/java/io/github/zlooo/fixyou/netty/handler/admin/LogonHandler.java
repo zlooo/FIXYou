@@ -19,10 +19,7 @@ import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.LongField;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.github.zlooo.fixyou.session.SessionRegistry;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelOutboundHandler;
+import io.netty.channel.*;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,6 +30,8 @@ import javax.inject.Singleton;
 @Singleton
 @Slf4j
 class LogonHandler implements AdministrativeMessageHandler {
+
+    private static final CharSequence SUPPORTED_MESSAGE_TYPE = String.copyValueOf(FixConstants.LOGON);
 
     @Nullable
     private final Authenticator authenticator;
@@ -59,7 +58,7 @@ class LogonHandler implements AdministrativeMessageHandler {
                 final DelegatingChannelHandlerContext notMovingForwardOnReadCtx =
                         (DelegatingChannelHandlerContext) sessionState.getResettables().get(NettyResettablesNames.NOT_MOVING_FORWARD_ON_READ_AND_WRITE_CHANNEL_HANDLER_CONTEXT);
                 //this is to check if logon had expected sequence number and send resend request if necessary
-                sessionHandler.channelRead(notMovingForwardOnReadCtx.setDelegate(ctx), fixMessage);
+                sessionHandler.channelRead(notMovingForwardOnReadCtx.setDelegate(ctx.pipeline().context(Handlers.SESSION.getName())), fixMessage);
             } catch (Exception e) {
                 log.error("Exception happened when triggering read pipeline after session setup, closing connection", e);
                 ctx.close();
@@ -85,7 +84,7 @@ class LogonHandler implements AdministrativeMessageHandler {
                     final SessionAwareChannelInboundHandler sessionHandler = addRequiredHandlersToPipelineIfNeeded(ctx, sessionState, fixMessage.<LongField>getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getValue());
                     if (!sessionState.isLogonSent()) {
                         ctx.writeAndFlush(
-                                FixMessageUtils.toLogonMessage(sessionState.getFixMessageObjectPool().getAndRetain(),
+                                FixMessageUtils.toLogonMessage(sessionState.getFixMessageWritePool().getAndRetain(),
                                                                sessionState.getFixSpec().applicationVersionId().getValue(),
                                                                fixMessage.<LongField>getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).getValue(),
                                                                fixMessage.<LongField>getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getValue(), resetSequenceFlagSet))
@@ -119,7 +118,7 @@ class LogonHandler implements AdministrativeMessageHandler {
         log.warn("Invalid logon message received, responding with reject and logout messages");
         final ChannelOutboundHandler sessionHandler = (ChannelOutboundHandler) sessionState.getResettables().get(NettyResettablesNames.SESSION);
         final ChannelHandlerContext notMovingForwardCtx = (ChannelHandlerContext) sessionState.getResettables().get(NettyResettablesNames.NOT_MOVING_FORWARD_ON_READ_AND_WRITE_CHANNEL_HANDLER_CONTEXT);
-        final FixMessage rejectMessage = FixMessageUtils.toRejectMessage(sessionState.getFixMessageObjectPool().getAndRetain(), RejectReasons.OTHER, RejectReasons.INVALID_LOGON_MESSAGE);
+        final FixMessage rejectMessage = FixMessageUtils.toRejectMessage(sessionState.getFixMessageWritePool().getAndRetain(), RejectReasons.OTHER, RejectReasons.INVALID_LOGON_MESSAGE);
         sessionHandler.write(notMovingForwardCtx, rejectMessage, null); //Yeah manually getting session handler and applying it looks a bit odd :/
         ctx.write(rejectMessage).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
         final FixMessage logoutMessage = FixMessageUtils.toLogoutMessage(fixMessage, LogoutTexts.INVALID_LOGON_MESSAGE);
@@ -137,7 +136,7 @@ class LogonHandler implements AdministrativeMessageHandler {
     }
 
     @Override
-    public char[] supportedMessageType() {
-        return FixConstants.LOGON;
+    public CharSequence supportedMessageType() {
+        return SUPPORTED_MESSAGE_TYPE;
     }
 }

@@ -4,3 +4,4 @@ ignore:
   - "**/RejectReasons.java"
   - "**/FixFieldsTypes.java"
   - "**/*Exception.java"
+  - "**/FixMessageToString.java"

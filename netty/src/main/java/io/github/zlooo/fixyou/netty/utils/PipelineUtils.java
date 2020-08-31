@@ -1,13 +1,13 @@
 package io.github.zlooo.fixyou.netty.utils;
 
 import io.github.zlooo.fixyou.Resettable;
-import io.github.zlooo.fixyou.commons.utils.ArrayUtils;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.netty.handler.Handlers;
 import io.github.zlooo.fixyou.netty.handler.MutableIdleStateHandler;
 import io.github.zlooo.fixyou.netty.handler.NettyResettablesNames;
 import io.github.zlooo.fixyou.netty.handler.SessionAwareChannelInboundHandler;
 import io.github.zlooo.fixyou.session.ValidationConfig;
+import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelPipeline;
@@ -22,9 +22,9 @@ public class PipelineUtils {
 
     private static final double TEST_REQUEST_MULTIPLIER = 1.2; //"some reasonable period of time" which according to fix spec is 20% of heartbeat interval
 
-    public static @Nullable
-    SessionAwareChannelInboundHandler addRequiredHandlersToPipeline(Channel channel, NettyHandlerAwareSessionState sessionState, ChannelHandler preSessionValidator, ChannelHandler postSessionValidator, long heartbeatIntervalSeconds,
-                                                                    Handlers... excludes) {
+    @Nullable
+    public static SessionAwareChannelInboundHandler addRequiredHandlersToPipeline(Channel channel, NettyHandlerAwareSessionState sessionState, ChannelHandler preSessionValidator, ChannelHandler postSessionValidator,
+                                                                                  long heartbeatIntervalSeconds, Handlers... excludes) {
         final ChannelPipeline pipeline = channel.pipeline();
         final Map<String, Resettable> resettables = sessionState.getResettables();
         if (canHandlerBeAdded(Handlers.MESSAGE_DECODER, Handlers.GENERIC_DECODER, pipeline, excludes)) {

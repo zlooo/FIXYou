@@ -3,7 +3,9 @@ package io.github.zlooo.fixyou.commons.utils;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-final class NumberConstants {
+public final class NumberConstants {
+
+    public static final long[] POWERS_OF_TEN = {1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000, 1_000_000_000};
 
     static final char[] DIGIT_TENS = {
             '0', '0', '0', '0', '0', '0', '0', '0', '0', '0',

@@ -1,46 +1,49 @@
 package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.model.FieldType
+import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import spock.lang.Specification
 
+import java.nio.charset.StandardCharsets
+
 class AbstractFieldTest extends Specification {
 
-    private static final byte a_IN_ASCII = 141
-    private AbstractField field = new TestField(1, 1)
+    private TestField field = new TestField(1)
 
-    def "should set data from supplied byte buf"() {
-        when:
-        field.setFieldData(Unpooled.buffer(1).writeByte(a_IN_ASCII))
-
-        then:
-        field.fieldData.writerIndex() == 1
-        field.fieldData.readerIndex() == 0
-        field.fieldData.readByte() == a_IN_ASCII
+    def "should encode field number on creation"() {
+        expect:
+        new String(field.encodedFieldNumber, StandardCharsets.US_ASCII) == "1="
+        field.number == 1
     }
 
-    def "should set data from supplied byte array"() {
+    def "should set indexes"() {
         when:
-        field.setFieldData([a_IN_ASCII] as byte[])
+        field.setIndexes(3, 6)
 
         then:
-        field.fieldData.writerIndex() == 1
-        field.fieldData.readerIndex() == 0
-        field.fieldData.readByte() == a_IN_ASCII
+        field.startIndex == 3
+        field.endIndex == 6
+        field.valueSet
     }
 
-    def "should release field data when closed"() {
+    def "should reset"() {
+        setup:
+        field.setIndexes(1, 3)
+
         when:
-        field.close()
+        field.reset()
 
         then:
-        field.fieldData.refCnt() == 0
+        field.startIndex == 0
+        field.endIndex == 0
+        !field.valueSet
     }
 
     private static class TestField extends AbstractField {
 
-        TestField(int number, int fieldDataLength) {
-            super(number, fieldDataLength, false)
+        TestField(int number) {
+            super(number)
         }
 
         @Override
@@ -50,6 +53,11 @@ class AbstractFieldTest extends Specification {
 
         @Override
         protected void resetInnerState() {
+
+        }
+
+        @Override
+        void appendByteBufWithValue(ByteBuf out) {
 
         }
     }

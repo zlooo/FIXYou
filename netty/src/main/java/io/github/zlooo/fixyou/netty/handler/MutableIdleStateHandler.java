@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @ChannelHandler.Sharable
 //TODO I'm not sure I'm ok with this class being public :/
+//TODO remove checkstyle suppressions from this class
 public class MutableIdleStateHandler extends ChannelDuplexHandler implements SessionAwareChannelInboundHandler, Resettable {
     private static final long MIN_TIMEOUT_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
     private static final char[] TEST_REQ_ID = {'t', 'e', 's', 't'};
@@ -59,6 +60,7 @@ public class MutableIdleStateHandler extends ChannelDuplexHandler implements Ses
     private int lastMessageHashCode;
     private long lastPendingWriteBytes;
     private long lastFlushProgress;
+    private EventLoop eventLoop;
 
     public MutableIdleStateHandler(NettyHandlerAwareSessionState sessionState) {
         this(sessionState, false, 0, 0, 0, TimeUnit.NANOSECONDS);
@@ -243,6 +245,7 @@ public class MutableIdleStateHandler extends ChannelDuplexHandler implements Ses
     }
 
     private void initialize(ChannelHandlerContext ctx) {
+        eventLoop = ctx.channel().eventLoop();
         // Avoid the case where destroy() is called before scheduling timeouts.
         // See: https://github.com/netty/netty/issues/143
         switch (state) {
@@ -283,10 +286,15 @@ public class MutableIdleStateHandler extends ChannelDuplexHandler implements Ses
      * This method is visible for testing!
      */
     ScheduledFuture<?> schedule(ChannelHandlerContext ctx, Runnable task, long delay, TimeUnit unit) {
-        return ctx.executor().schedule(task, delay, unit);
+        if (eventLoop != null) {
+            return eventLoop.schedule(task, delay, unit);
+        } else {
+            return ctx.executor().schedule(task, delay, unit);
+        }
     }
 
     private void destroy() {
+        eventLoop = null;
         state = 2;
 
         if (readerIdleTimeout != null) {
@@ -312,13 +320,13 @@ public class MutableIdleStateHandler extends ChannelDuplexHandler implements Ses
         switch (idleState) {
             case WRITER_IDLE:
                 log.info("Connection idle for too long, sending heartbeat for session {}", sessionState.getSessionId());
-                ctx.writeAndFlush(FixMessageUtils.toHeartbeatMessage(sessionState.getFixMessageObjectPool().getAndRetain())).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+                ctx.writeAndFlush(FixMessageUtils.toHeartbeatMessage(sessionState.getFixMessageWritePool().getAndRetain())).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
                 break;
             case READER_IDLE:
                 if (evt.isFirst()) {
                     log.info("Connection idle for too long, sending test request for session {}", sessionState.getSessionId());
                     //TODO some randomness in test request id?
-                    ctx.writeAndFlush(FixMessageUtils.toTestRequest(sessionState.getFixMessageObjectPool().getAndRetain(), TEST_REQ_ID)).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+                    ctx.writeAndFlush(FixMessageUtils.toTestRequest(sessionState.getFixMessageWritePool().getAndRetain(), TEST_REQ_ID)).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
                 } else {
                     log.warn("Second read timeout, closing connection for session {}", sessionState.getSessionId());
                     ctx.close();

@@ -1,73 +1,77 @@
 package io.github.zlooo.fixyou.parser.model;
 
 import io.github.zlooo.fixyou.Closeable;
-import io.github.zlooo.fixyou.commons.ReusableCharArray;
-import io.github.zlooo.fixyou.commons.utils.FieldUtils;
+import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.util.ReferenceCountUtil;
-import lombok.Getter;
-import lombok.ToString;
+import io.netty.util.AsciiString;
+import lombok.*;
 
-import java.nio.charset.StandardCharsets;
-
-@Getter
-@ToString
+@EqualsAndHashCode
+@ToString(exclude = {"encodedFieldNumber", "fieldData"})
 public abstract class AbstractField implements Closeable {
-    public static final byte FIELD_TERMINATOR = 1;
-    private static final byte FIELD_VALUE_SEPARATOR = 61;
 
-    protected final ByteBuf encodedFieldNumber;
-    protected final ByteBuf fieldData;
+    @Getter
     protected final int number;
+    @Setter(AccessLevel.PROTECTED)
+    protected ByteBufComposer fieldData;
+    @Getter
+    protected volatile int startIndex;
+    @Getter
+    protected volatile int endIndex;
+    protected volatile boolean valueSet;
+    @Getter(value = AccessLevel.PROTECTED)
+    private final byte[] encodedFieldNumber;
+    @Getter
+    private final int encodedFieldNumberLength;
 
-    public AbstractField(int number, int fieldDataLength, boolean resizable) {
-        this.fieldData = Unpooled.directBuffer(fieldDataLength, resizable ? Integer.MAX_VALUE : fieldDataLength);
+    public AbstractField(int number) {
         this.number = number;
-        final ReusableCharArray fieldNumberAsChar = FieldUtils.toCharSequence(number);
-        final int encodedFieldNumberCapacity = fieldNumberAsChar.length() + 1;
-        encodedFieldNumber = Unpooled.directBuffer(encodedFieldNumberCapacity, encodedFieldNumberCapacity);
-        encodedFieldNumber.writeCharSequence(fieldNumberAsChar, StandardCharsets.US_ASCII);
-        encodedFieldNumber.writeByte(FIELD_VALUE_SEPARATOR);
-        ReferenceCountUtil.release(fieldNumberAsChar);
+        final char[] fieldNumberAsCharArray = Integer.toString(number).toCharArray(); //we're doing it just on startup so we can afford it
+        final int encodedFieldNumberCapacity = fieldNumberAsCharArray.length + 1;
+        encodedFieldNumber = new byte[encodedFieldNumberCapacity];
+        for (int i = 0; i < fieldNumberAsCharArray.length; i++) {
+            encodedFieldNumber[i] = AsciiString.c2b(fieldNumberAsCharArray[i]);
+        }
+        encodedFieldNumber[encodedFieldNumberCapacity - 1] = FixMessage.FIELD_VALUE_SEPARATOR;
+        encodedFieldNumberLength = encodedFieldNumber.length;
+    }
+
+    public void setIndexes(int newStartIndex, int newEndIndexIndex) {
+        this.startIndex = newStartIndex;
+        this.endIndex = newEndIndexIndex;
+        this.valueSet = true;
+    }
+
+    public boolean isValueSet() {
+        return valueSet;
+    }
+
+    public int getLength() {
+        return endIndex - startIndex;
     }
 
     public abstract FieldType getFieldType();
 
     protected abstract void resetInnerState();
 
-    public void setFieldData(ByteBuf fieldData) {
-        this.fieldData.clear();
-        this.fieldData.writeBytes(fieldData.readerIndex(0));
-    }
-
-    public void setFieldData(byte[] bytes) {
-        this.fieldData.clear();
-        this.fieldData.writeBytes(bytes);
-    }
-
-    public boolean isValueSet() {
-        return this.fieldData.writerIndex() > 0;
-    }
-
     public void reset() {
-        if (isValueSet()) {
+        if (valueSet) {
             resetInnerState();
         }
-        this.encodedFieldNumber.readerIndex(0);
-        this.fieldData.clear();
+        this.startIndex = 0;
+        this.endIndex = 0;
+        this.valueSet = false;
     }
 
     @Override
     public void close() {
-        final int encodedFieldNumberRefCount = encodedFieldNumber.refCnt();
-        if (encodedFieldNumberRefCount > 0) {
-            encodedFieldNumber.release(encodedFieldNumberRefCount);
-        }
-        final int fieldDataRefCount = fieldData.refCnt();
-        if (fieldDataRefCount > 0) {
-            fieldData.release(fieldDataRefCount);
-        }
+        //nothing to do
     }
+
+    public void appendFieldNumber(ByteBuf out) {
+        out.writeBytes(encodedFieldNumber);
+    }
+
+    public abstract void appendByteBufWithValue(ByteBuf out);
 }

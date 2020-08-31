@@ -3,9 +3,9 @@ package io.github.zlooo.fixyou.commons.pool
 import org.assertj.core.api.Assertions
 import spock.lang.Specification
 
-class NoThreadLocalObjectPoolTest extends Specification {
+class ArrayBackedObjectPoolTest extends Specification {
 
-    private NoThreadLocalObjectPool objectPool = new NoThreadLocalObjectPool(10, { -> new TestPoolableObject() }, TestPoolableObject)
+    private ArrayBackedObjectPool objectPool = new ArrayBackedObjectPool(10, { -> new TestPoolableObject() }, TestPoolableObject, 100)
 
     def "should get object from pool"() {
         when:
@@ -82,10 +82,22 @@ class NoThreadLocalObjectPoolTest extends Specification {
         objectPool.@objectArray.findAll { it == null }.isEmpty()
     }
 
-    def "should throw illegal state exception when returning object in wrong state"() {
+    def "should not throw illegal state exception when returning object is in available state"() {
         setup:
         def poolableObject = objectPool.getAndRetain()
         poolableObject.getState().set(AbstractPoolableObject.AVAILABLE_STATE)
+
+        when:
+        objectPool.returnObject(poolableObject)
+
+        then:
+        poolableObject.getState().get() == AbstractPoolableObject.AVAILABLE_STATE
+    }
+
+    def "should throw illegal state exception when returning object is in neither available nor in use state"() {
+        setup:
+        def poolableObject = objectPool.getAndRetain()
+        poolableObject.getState().set(666)
 
         when:
         objectPool.returnObject(poolableObject)
@@ -112,13 +124,89 @@ class NoThreadLocalObjectPoolTest extends Specification {
         def objectsFromPool = []
 
         when:
-        for(i in 0..originalPoolSize) {
+        for (i in 0..originalPoolSize) {
             objectsFromPool << objectPool.getAndRetain()
         }
 
         then:
         Assertions.assertThat(objectsFromPool).doesNotContainNull().hasSize(originalPoolSize + 1)
         objectPool.@objectArray.length > originalPoolSize
+    }
+
+    def "should not resize pool if it would exceed max pool size"() {
+        expect:
+        objectPool.resizeObjectArray() //32
+        objectPool.resizeObjectArray() //64
+        !objectPool.resizeObjectArray() //128 - size limit breach
+    }
+
+    def "should try get and receive null when all elements from pool are taken"() {
+        setup:
+        def originalPoolSize = objectPool.@objectArray.length
+        def objectsFromPool = []
+        for (i in 1..originalPoolSize) {
+            objectsFromPool << objectPool.getAndRetain()
+        }
+
+        when:
+        def result = objectPool.tryGetAndRetain()
+
+        then:
+        result == null
+        objectPool.@objectArray.length == originalPoolSize
+        Assertions.assertThat(objectPool.@objectArray).containsOnlyNulls()
+    }
+
+    def "should try get and receive object when all elements from pool are taken and then one is returned"() {
+        setup:
+        def originalPoolSize = objectPool.@objectArray.length
+        def objectsFromPool = []
+        for (i in 1..originalPoolSize) {
+            objectsFromPool << objectPool.getAndRetain()
+        }
+        objectPool.returnObject(objectsFromPool[0])
+
+        when:
+        def result = objectPool.tryGetAndRetain()
+
+        then:
+        result == objectsFromPool[0]
+        objectPool.@objectArray.length == originalPoolSize
+        Assertions.assertThat(objectPool.@objectArray).containsOnlyNulls()
+        objectPool.@objectPutPosition == 17
+        objectPool.@objGetPosition == 17
+    }
+
+    def "should interpret nulls in backing array as not returned objects"() {
+        setup:
+        objectPool.@objectArray[0] = null
+
+        expect:
+        !objectPool.areAllObjectsReturned()
+    }
+
+    def "should interpret in use state in object as not returned objects"() {
+        setup:
+        objectPool.@objectArray[0].getState().set(AbstractPoolableObject.IN_USE_STATE)
+
+        expect:
+        !objectPool.areAllObjectsReturned()
+    }
+
+    def "should check if all objects are returned"() {
+        setup:
+        def object = objectPool.tryGetAndRetain()
+        if (shouldReturn) {
+            objectPool.returnObject(object)
+        }
+
+        expect:
+        objectPool.areAllObjectsReturned() == result
+
+        where:
+        shouldReturn || result
+        false        || false
+        true         || true
     }
 
     static class TestPoolableObject extends AbstractPoolableObject {

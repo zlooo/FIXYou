@@ -6,20 +6,19 @@ import quickfix.fixt11.Heartbeat
 import quickfix.fixt11.Logon
 import spock.lang.Timeout
 
-@Timeout(10)
+@Timeout(30)
 class SendHeartbeatMessageIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should send heartbeat after inactivity period 4-a"() {
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID, 1, 5))
-        pollingConditions.eventually {
-            receivedMessages.size() == 1
-        }
+        waitForLogonResponse()
 
         when:
         pollingConditions.eventually {
             receivedMessages.size() >= 2
+            true
         }
 
         then:
@@ -34,9 +33,7 @@ class SendHeartbeatMessageIntegrationTest extends AbstractFixYOUAcceptorIntegrat
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
-        pollingConditions.eventually {
-            receivedMessages.size() == 1
-        }
+        waitForLogonResponse()
         sendMessage(channel, FixMessages.testRequest(sessionID, "request1"))
 
         when:

@@ -4,16 +4,16 @@ import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.fix.commons.RequiredFieldMissingException;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
-import io.github.zlooo.fixyou.parser.model.CharArrayField;
+import io.github.zlooo.fixyou.parser.model.CharSequenceField;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
+import io.github.zlooo.fixyou.parser.model.TimestampField;
+import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.netty.channel.*;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.time.Clock;
-import java.time.OffsetDateTime;
-import java.util.Arrays;
 
 @Singleton
 @Slf4j
@@ -32,8 +32,8 @@ class GenericHandler extends ChannelDuplexHandler { //TODO remember about unit t
         if (msg instanceof FixMessage) {
             final FixMessage fixMessage = (FixMessage) msg;
             final NettyHandlerAwareSessionState sessionState = NettyHandlerAwareSessionState.getForChannelContext(ctx);
-            final char[] messageType = fixMessage.<CharArrayField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getValue();
-            if ((sessionState == null || !sessionState.getConnected().get()) && !Arrays.equals(messageType, FixConstants.LOGON)) {
+            final CharSequence messageType = fixMessage.<CharSequenceField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getValue();
+            if ((sessionState == null || !sessionState.getConnected().get()) && !ArrayUtils.equals(FixConstants.LOGON, messageType)) {
                 final Channel channel = ctx.channel();
                 log.error("First message received but it's not logon request, disconnecting channel {}", channel);
                 channel.close();
@@ -52,10 +52,10 @@ class GenericHandler extends ChannelDuplexHandler { //TODO remember about unit t
             //TODO make this optional, depending on config
             checkIfFieldsArePresent(fixMessage, FixConstants.MESSAGE_TYPE_FIELD_NUMBER, FixConstants.SENDER_COMP_ID_FIELD_NUMBER, FixConstants.TARGET_COMP_ID_FIELD_NUMBER,
                                     FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER);
-            final CharArrayField sendingTimeField = fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER);
-            sendingTimeField.setValue(FixConstants.UTC_TIMESTAMP_FORMATTER.format(OffsetDateTime.now(clock)).toCharArray()); //TODO lots of garbage created here, think how you can reduce this
+            final long timestamp = clock.millis();
+            fixMessage.<TimestampField>getField(FixConstants.SENDING_TIME_FIELD_NUMBER).setValue(timestamp);
             if (shouldSetOrigSendingTime(fixMessage)) {
-                fixMessage.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).setFieldData(sendingTimeField.getFieldData());
+                fixMessage.<TimestampField>getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).setValue(timestamp);
             }
         }
         super.write(ctx, msg, promise);

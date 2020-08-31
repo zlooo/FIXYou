@@ -1,6 +1,6 @@
-package io.github.zlooo.fixyou.commons.utils
+package io.github.zlooo.fixyou.utils
 
-import io.github.zlooo.fixyou.commons.utils.ArrayUtils
+import io.github.zlooo.fixyou.utils.ArrayUtils
 import spock.lang.Specification
 
 class ArrayUtilsTest extends Specification {
@@ -43,17 +43,14 @@ class ArrayUtilsTest extends Specification {
         ["e1", "e2", "e3"] as String[] | "e4"           | false
     }
 
-    def "should compare char arrays"() {
+    def "should check if array equals char sequence"() {
         expect:
-        ArrayUtils.compare(array1, array2) == result
+        ArrayUtils.equals(array, charSequence) == result
 
         where:
-        array1               | array2              | result
-        "abc".toCharArray()  | "abc".toCharArray() | 0
-        "abc".toCharArray()  | array1              | 0
-        "abcd".toCharArray() | "abc".toCharArray() | 1
-        "abcd".toCharArray() | "abd".toCharArray() | -1
-        null                 | "abc".toCharArray() | -1
-        "abc".toCharArray()  | null                | 1
+        array                     | charSequence || result
+        ['a', 'b', 'c'] as char[] | "abc"         | true
+        ['a', 'b', 'c'] as char[] | "abcd"         | false
+        ['a', 'b', 'c'] as char[] | "adc"         | false
     }
 }

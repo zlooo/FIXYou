@@ -9,13 +9,14 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
 @Ignore("for now checksum validation is not implemented, will have to add that in the future")
-@Timeout(10)
+@Timeout(30)
 class ReceiveMessageStandardTrailerIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should process message with correct checksum 3-a,d"() {
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def expectedClordId
         def message = FixMessages.newOrderSingle(sessionID, 2, { newOrderSingle ->
             expectedClordId = newOrderSingle.getClOrdID().getValue().toCharArray()
@@ -36,6 +37,7 @@ class ReceiveMessageStandardTrailerIntegrationTest extends AbstractFixYOUAccepto
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2).replaceAll("10=\\d+\\x01", "10=666\u0001")
 
         when:
@@ -53,6 +55,7 @@ class ReceiveMessageStandardTrailerIntegrationTest extends AbstractFixYOUAccepto
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2)
         def expectedClordId
         def message2 = FixMessages.newOrderSingle(sessionID, 2, { newOrderSingle ->
@@ -85,6 +88,7 @@ class ReceiveMessageStandardTrailerIntegrationTest extends AbstractFixYOUAccepto
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2)
         def matcher = Pattern.compile(".*10=(\\d+)\\x01").matcher(message)
         matcher.matches()
@@ -120,6 +124,7 @@ class ReceiveMessageStandardTrailerIntegrationTest extends AbstractFixYOUAccepto
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2,)
         def matcher = Pattern.compile(".*(10=\\d+\\x01)").matcher(message)
         matcher.matches()

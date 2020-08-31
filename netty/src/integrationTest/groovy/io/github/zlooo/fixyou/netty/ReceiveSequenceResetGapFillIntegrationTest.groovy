@@ -12,7 +12,7 @@ import spock.lang.Timeout
 
 import java.util.concurrent.TimeUnit
 
-@Timeout(10)
+@Timeout(30)
 class ReceiveSequenceResetGapFillIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
     def "should send resend when sequence reset - gap fill is received which indicates message gap 10-a"() {
         setup:
@@ -67,9 +67,7 @@ class ReceiveSequenceResetGapFillIntegrationTest extends AbstractFixYOUAcceptorI
         QuickfixTestUtils.putSessionIdInfo(sessionID, sequenceReset.getHeader(), false)
         QuickfixTestUtils.putStandardHeaderFields(sequenceReset.getHeader(), 1)
         sequenceReset.getHeader().setBoolean(PossDupFlag.FIELD, true)
-        pollingConditions.eventually {
-            receivedMessages.size() >= 1
-        }
+        waitForLogonResponse()
 
         when:
         sendMessage(channel, sequenceReset.toString())
@@ -82,7 +80,7 @@ class ReceiveSequenceResetGapFillIntegrationTest extends AbstractFixYOUAcceptorI
         nextExpectedInboundSequenceNumber() == 2
     }
 
-    def "should disconnect session when sequence reset when message sequence number is less then expected and poss dup flag is not set 10-d"() {
+    def "should disconnect session on sequence reset message with sequence number is then expected and poss dup flag is not set 10-d"() {
         setup:
         startQuickfixAndWaitTillLoggedIn()
         SequenceReset sequenceReset = new SequenceReset()

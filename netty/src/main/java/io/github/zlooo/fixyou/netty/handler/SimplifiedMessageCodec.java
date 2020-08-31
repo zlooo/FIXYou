@@ -1,19 +1,18 @@
 package io.github.zlooo.fixyou.netty.handler;
 
-import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.FixConstants;
-import io.github.zlooo.fixyou.commons.utils.ArrayUtils;
+import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.model.ApplicationVersionID;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.netty.utils.ValueAddingByteProcessor;
 import io.github.zlooo.fixyou.parser.FixFieldsTypes;
-import io.github.zlooo.fixyou.parser.FixMessageReader;
+import io.github.zlooo.fixyou.parser.FixMessageParser;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage;
+import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandler;
@@ -30,7 +29,8 @@ import javax.inject.Singleton;
 class SimplifiedMessageCodec extends AbstractMessageEncoder implements ChannelInboundHandler {
 
     private static final SimplifiedSpec SIMPLIFIED_SPEC = new SimplifiedSpec();
-    private final FixMessageReader fixMessageReader = new FixMessageReader();
+    private final ByteBufComposer byteBufComposer = new ByteBufComposer(1);
+    private final FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer);
 
     @Inject
     SimplifiedMessageCodec() {
@@ -41,17 +41,20 @@ class SimplifiedMessageCodec extends AbstractMessageEncoder implements ChannelIn
         if (msg instanceof ByteBuf) {
             final ByteBuf in = (ByteBuf) msg;
             try {
-                fixMessageReader.setFixBytes(in);
+                byteBufComposer.addByteBuf(in);
                 /**
                  * This handler should handle 1 message only anyway, first logon, so we can afford invocation of {@link FixMessage#FixMessage(FixSpec)}. After that it's removed
                  * from
                  * pipeline by {@link io.github.zlooo.fixyou.netty.handler.admin.LogonHandler#addRequiredChannelsToPipeline(ChannelHandlerContext, NettyHandlerAwareSessionState)}
                  */
                 final FixMessage fixMessage = new NotPoolableFixMessage(SIMPLIFIED_SPEC);
-                fixMessageReader.setFixMessage(fixMessage);
-                fixMessageReader.parseFixMsgBytes();
-                if (fixMessageReader.isDone()) {
-                    ctx.fireChannelRead(fixMessageReader.getFixMessage());
+                fixMessageParser.setFixMessage(fixMessage);
+                fixMessageParser.parseFixMsgBytes();
+                if (fixMessageParser.isDone()) {
+                    if (log.isTraceEnabled()) {
+                        log.trace("Message after decoding {}", fixMessage.toString(true));
+                    }
+                    ctx.fireChannelRead(fixMessageParser.getFixMessage());
                 } else {
                     log.error("Incomplete logon message arrived, closing channel {}", ctx.channel());
                     /**
@@ -62,6 +65,7 @@ class SimplifiedMessageCodec extends AbstractMessageEncoder implements ChannelIn
                     ctx.close();
                 }
             } finally {
+                fixMessageParser.setFixMessage(null);
                 in.release();
             }
         } else {
@@ -72,16 +76,6 @@ class SimplifiedMessageCodec extends AbstractMessageEncoder implements ChannelIn
     @Override
     protected ValueAddingByteProcessor getValueAddingByteProcessor() {
         return new ValueAddingByteProcessor();
-    }
-
-    @Override
-    protected ByteBuf getBodyTempBuffer() {
-        return Unpooled.directBuffer(DefaultConfiguration.AVG_FIELDS_PER_MESSAGE * DefaultConfiguration.FIELD_BUFFER_SIZE);
-    }
-
-    @Override
-    protected void bodyTempBufferNotNeeded(ByteBuf bodyTempBuffer) {
-        bodyTempBuffer.release(bodyTempBuffer.refCnt());
     }
 
     @Override

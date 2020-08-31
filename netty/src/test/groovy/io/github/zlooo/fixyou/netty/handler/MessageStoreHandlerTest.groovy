@@ -4,6 +4,7 @@ import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
+import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.MessageStore
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID
@@ -15,17 +16,17 @@ import spock.lang.Specification
 class MessageStoreHandlerTest extends Specification {
 
     private MessageStore messageStore = Mock()
-    private SessionID sessionID = new SessionID([] as char[], [] as char[], [] as char[])
+    private SessionID sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
     private MessageStoreHandler messageStoreHandler = new MessageStoreHandler(sessionID, messageStore)
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
     private Attribute sessionStateAttribute = Mock()
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), sessionID, Mock(DefaultObjectPool), TestSpec.INSTANCE)
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), sessionID, Mock(DefaultObjectPool), Mock(DefaultObjectPool), TestSpec.INSTANCE)
 
     def "should store message if session is persistent"() {
         setup:
         sessionState.getSessionConfig().setPersistent(true)
-        io.github.zlooo.fixyou.parser.model.FixMessage fixMessage = new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+        FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 666L
 
         when:
@@ -43,7 +44,7 @@ class MessageStoreHandlerTest extends Specification {
     def "should pass message if session is not established"() {
         setup:
         sessionState.getSessionConfig().setPersistent(false)
-        io.github.zlooo.fixyou.parser.model.FixMessage fixMessage = new io.github.zlooo.fixyou.parser.model.FixMessage(TestSpec.INSTANCE)
+        FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 666L
 
         when:

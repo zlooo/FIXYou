@@ -1,6 +1,12 @@
 package io.github.zlooo.fixyou.fix.commons.session
 
+import io.github.zlooo.fixyou.FIXYouException
+import io.github.zlooo.fixyou.Resettable
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
+import io.github.zlooo.fixyou.model.FixSpec
+import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.session.SessionConfig
+import io.github.zlooo.fixyou.session.SessionID
 import org.assertj.core.api.Assertions
 import spock.lang.Specification
 
@@ -8,9 +14,9 @@ import java.util.function.Function
 
 class SessionRegistryImplTest extends Specification {
 
-    private io.github.zlooo.fixyou.session.SessionID existingSessionId = new io.github.zlooo.fixyou.session.SessionID([] as char[], [] as char[], [] as char[])
+    private SessionID existingSessionId = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
     private SessionRegistryImpl sessionRegistry = new SessionRegistryImpl()
-    private TestSessionState existingSessionState = new TestSessionState(new io.github.zlooo.fixyou.session.SessionConfig(), existingSessionId, Mock(DefaultObjectPool), Mock(io.github.zlooo.fixyou.model.FixSpec))
+    private TestSessionState existingSessionState = new TestSessionState(new SessionConfig(), existingSessionId, Mock(DefaultObjectPool), Mock(DefaultObjectPool), Mock(FixSpec))
 
     void setup() {
         sessionRegistry.@sessions.put(existingSessionId, existingSessionState)
@@ -23,7 +29,7 @@ class SessionRegistryImplTest extends Specification {
 
     def "should not find not existing session state"() {
         expect:
-        sessionRegistry.getStateForSession(new io.github.zlooo.fixyou.session.SessionID("beginString".toCharArray(), "fakeSender".toCharArray(), "fakeTarget".toCharArray())) == null
+        sessionRegistry.getStateForSession(new SessionID("beginString".toCharArray(), 5, "fakeSender".toCharArray(), 5, "fakeTarget".toCharArray(), 5)) == null
     }
 
     def "should find state for given session id when required"() {
@@ -33,18 +39,18 @@ class SessionRegistryImplTest extends Specification {
 
     def "should throw exception when cannot find required state"() {
         when:
-        sessionRegistry.getStateForSessionRequired(new io.github.zlooo.fixyou.session.SessionID("beginString".toCharArray(), "fakeSender".toCharArray(), "fakeTarget".toCharArray()))
+        sessionRegistry.getStateForSessionRequired(new SessionID("beginString".toCharArray(), 5, "fakeSender".toCharArray(), 5, "fakeTarget".toCharArray(), 5))
 
         then:
-        thrown(io.github.zlooo.fixyou.FIXYouException)
+        thrown(FIXYouException)
     }
 
     def "should register new session"() {
         setup:
         sessionRegistry.@sessions.clear()
-        io.github.zlooo.fixyou.Resettable resettable1 = Mock()
-        io.github.zlooo.fixyou.Resettable resettable2 = Mock()
-        Function<TestSessionState, Map<String, io.github.zlooo.fixyou.Resettable>> resettableSupplier = { state -> [resetable1: resettable1, resetable2: resettable2] }
+        Resettable resettable1 = Mock()
+        Resettable resettable2 = Mock()
+        Function<TestSessionState, Map<String, Resettable>> resettableSupplier = { state -> [resetable1: resettable1, resetable2: resettable2] }
 
         when:
         sessionRegistry.registerExpectedSession(existingSessionState, resettableSupplier)
@@ -56,22 +62,21 @@ class SessionRegistryImplTest extends Specification {
 
     def "should not be able to register session using same id twice"() {
         setup:
-        io.github.zlooo.fixyou.Resettable resettable1 = Mock()
-        io.github.zlooo.fixyou.Resettable resettable2 = Mock()
-        Function<TestSessionState, Map<String, io.github.zlooo.fixyou.Resettable>> resettableSupplier = { state -> [resetable1: resettable1, resetable2: resettable2] }
+        Resettable resettable1 = Mock()
+        Resettable resettable2 = Mock()
+        Function<TestSessionState, Map<String, Resettable>> resettableSupplier = { state -> [resetable1: resettable1, resetable2: resettable2] }
 
         when:
         sessionRegistry.registerExpectedSession(existingSessionState, resettableSupplier)
 
         then:
-        thrown(io.github.zlooo.fixyou.FIXYouException)
+        thrown(FIXYouException)
         Assertions.assertThat(sessionRegistry.@sessions).containsOnly(Assertions.entry(existingSessionId, existingSessionState))
     }
 
     private static final class TestSessionState extends AbstractMessagePoolingSessionState {
-        TestSessionState(io.github.zlooo.fixyou.session.SessionConfig sessionConfig, io.github.zlooo.fixyou.session.SessionID sessionID, DefaultObjectPool<io.github.zlooo.fixyou.parser.model.FixMessage> fixMessageObjectPool, io.github
-                .zlooo.fixyou.model.FixSpec fixSpec) {
-            super(sessionConfig, sessionID, fixMessageObjectPool, fixSpec)
+        TestSessionState(SessionConfig sessionConfig, SessionID sessionID, DefaultObjectPool<FixMessage> fixMessageObjectReadPool, DefaultObjectPool<FixMessage> fixMessageObjectWritePool, FixSpec fixSpec) {
+            super(sessionConfig, sessionID, fixMessageObjectReadPool, fixMessageObjectWritePool, fixSpec)
         }
     }
 }

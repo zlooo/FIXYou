@@ -24,13 +24,16 @@ public class FieldTypeUtils {
                 newField = (T) new BooleanField(fieldNumber);
                 break;
             case CHAR_ARRAY:
-                newField = (T) new CharArrayField(fieldNumber);
+                newField = (T) new CharSequenceField(fieldNumber);
                 break;
             case CHAR:
                 newField = (T) new CharField(fieldNumber);
                 break;
             case GROUP:
                 newField = (T) new GroupField(fieldNumber, fixSpec);
+                break;
+            case TIMESTAMP:
+                newField = (T) new TimestampField(fieldNumber);
                 break;
             default:
                 throw new IllegalArgumentException("Unrecognized field type " + fieldType);

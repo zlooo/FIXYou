@@ -44,7 +44,7 @@ class MessageValidatorHandlerTest extends Specification {
         1 * channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY) >> sessionAttribute
         1 * sessionAttribute.get() >> sessionState
         1 * validator1.apply(fixMessage) >> validationFailureAction
-        1 * sessionState.getFixMessageObjectPool() >> fixMessagePool
+        1 * sessionState.getFixMessageWritePool() >> fixMessagePool
         1 * validationFailureAction.perform(channelHandlerContext, fixMessage, fixMessagePool)
         0 * _
     }
@@ -61,7 +61,7 @@ class MessageValidatorHandlerTest extends Specification {
         1 * sessionState.getSessionConfig() >> sessionConfig
         1 * predicate2.test(validationConfig) >> true
         1 * validator2.apply(fixMessage, sessionState) >> validationFailureAction
-        1 * sessionState.getFixMessageObjectPool() >> fixMessagePool
+        1 * sessionState.getFixMessageWritePool() >> fixMessagePool
         1 * validationFailureAction.perform(channelHandlerContext, fixMessage, fixMessagePool)
         0 * _
     }

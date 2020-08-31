@@ -1,5 +1,6 @@
 package io.github.zlooo.fixyou.parser.model
 
+import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import spock.lang.Specification
@@ -9,16 +10,25 @@ import java.nio.charset.StandardCharsets
 class BooleanFieldTest extends Specification {
 
     private BooleanField field
+    private ByteBuf underlyingBuf = Unpooled.buffer(10, 10)
 
     void setup() {
         field = new BooleanField(1)
-        field.fieldData.writeCharSequence("Y", StandardCharsets.US_ASCII)
+        field.fieldData = new ByteBufComposer(1)
+        underlyingBuf.writerIndex(5)
+        underlyingBuf.writeCharSequence("Y", StandardCharsets.US_ASCII)
+        field.fieldData.addByteBuf(underlyingBuf)
+        field.setIndexes(5, 6)
     }
 
     def "should get value"() {
         setup:
         field = new BooleanField(1)
-        field.fieldData.writeCharSequence(rawValue, StandardCharsets.US_ASCII)
+        field.fieldData = new ByteBufComposer(1)
+        underlyingBuf.writerIndex(5)
+        underlyingBuf.writeCharSequence(rawValue, StandardCharsets.US_ASCII)
+        field.fieldData.addByteBuf(underlyingBuf)
+        field.setIndexes(5, 6)
 
         when:
         def value = field.getValue()
@@ -33,10 +43,21 @@ class BooleanFieldTest extends Specification {
         "N"      | false
     }
 
+    def "should get default value when value is not set"(){
+        setup:
+        field.reset()
+
+        expect:
+        field.value == false
+    }
+
     def "should throw exception when trying to parse unexpected value"() {
         setup:
         field = new BooleanField(1)
-        field.fieldData.writeCharSequence("Z", StandardCharsets.US_ASCII)
+        underlyingBuf.writeCharSequence("Z", StandardCharsets.US_ASCII)
+        field.fieldData = new ByteBufComposer(1)
+        field.fieldData.addByteBuf(underlyingBuf)
+        field.setIndexes(0, 1)
 
         when:
         def value = field.getValue()
@@ -48,7 +69,7 @@ class BooleanFieldTest extends Specification {
     def "should cache value once parsed"() {
         setup:
         field.getValue()
-        field.fieldData.clear().writeCharSequence("!", StandardCharsets.US_ASCII);
+        field.fieldData.releaseData(0, 666)
 
         expect:
         field.getValue()
@@ -68,9 +89,24 @@ class BooleanFieldTest extends Specification {
 
         then:
         field.@parsed
+        field.valueSet
         !field.getValue()
-        ByteBuf expectedBuffer = Unpooled.buffer(10)
-        expectedBuffer.writeCharSequence("N", StandardCharsets.US_ASCII)
-        field.fieldData.compareTo(expectedBuffer) == 0
+    }
+
+    def "should append provided byte buf with value"() {
+        setup:
+        field.value = valueToSet
+        def buf = Unpooled.buffer(1, 1)
+
+        when:
+        field.appendByteBufWithValue(buf)
+
+        then:
+        buf.toString(StandardCharsets.US_ASCII) == expectedValue
+
+        where:
+        valueToSet | expectedValue
+        true       | "Y"
+        false      | "N"
     }
 }

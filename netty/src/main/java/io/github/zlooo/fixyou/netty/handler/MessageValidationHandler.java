@@ -31,7 +31,7 @@ class MessageValidationHandler extends SimpleChannelInboundHandler<FixMessage>
         final ValidationFailureAction validationFailureAction = checkFixMessage(msg, sessionState);
         if (validationFailureAction != null) {
             log.warn("Message validation failed, performing {}", validationFailureAction);
-            validationFailureAction.perform(ctx, msg, sessionState.getFixMessageObjectPool());
+            validationFailureAction.perform(ctx, msg, sessionState.getFixMessageWritePool());
         } else {
             ctx.fireChannelRead(msg);
         }

@@ -23,6 +23,7 @@ package io.github.zlooo.fixyou.commons.pool;
 
 import lombok.extern.slf4j.Slf4j;
 
+import javax.annotation.Nullable;
 import java.util.function.Supplier;
 
 /**
@@ -30,16 +31,15 @@ import java.util.function.Supplier;
  * processed sequentially) and 99% of cases will not need more than 2 objects taken out of pool
  */
 @Slf4j
-public class DefaultObjectPool<T extends AbstractPoolableObject> extends AbstractArrayBasedObjectPool<T> {
+public class DefaultObjectPool<T extends AbstractPoolableObject> extends AbstractArrayBackedObjectPool<T> {
 
-    private static final String GET_OBJECT_LOG = "Grabbing object {} from pool {}. Object resides in {}";
     //the idea is that 99% of cases will need at most 2 objects taken from pool
     private final T firstObject;
     private final T secondObject;
 
     @SuppressWarnings("unchecked")
-    public DefaultObjectPool(int poolSize, Supplier<T> objectSupplier, Class<T> clazz) {
-        super(poolSize, objectSupplier, clazz);
+    public DefaultObjectPool(int poolSize, Supplier<T> objectSupplier, Class<T> clazz, int maxSize) {
+        super(poolSize, objectSupplier, clazz, maxSize);
         firstObject = objectSupplier.get();
         secondObject = objectSupplier.get();
         firstObject.setPool(this);
@@ -48,49 +48,62 @@ public class DefaultObjectPool<T extends AbstractPoolableObject> extends Abstrac
 
     @Override
     public T getAndRetain() {
+        final T objectFromPool = tryGetAndRetain();
+        if (objectFromPool == null) {
+            resizeObjectArray();
+            return getAndRetain();
+        } else {
+            return objectFromPool;
+        }
+    }
+
+
+    @Nullable
+    @Override
+    public T tryGetAndRetain() {
         if (firstObject.getState().compareAndSet(AbstractPoolableObject.AVAILABLE_STATE, AbstractPoolableObject.IN_USE_STATE)) {
             firstObject.retain();
-            log.debug(GET_OBJECT_LOG, firstObject, this, "local var 1");
+            log.debug(GET_OBJECT_LOG, firstObject, firstObject.hashCode(), this, "local var 1");
             return firstObject;
         }
         if (secondObject.getState().compareAndSet(AbstractPoolableObject.AVAILABLE_STATE, AbstractPoolableObject.IN_USE_STATE)) {
             secondObject.retain();
-            log.debug(GET_OBJECT_LOG, firstObject, this, "local var 2");
+            log.debug(GET_OBJECT_LOG, secondObject, secondObject.hashCode(), this, "local var 2");
             return secondObject;
         }
 
         int localTakePointer;
+        T pooledObject = null;
         while (objectPutPosition != (localTakePointer = objGetPosition)) {
             final int index = localTakePointer & mask;
-            final T pooledObject = objectArray[index];
+            pooledObject = objectArray[index];
             if (pooledObject != null) {
                 objGetPosition = localTakePointer + 1;
                 if (pooledObject.getState().compareAndSet(AbstractPoolableObject.AVAILABLE_STATE, AbstractPoolableObject.IN_USE_STATE)) {
                     objectArray[index] = null;
                     pooledObject.retain();
-                    log.debug(GET_OBJECT_LOG, pooledObject, this, "object array");
-                    return pooledObject;
+                    log.debug(GET_OBJECT_LOG, pooledObject, pooledObject.hashCode(), this, "object array");
+                    break;
                 } else {
                     log.warn("Item is present in array but has unexpected state! Are you sure you're using this class in single thread?");
                 }
             }
         }
-        resizeObjectArray();
-        return getAndRetain();
+        return pooledObject;
     }
 
     @Override
     public void returnObject(T objectToBeReturned) {
-        log.debug("Returning object {} to pool {}", objectToBeReturned, this);
-        //TODO if pool is closed close this object
-        if (!objectToBeReturned.getState().compareAndSet(AbstractPoolableObject.IN_USE_STATE, AbstractPoolableObject.AVAILABLE_STATE)) {
-            throw buildIllegalStateException(objectToBeReturned);
-        } else {
+        if (objectToBeReturned.getState().compareAndSet(AbstractPoolableObject.IN_USE_STATE, AbstractPoolableObject.AVAILABLE_STATE)) {
+            log.debug(RETURN_OBJECT_LOG, objectToBeReturned, objectToBeReturned.hashCode(), this);
             if (objectToBeReturned != firstObject && objectToBeReturned != secondObject) {
                 final int index = objectPutPosition & mask;
                 objectArray[index] = objectToBeReturned;
                 objectPutPosition++;
             }
+        } else if (objectToBeReturned.getState().get() != AbstractPoolableObject.AVAILABLE_STATE) {
+            throw new IllegalStateException(
+                    "Unexpected object state, expecting in use(" + AbstractPoolableObject.IN_USE_STATE + ") but got " + objectToBeReturned.getState().get() + ". Object details " + objectToBeReturned + "@" + objectToBeReturned.hashCode());
         }
     }
 
@@ -120,10 +133,5 @@ public class DefaultObjectPool<T extends AbstractPoolableObject> extends Abstrac
             }
         }
         return firstObject.getState().get() == AbstractPoolableObject.AVAILABLE_STATE && secondObject.getState().get() == AbstractPoolableObject.AVAILABLE_STATE && nonNull && available;
-    }
-
-    private static <T extends AbstractPoolableObject> IllegalStateException buildIllegalStateException(T objectToBeReturned) {
-        return new IllegalStateException(
-                "Unexpected object state, expecting in use(" + AbstractPoolableObject.IN_USE_STATE + ") but got " + objectToBeReturned.getState().get());
     }
 }

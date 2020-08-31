@@ -4,7 +4,7 @@ import quickfix.fixt11.Logon
 import quickfix.fixt11.Logout
 import spock.lang.Timeout
 
-@Timeout(10)
+@Timeout(30)
 class InitiateLogoutProcessIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should logout 12"() {

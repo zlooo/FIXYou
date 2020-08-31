@@ -3,10 +3,13 @@ package io.github.zlooo.fixyou.netty
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.netty.test.framework.FixMessages
 import io.github.zlooo.fixyou.netty.test.framework.QuickfixTestUtils
-import io.github.zlooo.fixyou.parser.model.CharArrayField
 import io.github.zlooo.fixyou.parser.model.CharField
+import io.github.zlooo.fixyou.parser.model.CharSequenceField
 import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.parser.model.TimestampField
+import quickfix.Message
 import quickfix.Session
+import quickfix.SessionID
 import quickfix.field.*
 import quickfix.fix50sp2.NewOrderSingle
 import quickfix.fixt11.Logon
@@ -14,13 +17,12 @@ import quickfix.fixt11.Logout
 import quickfix.fixt11.Reject
 import quickfix.fixt11.ResendRequest
 import spock.lang.Ignore
-import spock.lang.Timeout
 
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 
-@Timeout(10)
+//@Timeout(30)
 class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should process message with correct header normally 2-a,h,j,l,n,p,s"() {
@@ -59,6 +61,8 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
 
         then:
         testFixMessageListener.messagesReceived.size() == 1
+        //sequence reset message releases underlying data in byteBufferComposer before listener, that's running in different thread, has a chance to copy data. Result? Exception here, since composer already released underlying ByteBuf
+        // before this field got parsed
         assertMinimalNewOrderSingle(newOrderSingle, testFixMessageListener.messagesReceived[0])
         def message = testQuickfixApplication.adminMessagesReceived[0]
         message instanceof Logon
@@ -100,6 +104,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         String clordid
         def newOrderSingle = FixMessages.newOrderSingle(sessionID, 2, { msg -> clordid = msg.getClOrdID().getValue() })
 
@@ -113,7 +118,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         then:
         nextExpectedInboundSequenceNumber() == 3
         testFixMessageListener.messagesReceived.size() == 1
-        testFixMessageListener.messagesReceived[0].getField(ClOrdID.FIELD).value == clordid.toCharArray()
+        testFixMessageListener.messagesReceived[0].getField(ClOrdID.FIELD).value.toString() == clordid
     }
 
     def "should process resend message 2-e-2-1"() {
@@ -122,7 +127,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         def firstOrder = FixMessages.createNewOrderSingle()
         Session.sendToTarget(firstOrder, sessionID)
         pollingConditions.eventually {
-            nextExpectedInboundSequenceNumber() == 3L
+            testFixMessageListener.messagesReceived.size() == 1
         }
         nextExpectedInboundSequenceNumber(2)
         testFixMessageListener.messagesReceived.clear()
@@ -146,8 +151,12 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         sendMessage(channel, FixMessages.newOrderSingle(sessionID, 4))
-        def sequence2Resend = FixMessages.newOrderSingle(sessionID, 2, { msg -> msg.getHeader().setBoolean(PossDupFlag.FIELD, true) })
+        def sequence2Resend = FixMessages.newOrderSingle(sessionID, 2, { msg ->
+            msg.getHeader().setBoolean(PossDupFlag.FIELD, true)
+            msg.getHeader().setUtcTimeStamp(OrigSendingTime.FIELD, LocalDateTime.now(ZoneOffset.UTC).minusHours(1))
+        })
         sendMessage(channel, sequence2Resend)
 
         when:
@@ -168,6 +177,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def resend = FixMessages.newOrderSingle(sessionID, 2, { msg ->
             msg.getHeader().setBoolean(PossDupFlag.FIELD, true)
             msg.getHeader().setUtcTimeStamp(OrigSendingTime.FIELD, LocalDateTime.now().plusHours(1))
@@ -185,12 +195,15 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         receivedMessages.size() == 3 //should receive logon, reject and logout
         Logon logon = new Logon()
         logon.fromString(receivedMessages[0], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 1, logon.getHeader())
         Reject reject = new Reject()
         reject.fromString(receivedMessages[1], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 2, reject.getHeader())
         reject.getSessionRejectReason().getValue() == SessionRejectReason.SENDINGTIME_ACCURACY_PROBLEM
         nextExpectedInboundSequenceNumber() == 3
         Logout logout = new Logout()
         logout.fromString(receivedMessages[2], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 3, logout.getHeader())
         logout.getText().getValue().contains("SendingTime")
         !channel.isActive()
         sessionSateListener.sessionState.logoutSent
@@ -200,6 +213,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def resend = FixMessages.newOrderSingle(sessionID, 2, { msg ->
             msg.getHeader().setBoolean(PossDupFlag.FIELD, true)
         })
@@ -214,18 +228,25 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         receivedMessages.size() == 2 //should receive logon and reject
         Logon logon = new Logon()
         logon.fromString(receivedMessages[0], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 1, logon.getHeader())
         Reject reject = new Reject()
         reject.fromString(receivedMessages[1], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 2, reject.getHeader())
         reject.getSessionRejectReason().getValue() == SessionRejectReason.REQUIRED_TAG_MISSING
         reject.getRefTagID().getValue() == FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER
         nextExpectedInboundSequenceNumber() == 3
         channel.isActive()
     }
 
+    /**
+     * This case is pretty unclear to me. Should incoming sequence number be incremented? What begin string should outgoing logout message have? Increase outgoing sequence number?
+     * I'm assuming the answers are yes, correct one, yes
+     */
     def "should logout session which sends unexpected BeginString 2-i"() {
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2, { msg ->
             msg.getHeader().setString(BeginString.FIELD, "FIX.4.2")
         })
@@ -242,9 +263,11 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         receivedMessages.size() == 2 //should receive logon and logout
         Logon logon = new Logon()
         logon.fromString(receivedMessages[0], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 1, logon.getHeader())
         Logout logout = new Logout()
         logout.fromString(receivedMessages[1], QuickfixTestUtils.FIXT11_DICTIONARY, true)
-        nextExpectedInboundSequenceNumber() == 2
+        assertHeader(sessionID, 2, logout.getHeader())
+        nextExpectedInboundSequenceNumber() == 3
         !channel.isActive()
         sessionSateListener.sessionState.logoutSent
         !sessionSateListener.sessionState.connected.get()
@@ -256,6 +279,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2, { msg ->
             msg.getHeader().setString(SenderCompID.FIELD, "wrongSender")
         })
@@ -272,12 +296,15 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         receivedMessages.size() == 3
         Logon logon = new Logon()
         logon.fromString(receivedMessages[0], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 1, logon.getHeader())
         Reject reject = new Reject()
         reject.fromString(receivedMessages[1], QuickfixTestUtils.FIXT11_DICTIONARY, true)
         reject.getSessionRejectReason().value == SessionRejectReason.COMPID_PROBLEM
+        assertHeader(sessionID, 2, reject.getHeader())
         Logout logout = new Logout()
         logout.fromString(receivedMessages[2], QuickfixTestUtils.FIXT11_DICTIONARY, true)
         logout.getText().getValue().contains("CompID")
+        assertHeader(sessionID, 3, logout.getHeader())
         nextExpectedInboundSequenceNumber() == 3
         !channel.isActive()
         sessionSateListener.sessionState.logoutSent
@@ -290,6 +317,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2, { msg ->
             msg.getHeader().setString(TargetCompID.FIELD, "wrongTarget")
         })
@@ -306,11 +334,14 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         receivedMessages.size() == 3
         Logon logon = new Logon()
         logon.fromString(receivedMessages[0], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 1, logon.getHeader())
         Reject reject = new Reject()
         reject.fromString(receivedMessages[1], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 2, reject.getHeader())
         reject.getSessionRejectReason().value == SessionRejectReason.COMPID_PROBLEM
         Logout logout = new Logout()
         logout.fromString(receivedMessages[2], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 3, logout.getHeader())
         logout.getText().getValue().contains("CompID")
         nextExpectedInboundSequenceNumber() == 3
         !channel.isActive()
@@ -324,6 +355,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2).replaceAll("9=\\d+\\x01", "9=12345\u0001")
 
         when:
@@ -341,6 +373,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2, { msg ->
             msg.getHeader().setUtcTimeStamp(SendingTime.FIELD, LocalDateTime.now().minus(FixConstants.SENDING_TIME_ACCURACY_MILLIS + 10, ChronoUnit.MILLIS))
         })
@@ -357,11 +390,14 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         receivedMessages.size() == 3
         Logon logon = new Logon()
         logon.fromString(receivedMessages[0], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 1, logon.getHeader())
         Reject reject = new Reject()
         reject.fromString(receivedMessages[1], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 2, reject.getHeader())
         reject.getSessionRejectReason().value == SessionRejectReason.SENDINGTIME_ACCURACY_PROBLEM
         Logout logout = new Logout()
         logout.fromString(receivedMessages[2], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 3, logout.getHeader())
         logout.getText().getValue().contains("SendingTime")
         nextExpectedInboundSequenceNumber() == 3
         !channel.isActive()
@@ -374,6 +410,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2, { msg ->
             msg.getHeader().setString(MsgType.FIELD, "wrongValue")
         })
@@ -388,8 +425,10 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         receivedMessages.size() == 2 //should receive logon and reject
         Logon logon = new Logon()
         logon.fromString(receivedMessages[0], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 1, logon.getHeader())
         Reject reject = new Reject()
         reject.fromString(receivedMessages[1], QuickfixTestUtils.FIXT11_DICTIONARY, true)
+        assertHeader(sessionID, 2, reject.getHeader())
         reject.getSessionRejectReason().getValue() == SessionRejectReason.INVALID_MSGTYPE
         reject.getRefTagID().getValue() == FixConstants.MESSAGE_TYPE_FIELD_NUMBER
         nextExpectedInboundSequenceNumber() == 3
@@ -402,6 +441,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2).replaceAll("9=\\d+\\x0135=\\w++", "35=D\u00019=123")
 
         when:
@@ -416,13 +456,16 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
     }
 
     void assertMinimalNewOrderSingle(NewOrderSingle expected, FixMessage actual) {
-        assert actual.<CharArrayField> getField(ClOrdID.FIELD).value == expected.getClOrdID().value.toCharArray()
+        assert actual.<CharSequenceField> getField(ClOrdID.FIELD).value.toString() == expected.getClOrdID().value
         assert actual.<CharField> getField(Side.FIELD).value == expected.getSide().value
-        assert actual.<CharArrayField> getField(TransactTime.FIELD).value == expected.
-                getTransactTime().
-                value.
-                format(DateTimeFormatter.ofPattern("YYYYMMdd-HH:mm:ss.SSS")).
-                toCharArray()
+        assert actual.<TimestampField> getField(TransactTime.FIELD).value == expected.getTransactTime().value.toInstant(ZoneOffset.UTC).toEpochMilli()
         assert actual.<CharField> getField(OrdType.FIELD).value == expected.getOrdType().value
+    }
+
+    void assertHeader(SessionID sessionID, Integer expectedSequenceNumber, Message.Header header) {
+        assert header.getString(BeginString.FIELD) == sessionID.getBeginString()
+        assert header.getString(SenderCompID.FIELD) == sessionID.getTargetCompID()
+        assert header.getString(TargetCompID.FIELD) == sessionID.getSenderCompID()
+        assert header.getInt(MsgSeqNum.FIELD) == expectedSequenceNumber
     }
 }

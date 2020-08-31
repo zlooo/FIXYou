@@ -18,7 +18,7 @@ import spock.lang.Timeout
 
 import java.util.function.Function
 
-@Timeout(10)
+@Timeout(30)
 class ReceiveResendRequestMessagePersistenceOnIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     private MessageStore fakeMessageStore

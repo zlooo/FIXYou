@@ -11,7 +11,7 @@ import spock.lang.Timeout
 
 import java.util.concurrent.TimeUnit
 
-@Timeout(10)
+@Timeout(30)
 class ReceiveSequenceResetResetIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should set new sequence number when it is grater then existing one 11-a"() {

@@ -10,7 +10,7 @@ import quickfix.fixt11.ResendRequest
 import quickfix.fixt11.SequenceReset
 import spock.lang.Timeout
 
-@Timeout(10)
+@Timeout(30)
 class ReceiveResendRequestMessagePersistenceOffIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should respond with SequenceReset-Gap Fill when persistence is turned off 8-(not definied)"() {

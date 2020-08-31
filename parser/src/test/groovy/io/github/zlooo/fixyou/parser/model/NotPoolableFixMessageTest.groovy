@@ -1,21 +1,42 @@
 package io.github.zlooo.fixyou.parser.model
 
-import org.assertj.core.api.Assertions
+import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.github.zlooo.fixyou.parser.TestSpec
 import spock.lang.Specification
 
 class NotPoolableFixMessageTest extends Specification {
 
-    private NotPoolableFixMessage fixMessage = new NotPoolableFixMessage(io.github.zlooo.fixyou.parser.TestSpec.INSTANCE)
+    private NotPoolableFixMessage fixMessage = new NotPoolableFixMessage(TestSpec.INSTANCE)
+    private AbstractField field = Mock()
 
-    def "should close message on deallocate"() {
+    void setup() {
+        def fieldsOrdered = fixMessage.fieldsOrdered
+        (0..fieldsOrdered.length - 1).forEach { fieldsOrdered[it] = field }
+    }
+
+    def "should close message and release buffer on deallocate"() {
+        setup:
+        def messageByteSource = Mock(ByteBufComposer)
+        fixMessage.messageByteSource = messageByteSource
+
         when:
         fixMessage.deallocate()
 
         then:
-        Assertions.assertThat(fixMessage.fieldsOrdered).allMatch({ isFieldClosed(it) })
+        fixMessage.fieldsOrdered.length * field.close()
+        fixMessage.fieldsOrdered.length * field.getStartIndex() >> 2
+        fixMessage.fieldsOrdered.length * field.getEndIndex() >> 10
+        fixMessage.fieldsOrdered.length * field.isValueSet() >> true
+        1 * messageByteSource.releaseData(0, 10)
+        0 * _
     }
 
-    private static boolean isFieldClosed(AbstractField field) {
-        return field.encodedFieldNumber.refCnt() == 0 && field.fieldData.refCnt() == 0
+    def "should close message buffer on deallocate"() {
+        when:
+        fixMessage.deallocate()
+
+        then:
+        fixMessage.fieldsOrdered.length * field.close()
+        0 * _
     }
 }

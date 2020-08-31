@@ -4,7 +4,7 @@ import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.ElementsIntoSet;
 import io.github.zlooo.fixyou.DefaultConfiguration;
-import io.github.zlooo.fixyou.commons.pool.NoThreadLocalObjectPool;
+import io.github.zlooo.fixyou.commons.pool.ArrayBackedObjectPool;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 
 import javax.inject.Named;
@@ -34,6 +34,6 @@ public interface AdminModule {
     @Singleton
     @Named("retransmissionSubscriberPool")
     static ObjectPool provideFixMessageSubscriberPool() {
-        return new NoThreadLocalObjectPool<>(DefaultConfiguration.FIX_MESSAGE_SUBSCRIBER_POOL_SIZE, RetransmitionSubscriber::new, RetransmitionSubscriber.class);
+        return new ArrayBackedObjectPool<>(DefaultConfiguration.FIX_MESSAGE_SUBSCRIBER_POOL_SIZE, RetransmitionSubscriber::new, RetransmitionSubscriber.class, DefaultConfiguration.FIX_MESSAGE_SUBSCRIBER_POOL_SIZE);
     }
 }

@@ -1,48 +1,64 @@
 package io.github.zlooo.fixyou.parser.model
 
 
+import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.github.zlooo.fixyou.parser.TestSpec
 import spock.lang.Specification
 
 class FixMessageTest extends Specification {
 
-    private FixMessage fixMessage = new FixMessage(io.github.zlooo.fixyou.parser.TestSpec.INSTANCE)
+    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
 
-    def "should reset all data fields"() {
+    def "should set new message byte source"() {
         setup:
-        fixMessage.getField(io.github.zlooo.fixyou.parser.TestSpec.LONG_FIELD_NUMBER).value = 666L
-        fixMessage.getField(io.github.zlooo.fixyou.parser.TestSpec.BOOLEAN_FIELD_NUMBER).value = true
+        def oldMessageByteSource = Mock(ByteBufComposer)
+        def newMessageByteSource = Mock(ByteBufComposer)
+        fixMessage.@messageByteSource = oldMessageByteSource
 
         when:
-        fixMessage.resetAllDataFields()
+        fixMessage.setMessageByteSource(newMessageByteSource)
 
         then:
-        !fixMessage.getField(io.github.zlooo.fixyou.parser.TestSpec.LONG_FIELD_NUMBER).isValueSet()
-        !fixMessage.getField(io.github.zlooo.fixyou.parser.TestSpec.BOOLEAN_FIELD_NUMBER).isValueSet()
+        fixMessage.getField(TestSpec.LONG_FIELD_NUMBER).fieldData == newMessageByteSource
+        0 * _
     }
 
-    def "should reset all but excludeddata fields"() {
+    def "should reset all data fields and release message byte source"() {
         setup:
-        fixMessage.getField(io.github.zlooo.fixyou.parser.TestSpec.LONG_FIELD_NUMBER).value = 666L
-        fixMessage.getField(io.github.zlooo.fixyou.parser.TestSpec.BOOLEAN_FIELD_NUMBER).value = true
+        def longField = fixMessage.getField(TestSpec.LONG_FIELD_NUMBER)
+        longField.value = 666L
+        longField.startIndex = 7
+        longField.endIndex = 10
+        def booleanField = fixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER)
+        booleanField.value = true
+        booleanField.startIndex = 12
+        booleanField.endIndex = 13
+        def messageByteSource = Mock(ByteBufComposer)
+        fixMessage.@messageByteSource = messageByteSource
+        fixMessage.startIndex = 1
+        fixMessage.endIndex = 2
 
         when:
-        fixMessage.resetDataFields(io.github.zlooo.fixyou.parser.TestSpec.BOOLEAN_FIELD_NUMBER)
+        fixMessage.resetAllDataFieldsAndReleaseByteSource()
 
         then:
-        !fixMessage.getField(io.github.zlooo.fixyou.parser.TestSpec.LONG_FIELD_NUMBER).isValueSet()
-        fixMessage.getField(io.github.zlooo.fixyou.parser.TestSpec.BOOLEAN_FIELD_NUMBER).isValueSet()
+        !longField.isValueSet()
+        !booleanField.isValueSet()
+        1 * messageByteSource.releaseData(1, 2)
+        fixMessage.startIndex == FixMessage.NOT_SET
+        fixMessage.endIndex == FixMessage.NOT_SET
     }
 
-    def "should reset all data fields before deallocation"() {
-        setup:
-        fixMessage.getField(io.github.zlooo.fixyou.parser.TestSpec.LONG_FIELD_NUMBER).value = 666L
-        fixMessage.getField(io.github.zlooo.fixyou.parser.TestSpec.BOOLEAN_FIELD_NUMBER).value = true
+    def "should close fields when message is closed"() {
+        def field = Mock(AbstractField)
+        def fieldsOrdered = fixMessage.fieldsOrdered
+        (0..fieldsOrdered.length - 1).forEach { fieldsOrdered[it] = field }
 
         when:
-        fixMessage.deallocate()
+        fixMessage.close()
 
         then:
-        !fixMessage.getField(io.github.zlooo.fixyou.parser.TestSpec.LONG_FIELD_NUMBER).isValueSet()
-        !fixMessage.getField(io.github.zlooo.fixyou.parser.TestSpec.BOOLEAN_FIELD_NUMBER).isValueSet()
+        fieldsOrdered.length * field.close()
+        0 * _
     }
 }

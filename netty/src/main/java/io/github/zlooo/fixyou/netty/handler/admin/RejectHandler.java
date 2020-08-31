@@ -14,6 +14,8 @@ import javax.inject.Singleton;
 @Singleton
 class RejectHandler implements AdministrativeMessageHandler {
 
+    private static final CharSequence SUPPORTED_MESSAGE_TYPE = String.copyValueOf(FixConstants.REJECT);
+
     @Inject
     RejectHandler() {
     }
@@ -26,7 +28,7 @@ class RejectHandler implements AdministrativeMessageHandler {
     }
 
     @Override
-    public char[] supportedMessageType() {
-        return FixConstants.REJECT;
+    public CharSequence supportedMessageType() {
+        return SUPPORTED_MESSAGE_TYPE;
     }
 }

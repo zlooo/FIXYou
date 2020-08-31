@@ -1,19 +1,20 @@
 package io.github.zlooo.fixyou.parser.model;
 
 import io.github.zlooo.fixyou.model.FieldType;
+import io.github.zlooo.fixyou.utils.AsciiCodes;
+import io.netty.buffer.ByteBuf;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
+@EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class BooleanField extends AbstractField {
+public final class BooleanField extends AbstractField {
 
-    private static final byte Y_IN_ASCII = 89;
-    private static final byte N_IN_ASCII = 78;
-    private static final int FIELD_DATA_LENGTH = 1;
-    private boolean parsed;
     private boolean value;
+    private boolean parsed;
 
     public BooleanField(int number) {
-        super(number, FIELD_DATA_LENGTH, false);
+        super(number);
     }
 
     @Override
@@ -22,17 +23,17 @@ public class BooleanField extends AbstractField {
     }
 
     public boolean getValue() {
-        if (!parsed) {
-            fieldData.readerIndex(0);
-            switch (fieldData.readByte()) {
-                case Y_IN_ASCII:
+        if (!parsed && valueSet) {
+            final byte byteRead = fieldData.getByte(startIndex);
+            switch (byteRead) {
+                case AsciiCodes.Y:
                     value = true;
                     break;
-                case N_IN_ASCII:
+                case AsciiCodes.N:
                     value = false;
                     break;
                 default:
-                    throw new IllegalArgumentException("Value " + fieldData.getByte(0) + " is unsupported in boolean field. Expecting either 'Y' or 'N'");
+                    throw new IllegalArgumentException("Value " + byteRead + " is unsupported in boolean field. Expecting either 'Y' or 'N'");
             }
             parsed = true;
         }
@@ -42,7 +43,17 @@ public class BooleanField extends AbstractField {
     public void setValue(boolean state) {
         this.value = state;
         this.parsed = true;
-        fieldData.clear().writeByte(state ? Y_IN_ASCII : N_IN_ASCII);
+        this.valueSet = true;
+    }
+
+    @Override
+    public void appendByteBufWithValue(ByteBuf out) {
+        out.writeByte(value ? AsciiCodes.Y : AsciiCodes.N);
+    }
+
+    @Override
+    public int getLength() {
+        return 1;
     }
 
     @Override

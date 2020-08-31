@@ -24,18 +24,22 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class AbstractMessagePoolingSessionState extends AbstractSessionState implements Resettable {
 
 
-    private final ObjectPool<FixMessage> fixMessageObjectPool;
+    private final ObjectPool<FixMessage> fixMessageReadPool;
+    private final ObjectPool<FixMessage> fixMessageWritePool;
 
-    public AbstractMessagePoolingSessionState(SessionConfig sessionConfig, SessionID sessionId, ObjectPool<FixMessage> fixMessageObjectPool,
-                                              FixSpec fixSpec) {
+    public AbstractMessagePoolingSessionState(SessionConfig sessionConfig, SessionID sessionId, ObjectPool<FixMessage> fixMessageReadPool, ObjectPool<FixMessage> fixMessageWritePool, FixSpec fixSpec) {
         super(sessionConfig, sessionId, fixSpec);
-        this.fixMessageObjectPool = fixMessageObjectPool;
+        this.fixMessageReadPool = fixMessageReadPool;
+        this.fixMessageWritePool = fixMessageWritePool;
     }
 
     public void reset() {
         super.reset();
-        if (!fixMessageObjectPool.areAllObjectsReturned()) {
-            log.warn("Not all fix messages have been returned to pool, session details {}", this);
+        if (!fixMessageReadPool.areAllObjectsReturned()) {
+            log.warn("Not all fix messages have been returned to read pool, session details {}", this);
+        }
+        if (!fixMessageWritePool.areAllObjectsReturned()) {
+            log.warn("Not all fix messages have been returned to write pool, session details {}", this);
         }
     }
 
@@ -46,6 +50,7 @@ public abstract class AbstractMessagePoolingSessionState extends AbstractSession
                 ((Closeable) resettable).close();
             }
         }
-        fixMessageObjectPool.close();
+        fixMessageReadPool.close();
+        fixMessageWritePool.close();
     }
 }

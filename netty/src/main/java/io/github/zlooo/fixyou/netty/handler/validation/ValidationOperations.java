@@ -1,11 +1,10 @@
 package io.github.zlooo.fixyou.netty.handler.validation;
 
 import io.github.zlooo.fixyou.FixConstants;
-import io.github.zlooo.fixyou.commons.utils.ArrayUtils;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
-import io.github.zlooo.fixyou.parser.model.CharArrayField;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.LongField;
+import io.github.zlooo.fixyou.parser.model.TimestampField;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
@@ -14,10 +13,10 @@ import lombok.extern.slf4j.Slf4j;
 public class ValidationOperations {
 
     static boolean checkOrigSendingTime(FixMessage msg) {
-        final CharArrayField origSendingTime = msg.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER);
+        final TimestampField origSendingTime = msg.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER);
         if (origSendingTime != null && origSendingTime.isValueSet()) {
-            final CharArrayField sendingTime = msg.getField(FixConstants.SENDING_TIME_FIELD_NUMBER);
-            return ArrayUtils.compare(origSendingTime.getValue(), sendingTime.getValue()) <= 0;
+            final TimestampField sendingTime = msg.getField(FixConstants.SENDING_TIME_FIELD_NUMBER);
+            return origSendingTime.getValue() <= sendingTime.getValue();
         }
         return true;
     }

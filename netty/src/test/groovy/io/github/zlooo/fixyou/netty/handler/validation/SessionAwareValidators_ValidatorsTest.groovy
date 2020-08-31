@@ -1,10 +1,17 @@
 package io.github.zlooo.fixyou.netty.handler.validation
 
-
+import io.github.zlooo.fixyou.FixConstants
+import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
+import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
+import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.session.SessionConfig
+import io.github.zlooo.fixyou.session.SessionID
+import io.netty.buffer.Unpooled
 import spock.lang.Specification
 
+import java.nio.charset.StandardCharsets
 import java.time.Clock
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
@@ -13,33 +20,34 @@ import java.time.temporal.ChronoUnit
 class SessionAwareValidators_ValidatorsTest extends Specification {
 
     private static OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC)
-    private static io.github.zlooo.fixyou.session.SessionID sessionID = new io.github.zlooo.fixyou.session.SessionID('beginString'.toCharArray(), 'senderCompId'.toCharArray(), 'targetCompId'.toCharArray())
-    private io.github.zlooo.fixyou.parser.model.FixMessage fixMessage = new io.github.zlooo.fixyou.parser.model.FixMessage(io.github.zlooo.fixyou.netty.handler.admin.TestSpec.INSTANCE)
-    private io.github.zlooo.fixyou.session.SessionConfig sessionConfig = new io.github.zlooo.fixyou.session.SessionConfig()
-    private DefaultObjectPool<io.github.zlooo.fixyou.parser.model.FixMessage> fixMessageObjectPool = Mock()
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(sessionConfig, sessionID, fixMessageObjectPool, io.github.zlooo.fixyou.netty.handler.admin.TestSpec.INSTANCE)
+    private static SessionID sessionID = new SessionID('beginString'.toCharArray(), 11, 'senderCompId'.toCharArray(), 12, 'targetCompId'.toCharArray(), 12)
+    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
+    private SessionConfig sessionConfig = new SessionConfig()
+    private DefaultObjectPool<FixMessage> fixMessageObjectReadPool = Mock()
+    private DefaultObjectPool<FixMessage> fixMessageObjectWritePool = Mock()
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(sessionConfig, sessionID, fixMessageObjectReadPool, fixMessageObjectWritePool, TestSpec.INSTANCE)
 
     def "should validate session id"() {
         setup:
-        fixMessage.getField(io.github.zlooo.fixyou.FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value = senderCompID
-        fixMessage.getField(io.github.zlooo.fixyou.FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value = targetCompID
+        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value = senderCompID
+        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value = targetCompID
 
         when:
-        def result = SessionAwareValidators.SESSION_ID_VALIDATOR.validator.apply(fixMessage, sessionState)
+        def result = SessionAwareValidators.COMP_ID_VALIDATOR.validator.apply(fixMessage, sessionState)
 
         then:
         (result == null) == expectedResult
 
         where:
-        senderCompID           | targetCompID           | expectedResult
-        sessionID.senderCompID | sessionID.targetCompID | true
-        'wrongSendercompId'    | sessionID.targetCompID | false
-        sessionID.senderCompID | 'wrongTargetCompId'    | false
+        senderCompID                      | targetCompID                      | expectedResult
+        sessionID.senderCompID            | sessionID.targetCompID            | true
+        'wrongSendercompId'.toCharArray() | sessionID.targetCompID            | false
+        sessionID.senderCompID            | 'wrongTargetCompId'.toCharArray() | false
     }
 
     def "should validate begin string"() {
         setup:
-        fixMessage.getField(io.github.zlooo.fixyou.FixConstants.BEGIN_STRING_FIELD_NUMBER).value = beginString
+        fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).value = beginString
 
         when:
         def result = SessionAwareValidators.BEGIN_STRING_VALIDATOR.validator.apply(fixMessage, sessionState)
@@ -48,16 +56,19 @@ class SessionAwareValidators_ValidatorsTest extends Specification {
         (result == null) == expectedResult
 
         where:
-        beginString           | expectedResult
-        sessionID.beginString | true
-        'wrongBeginString'    | false
+        beginString                      | expectedResult
+        sessionID.beginString            | true
+        'wrongBeginString'.toCharArray() | false
     }
 
     def "should validate body length"() {
         setup:
-        fixMessage.getField(io.github.zlooo.fixyou.FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value = sessionID.senderCompID
-        fixMessage.getField(io.github.zlooo.fixyou.FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value = sessionID.targetCompID
-        fixMessage.getField(io.github.zlooo.fixyou.FixConstants.BODY_LENGTH_FIELD_NUMBER).value = bodyLength
+        def fixMessageAsString = "8=FIXT.1.1\u00019=$bodyLength\u000149=senderCompId\u000156=targetCompId\u000110=000\u0001"
+        ByteBufComposer byteBufComposer = new ByteBufComposer(1)
+        byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(fixMessageAsString.getBytes(StandardCharsets.US_ASCII)))
+        fixMessage.setMessageByteSource(byteBufComposer)
+        fixMessage.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER).setIndexes(fixMessageAsString.indexOf("9=") + 2, fixMessageAsString.indexOf("9=") + 2 + bodyLength.toString().length())
+        fixMessage.getField(FixConstants.CHECK_SUM_FIELD_NUMBER).setIndexes(fixMessageAsString.indexOf("10=") + 3, fixMessageAsString.indexOf("10=") + 3 + 3)
 
         when:
         def result = SessionAwareValidators.BODY_LENGTH_VALIDATOR.validator.apply(fixMessage, sessionState)
@@ -73,7 +84,7 @@ class SessionAwareValidators_ValidatorsTest extends Specification {
 
     def "should validate message type"() {
         setup:
-        fixMessage.getField(io.github.zlooo.fixyou.FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = messageType
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = messageType
 
         when:
         def result = SessionAwareValidators.MESSAGE_TYPE_VALIDATOR.validator.apply(fixMessage, sessionState)
@@ -89,7 +100,7 @@ class SessionAwareValidators_ValidatorsTest extends Specification {
 
     def "should validate sending time"() {
         setup:
-        fixMessage.getField(io.github.zlooo.fixyou.FixConstants.SENDING_TIME_FIELD_NUMBER).value = sendingTime.format(io.github.zlooo.fixyou.FixConstants.UTC_TIMESTAMP_FORMATTER).toCharArray()
+        fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).value = sendingTime.toInstant().toEpochMilli()
         def validator = SessionAwareValidators.createSendingTimeValidator(clock)
 
         when:
@@ -101,7 +112,7 @@ class SessionAwareValidators_ValidatorsTest extends Specification {
         where:
 
         sendingTime                                                                  | clock                                        | expectedResult
-        now.minus(io.github.zlooo.fixyou.FixConstants.SENDING_TIME_ACCURACY_MILLIS + 10, ChronoUnit.MILLIS) | Clock.fixed(now.toInstant(), ZoneOffset.UTC) | false
-        now.minus(io.github.zlooo.fixyou.FixConstants.SENDING_TIME_ACCURACY_MILLIS - 10, ChronoUnit.MILLIS) | Clock.fixed(now.toInstant(), ZoneOffset.UTC) | true
+        now.minus(FixConstants.SENDING_TIME_ACCURACY_MILLIS + 10, ChronoUnit.MILLIS) | Clock.fixed(now.toInstant(), ZoneOffset.UTC) | false
+        now.minus(FixConstants.SENDING_TIME_ACCURACY_MILLIS - 10, ChronoUnit.MILLIS) | Clock.fixed(now.toInstant(), ZoneOffset.UTC) | true
     }
 }

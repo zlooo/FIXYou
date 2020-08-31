@@ -3,10 +3,12 @@ package io.github.zlooo.fixyou.netty.handler.validation
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.model.ApplicationVersionID
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
-import io.github.zlooo.fixyou.parser.model.CharArrayField
+import io.github.zlooo.fixyou.parser.model.CharSequenceField
 import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.parser.model.TimestampField
 import spock.lang.Specification
 
+import java.time.Instant
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
@@ -55,10 +57,10 @@ class ValidationOperationsTest extends Specification {
     private static FixMessage createFixMessage(LocalDateTime origSendingTime, LocalDateTime sendingTime) {
         def fixMessage = new FixMessage(TestSpec.INSTANCE)
         if (origSendingTime != null) {
-            fixMessage.<CharArrayField> getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).setValue(FixConstants.UTC_TIMESTAMP_FORMATTER.format(origSendingTime).toCharArray())
+            fixMessage.<TimestampField> getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).setValue(origSendingTime.toInstant(ZoneOffset.UTC).toEpochMilli())
         }
         if (sendingTime != null) {
-            fixMessage.<CharArrayField> getField(FixConstants.SENDING_TIME_FIELD_NUMBER).setValue(FixConstants.UTC_TIMESTAMP_FORMATTER.format(sendingTime).toCharArray())
+            fixMessage.<TimestampField> getField(FixConstants.SENDING_TIME_FIELD_NUMBER).setValue(sendingTime.toInstant(ZoneOffset.UTC).toEpochMilli())
         }
         return fixMessage
     }
@@ -71,7 +73,7 @@ class ValidationOperationsTest extends Specification {
         logon.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER).value = 666L
         logon.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 666L
         logon.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = FixConstants.LOGON
-        logon.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).value = FixConstants.UTC_TIMESTAMP_FORMATTER.format(OffsetDateTime.now(ZoneOffset.UTC)).toCharArray()
+        logon.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).value = Instant.now().toEpochMilli()
         logon.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value = 0L
         logon.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value = 15L
         logon.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value = ApplicationVersionID.FIX50SP2.value

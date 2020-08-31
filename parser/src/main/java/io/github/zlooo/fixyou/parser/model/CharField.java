@@ -1,19 +1,22 @@
 package io.github.zlooo.fixyou.parser.model;
 
 import io.github.zlooo.fixyou.model.FieldType;
+import io.netty.buffer.ByteBuf;
 import io.netty.util.AsciiString;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class CharField extends AbstractField {
+public final class CharField extends AbstractField {
 
-    private static final int FIELD_DATA_LENGTH = 1;
-    private char value = Character.MIN_VALUE;
+    public static final char DEFAULT_VALUE = Character.MIN_VALUE;
+    private char value = DEFAULT_VALUE;
 
     public CharField(int number) {
-        super(number, FIELD_DATA_LENGTH, false);
+        super(number);
     }
 
     @Override
@@ -22,16 +25,25 @@ public class CharField extends AbstractField {
     }
 
     public char getValue() {
-        if (value == Character.MIN_VALUE) {
-            fieldData.readerIndex(0);
-            value = AsciiString.b2c(fieldData.readByte());
+        if (value == Character.MIN_VALUE && valueSet) {
+            value = AsciiString.b2c(fieldData.getByte(startIndex));
         }
         return value;
     }
 
     public void setValue(char value) {
         this.value = value;
-        fieldData.clear().writeByte(AsciiString.c2b(value));
+        this.valueSet = true;
+    }
+
+    @Override
+    public void appendByteBufWithValue(ByteBuf out) {
+        out.writeByte(AsciiString.c2b(value));
+    }
+
+    @Override
+    public int getLength() {
+        return 1;
     }
 
     @Override

@@ -33,8 +33,8 @@ public class NettyHandlerAwareSessionState extends AbstractMessagePoolingSession
 
     private Channel channel;
 
-    public NettyHandlerAwareSessionState(SessionConfig sessionConfig, SessionID sessionId, ObjectPool<FixMessage> fixMessageObjectPool, FixSpec fixSpec) {
-        super(sessionConfig, sessionId, fixMessageObjectPool, fixSpec);
+    public NettyHandlerAwareSessionState(SessionConfig sessionConfig, SessionID sessionId, ObjectPool<FixMessage> fixMessageReadPool, ObjectPool<FixMessage> fixMessageWritePool, FixSpec fixSpec) {
+        super(sessionConfig, sessionId, fixMessageReadPool, fixMessageWritePool, fixSpec);
     }
 
     public static @Nullable

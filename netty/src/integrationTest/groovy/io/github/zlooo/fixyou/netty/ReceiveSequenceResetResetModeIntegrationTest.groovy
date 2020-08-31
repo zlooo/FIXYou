@@ -7,7 +7,7 @@ import quickfix.field.NewSeqNo
 import quickfix.fixt11.SequenceReset
 import spock.lang.Timeout
 
-@Timeout(10)
+@Timeout(30)
 class ReceiveSequenceResetResetModeIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should set new expected sequence number when sequence reset reset mode is received 11-a"() {
@@ -24,7 +24,7 @@ class ReceiveSequenceResetResetModeIntegrationTest extends AbstractFixYOUAccepto
         when:
         Session.sendToTarget(sequenceReset, sessionID)
         pollingConditions.eventually {
-            nextExpectedInboundSequenceNumber() == 10
+            testFixMessageListener.messagesReceived.size() == 1
         }
 
         then:

@@ -1,15 +1,13 @@
 package io.github.zlooo.fixyou.parser.model;
 
 import io.github.zlooo.fixyou.DefaultConfiguration;
-import io.github.zlooo.fixyou.FIXYouException;
+import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.commons.utils.FieldUtils;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.parser.utils.FieldTypeUtils;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.util.AsciiString;
-import io.netty.util.ReferenceCountUtil;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
@@ -18,26 +16,27 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntHashSet;
 
 import javax.annotation.Nullable;
-import java.lang.reflect.Array;
-import java.nio.charset.StandardCharsets;
 import java.util.function.Supplier;
 
 @Slf4j
+@EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class GroupField extends AbstractField {
+public final class GroupField extends AbstractField {
 
-    private final FixSpec.FieldNumberTypePair[] childFields;
+    public static final long DEFAULT_VALUE = 0;
+    public static final int FIELD_DATA_LENGTH = 7;
+    private final Supplier<Repetition> repetitionSupplier;
     private final IntHashSet memberNumbers;
     private Repetition[] repetitions;
-    private final Supplier<Repetition> repetitionSupplier;
-    private final ByteBuf fieldDataWithoutRepetitionCount;
-    private int numberOfRepetitions;
-    private int numberOfRepetitionsRead;
+    private int repetitionCounter;
+
+    private long value = DEFAULT_VALUE;
+    private byte[] rawValue = new byte[FIELD_DATA_LENGTH];
+    private char[] unparsedValue = new char[FIELD_DATA_LENGTH];
 
     public GroupField(int number, FixSpec spec) {
-        super(number, DefaultConfiguration.FIELD_BUFFER_SIZE, true);
-        this.fieldDataWithoutRepetitionCount = Unpooled.directBuffer(DefaultConfiguration.FIELD_BUFFER_SIZE);
-        this.childFields = spec.getChildPairSpec(number);
+        super(number);
+        final FixSpec.FieldNumberTypePair[] childFields = spec.getChildPairSpec(number);
         if (childFields == null || childFields.length == 0) {
             throw new IllegalArgumentException("Group must consist of at least 1 child field, group number " + number);
         }
@@ -65,44 +64,43 @@ public class GroupField extends AbstractField {
     }
 
     @Override
+    protected void setFieldData(ByteBufComposer fieldData) {
+        super.setFieldData(fieldData);
+        for (final Repetition repetition : repetitions) {
+            for (final AbstractField repeatingGroupField : repetition.fieldsOrdered) {
+                repeatingGroupField.setFieldData(fieldData);
+            }
+
+        }
+
+    }
+
+    public long getValue() {
+        if (value == DEFAULT_VALUE && valueSet) {
+            value = ParsingUtils.parseLong(fieldData, startIndex, FixMessage.FIELD_SEPARATOR); //TODO run JMH test and see if you're right
+        }
+        return value;
+    }
+
+    public void setValue(long value) {
+        this.value = value;
+        this.valueSet = true;
+    }
+
+    @Override
     public FieldType getFieldType() {
         return FieldType.GROUP;
     }
 
-    public int numberOfFieldsInGroup() {
-        return childFields.length;
-    }
-
-    public GroupField write() {
-        reset();
-        return this;
-    }
-
-    public GroupField writeNext() {
-        fieldDataWithoutRepetitionCount.writeByte(FixMessage.FIELD_SEPARATOR);
-        for (final AbstractField childField : repetitions[numberOfRepetitions].fieldsOrdered) {
-            fieldDataWithoutRepetitionCount.writeBytes(childField.encodedFieldNumber.readerIndex(0)).writeBytes(childField.fieldData).writeByte(FixMessage.FIELD_SEPARATOR);
-        }
-        fieldDataWithoutRepetitionCount.writerIndex(fieldDataWithoutRepetitionCount.writerIndex() - 1);
-        ensureRepetitionsArrayCapacity(++numberOfRepetitions);
-        final CharSequence charSequence = FieldUtils.toCharSequence(numberOfRepetitions);
-        fieldData.clear().writeCharSequence(charSequence, StandardCharsets.US_ASCII);
-        ReferenceCountUtil.release(charSequence);
-        fieldData.writeBytes(fieldDataWithoutRepetitionCount.readerIndex(0));
-        return this;
-    }
-
     @Override
     protected void resetInnerState() {
+        value = DEFAULT_VALUE;
+        repetitionCounter = 0;
         for (final Repetition repetition : repetitions) {
             for (final AbstractField field : repetition.fieldsOrdered) {
                 field.reset();
             }
         }
-        numberOfRepetitions = 0;
-        numberOfRepetitionsRead = 0;
-        fieldDataWithoutRepetitionCount.clear();
-        fieldData.clear();
     }
 
     @Nullable
@@ -111,17 +109,46 @@ public class GroupField extends AbstractField {
     }
 
     @Nullable
-    public <T extends AbstractField> T getFieldAndIncRepetitionIfValueIsSet(int fieldNum) {
-        final AbstractField field = repetitions[numberOfRepetitions].idToField.get(fieldNum);
-        if (field.isValueSet()) {
-            if (numberOfRepetitions < numberOfRepetitionsRead - 1) {
-                return (T) repetitions[++numberOfRepetitions].idToField.get(fieldNum);
-            } else {
-                throw new FIXYouException("More repetitions than NumInGroup said it would be? Field " + getNumber() + ", value " + numberOfRepetitionsRead);
+    public <T extends AbstractField> T getFieldForCurrentRepetition(int fieldNum) {
+        ensureRepetitionsArrayCapacity();
+        return (T) repetitions[repetitionCounter].idToField.get(fieldNum);
+    }
+
+    public GroupField next() {
+        repetitionCounter++;
+        ensureRepetitionsArrayCapacity();
+        return this;
+    }
+
+    @Override
+    public boolean isValueSet() {
+        if (repetitionCounter == 0) {
+            boolean result = false;
+            if (repetitions.length > 0) {
+                for (final AbstractField field : repetitions[0].fieldsOrdered) {
+                    result |= field.isValueSet();
+                }
             }
+            return result;
         } else {
-            return (T) field;
+            return true;
         }
+    }
+
+    @Override
+    public void appendByteBufWithValue(ByteBuf out) {
+        FieldUtils.writeEncoded(repetitionCounter, out);
+        out.writeByte(FixMessage.FIELD_SEPARATOR);
+        for (int i = 0; i <= repetitionCounter; i++) {
+            for (final AbstractField repetitionField : repetitions[i].fieldsOrdered) {
+                if (repetitionField.isValueSet()) {
+                    repetitionField.appendFieldNumber(out);
+                    repetitionField.appendByteBufWithValue(out);
+                    out.writeByte(FixMessage.FIELD_SEPARATOR);
+                }
+            }
+        }
+        out.writerIndex(out.writerIndex() - 1); //"remove" last soh from buffer
     }
 
     @Override
@@ -131,28 +158,27 @@ public class GroupField extends AbstractField {
                 childField.close();
             }
         }
-        final int fieldDataWithoutRepetitionCountRefCount = fieldDataWithoutRepetitionCount.refCnt();
-        if (fieldDataWithoutRepetitionCountRefCount > 0) {
-            fieldDataWithoutRepetitionCount.release(fieldDataWithoutRepetitionCountRefCount);
-        }
         super.close();
     }
 
-    private void ensureRepetitionsArrayCapacity(int capacity) {
-        if (repetitions.length < capacity) {
-            log.warn("Repetitions array resize in field {}, from {} to {}. Consider making default larger", number, repetitions.length, capacity);
-            final Repetition[] newArray = (Repetition[]) Array.newInstance(Repetition.class, capacity);
+    private void ensureRepetitionsArrayCapacity() {
+        if (repetitions.length <= repetitionCounter) {
+            final int newLength = (int) ((repetitionCounter + 1) * (1.0 + Hashing.DEFAULT_LOAD_FACTOR));
+            log.warn("Repetitions array resize in field {}, from {} to {}. Consider making default larger", number, repetitions.length, newLength);
+            final Repetition[] newArray = new Repetition[newLength];
             System.arraycopy(repetitions, 0, newArray, 0, repetitions.length);
-            for (int i = repetitions.length; i < capacity; i++) {
-                newArray[i] = repetitionSupplier.get();
+            for (int i = repetitions.length; i < newLength; i++) {
+                final Repetition repetition = repetitionSupplier.get();
+                if (fieldData != null) {
+                    for (final AbstractField field : repetition.fieldsOrdered) {
+                        field.setFieldData(fieldData);
+                    }
+
+                }
+                newArray[i] = repetition;
             }
             repetitions = newArray;
         }
-    }
-
-    public void parseRepetitionsNumber() {
-        numberOfRepetitionsRead = ((AsciiString) fieldData.readCharSequence(fieldData.writerIndex(), StandardCharsets.US_ASCII)).parseInt();
-        ensureRepetitionsArrayCapacity(numberOfRepetitionsRead);
     }
 
     public boolean containsField(int fieldNum) {
