@@ -45,9 +45,8 @@ class FixMessageTest extends Specification {
         !longField.isValueSet()
         !booleanField.isValueSet()
         1 * messageByteSource.releaseData(1, 2)
-        fixMessage.@messageByteSource == null
-        fixMessage.startIndex == 0
-        fixMessage.endIndex == 0
+        fixMessage.startIndex == FixMessage.NOT_SET
+        fixMessage.endIndex == FixMessage.NOT_SET
     }
 
     def "should close fields when message is closed"() {

@@ -282,8 +282,6 @@ class MessageDecoderTest extends Specification {
         2 * fixMessageObjectPool.tryGetAndRetain() >> fixMessage >> fixMessage2
         1 * channelHandlerContext.fireChannelRead(fixMessage) >> channelHandlerContext
         1 * channelHandlerContext.fireChannelRead(fixMessage2) >> channelHandlerContext
-        fixMessage.messageByteSource == null
-        fixMessage2.messageByteSource == null
         encodedMessagePart1.refCnt() == 0
         encodedMessagePart2.refCnt() == 0
     }

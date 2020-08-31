@@ -24,9 +24,10 @@ public class DateUtils {
 
     /**
      * This is <B>NOT</B> a general purpose method. It assumes fix timestamp format and <code>timestamp</code> cannot be earlier then 2020-01-01T00:00:00.000Z
-     * @param timestamp epoch millis timestamp to write, cannot be earlier then 2020-01-01T00:00:00.000Z
+     *
+     * @param timestamp         epoch millis timestamp to write, cannot be earlier then 2020-01-01T00:00:00.000Z
      * @param destinationBuffer buffer that timestamp will be written into
-     * @param withMillis should millis be included
+     * @param withMillis        should millis be included
      */
     //TODO remove checkstyle suppression on this file
     public static void writeTimestamp(long timestamp, ByteBuf destinationBuffer, boolean withMillis) {
@@ -41,18 +42,31 @@ public class DateUtils {
         int month = 1;
         long monthMillis = MILLIS_IN_MONTH_31;
         while (remainingMillis >= monthMillis) {
-            remainingMillis-=monthMillis;
+            remainingMillis -= monthMillis;
             month++;
-            if (month == 2) { //fuck you february
-                if (isLeapYear) {
-                    monthMillis = MILLIS_IN_MONTH_29;
-                } else {
-                    monthMillis = MILLIS_IN_MONTH_28;
-                }
-            } else if ((month & MOD_2_MASK) == 1) {
-                monthMillis = MILLIS_IN_MONTH_31;
-            } else {
-                monthMillis = MILLIS_IN_MONTH_30;
+            switch (month) {
+                case 1:
+                case 3:
+                case 5:
+                case 7:
+                case 8://seriously? Gregorian calendar is so fucked up
+                case 10:
+                case 12:
+                    monthMillis = MILLIS_IN_MONTH_31;
+                    break;
+                case 4:
+                case 6:
+                case 9:
+                case 11:
+                    monthMillis = MILLIS_IN_MONTH_30;
+                    break;
+                case 2://fuck you february
+                    if (isLeapYear) {
+                        monthMillis = MILLIS_IN_MONTH_29;
+                    } else {
+                        monthMillis = MILLIS_IN_MONTH_28;
+                    }
+                    break;
             }
         }
         int day = 1;

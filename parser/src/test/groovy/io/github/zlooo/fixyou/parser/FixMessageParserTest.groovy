@@ -9,6 +9,7 @@ import spock.lang.AutoCleanup
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
@@ -246,7 +247,7 @@ class FixMessageParserTest extends Specification {
 
     def "should parse unfinished message"() {
         setup:
-        String message = "8=FIX.4.4\u00019=378\u000135=AK\u000134=5\u000149=CCG\u000156=ABC_DEFG01\u000152=20090323-15:40:35"
+        String message = "8=FIX.4.4\u00019=378\u000135=AK\u000134=5\u000149=CCG\u000156=ABC_DEFG01\u000152=20090323-15:40:"
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
         fixMessageParser.setFixMessage(fixMessage)
 
@@ -265,7 +266,31 @@ class FixMessageParserTest extends Specification {
         !fixMessage.getField(52).isValueSet()
         !fixMessageParser.canContinueParsing()
         fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == 0
+        fixMessage.getEndIndex() == FixMessage.NOT_SET
+    }
+
+    def "should parse unfinished message that ends with SOH"() {
+        setup:
+        String message = "8=FIX.4.4\u00019=378\u000135=AK\u000134=5\u000149=CCG\u000156=ABC_DEFG01\u000152=20090323-15:40:35\u0001"
+        byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
+        fixMessageParser.setFixMessage(fixMessage)
+
+        when:
+        fixMessageParser.parseFixMsgBytes()
+
+        then:
+        !fixMessageParser.isDone()
+        fixMessageParser.storedEndIndexOfLastUnfinishedMessage == message.length() - 1
+        fixMessage.getField(8).value.toString() == "FIX.4.4"
+        fixMessage.getField(9).value == 378
+        fixMessage.getField(35).value.toString() == "AK"
+        fixMessage.getField(34).value == 5
+        fixMessage.getField(49).value.toString() == "CCG"
+        fixMessage.getField(56).value.toString() == "ABC_DEFG01"
+        fixMessage.getField(52).value == Instant.parse("2009-03-23T15:40:35Z").toEpochMilli()
+        !fixMessageParser.canContinueParsing()
+        fixMessage.getStartIndex() == 0
+        fixMessage.getEndIndex() == FixMessage.NOT_SET
     }
 
     def "should set new fix message"() {

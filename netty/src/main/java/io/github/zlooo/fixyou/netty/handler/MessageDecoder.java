@@ -4,9 +4,11 @@ import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.Resettable;
 import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
+import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.parser.FixMessageParser;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -16,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ChannelHandler.Sharable
+@ToString
 class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable {
 
     private static enum State {
@@ -48,11 +51,16 @@ class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable 
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof ByteBuf) {
             final ByteBuf in = (ByteBuf) msg;
-            byteBufComposer.addByteBuf(in);
-            try {
-                tryToParseMessages(ctx);
-            } finally {
-                in.release();
+            if (!byteBufComposer.addByteBuf(in)) {
+                final Channel channel = ctx.channel();
+                log.error("ByteBufComposer for channel {} is full, disconnecting it. Consider expanding size of ByteBufComposer for session {}", channel, NettyHandlerAwareSessionState.getForChannel(channel).getSessionId());
+                channel.disconnect();
+            } else {
+                try {
+                    tryToParseMessages(ctx);
+                } finally {
+                    in.release();
+                }
             }
         } else {
             ctx.fireChannelRead(msg);

@@ -17,14 +17,15 @@ public class FixMessage extends AbstractPoolableObject {
 
     public static final byte FIELD_SEPARATOR = AsciiCodes.SOH;
     public static final byte FIELD_VALUE_SEPARATOR = AsciiCodes.EQUALS;
+    private static final int NOT_SET = -1;
 
     private final AbstractField[] fieldsOrdered;
     private final AbstractField[] fields;
     private ByteBufComposer messageByteSource;
     @Setter
-    private int startIndex;
+    private int startIndex = NOT_SET;
     @Setter
-    private int endIndex;
+    private int endIndex = NOT_SET;
 
     public FixMessage(@Nonnull FixSpec spec) {
         final int[] fieldsOrder = spec.getFieldsOrder();
@@ -70,12 +71,15 @@ public class FixMessage extends AbstractPoolableObject {
                 field.reset();
             }
         }
-        if (messageByteSource != null) {
+        if (messageByteSource != null && holdsData()) {
             messageByteSource.releaseData(startIndex, endIndex);
         }
-        setMessageByteSource(null);
-        startIndex = 0;
-        endIndex = 0;
+        startIndex = NOT_SET;
+        endIndex = NOT_SET;
+    }
+
+    private boolean holdsData() {
+        return startIndex != NOT_SET && endIndex != NOT_SET;
     }
 
     @Override

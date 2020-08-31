@@ -1,21 +1,3 @@
-/*
- * Copyright 2015 peter.lawrey
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * Modifications copyright (C) 2020 zlooo
- */
-
 package io.github.zlooo.fixyou.parser;
 
 import io.github.zlooo.fixyou.DefaultConfiguration;
@@ -70,7 +52,7 @@ public class FixMessageParser implements Resettable {
     public void parseFixMsgBytes() {
         int closestFieldTerminatorIndex;
 
-        while ((closestFieldTerminatorIndex = bytesToParse.indexOfClosest(FixMessage.FIELD_SEPARATOR)) != ByteBufComposer.NOT_FOUND) {
+        while (!bytesToParse.readerIndexBeyondStoredEnd() && ((closestFieldTerminatorIndex = bytesToParse.indexOfClosest(FixMessage.FIELD_SEPARATOR)) != ByteBufComposer.NOT_FOUND)) {
             final int fieldNum = ParsingUtils.parseInteger(bytesToParse, bytesToParse.readerIndex(), FixMessage.FIELD_VALUE_SEPARATOR, true);
             final int start = bytesToParse.readerIndex();
             AbstractField field = null;
@@ -108,7 +90,7 @@ public class FixMessageParser implements Resettable {
     }
 
     public boolean canContinueParsing() {
-        return bytesToParse.readerIndex() < bytesToParse.getStoredEndIndex() && (storedEndIndexOfLastUnfinishedMessage == 0 || storedEndIndexOfLastUnfinishedMessage < bytesToParse.getStoredEndIndex());
+        return !bytesToParse.readerIndexBeyondStoredEnd() && (storedEndIndexOfLastUnfinishedMessage == 0 || storedEndIndexOfLastUnfinishedMessage < bytesToParse.getStoredEndIndex());
     }
 
     private AbstractField handleNestedRepeatingGroup(int fieldNum) {

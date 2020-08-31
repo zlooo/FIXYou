@@ -8,6 +8,7 @@
 
     <logger name="io.netty" level="info"/>
     <logger name="io.github.zlooo.fixyou.netty.handler.MessageDecoder" level="trace"/>
+    <logger name="io.github.zlooo.fixyou.commons.ByteBufComposer" level="trace"/>
 
     <root level="debug">
         <appender-ref ref="STDOUT" />

@@ -9,6 +9,8 @@
     <suppress checks="ReturnCount" files="io.github.zlooo.fixyou.commons.pool.DefaultObjectPool\.java" lines="49" />
     <suppress checks="InnerAssignment" files="io.github.zlooo.fixyou.netty.handler.MessageDecoder\.java" lines="153" />
     <suppress checks="VariableDeclarationUsageDistance" files="io.github.zlooo.fixyou.parser.FixMessageParser\.java" lines="87" />
+    <suppress checks="EmptyLineSeparator" files="io.github.zlooo.fixyou.commons.ByteBufComposer\.java"/>
+    <suppress checks="MultipleVariableDeclarations" files="io.github.zlooo.fixyou.commons.ByteBufComposer\.java"/>
     <suppress checks="" files="io.github.zlooo.fixyou.netty.handler.MutableIdleStateHandler\.java" />
     <suppress checks="" files="io.github.zlooo.fixyou.commons.utils.DateUtils\.java"/>
     <suppress checks="" files="ObjectFactory\.java" />

@@ -37,5 +37,6 @@ class DateUtilsTest extends Specification {
         Instant.parse("2021-12-03T10:15:30.456Z") | "20211203-10:15:30.456" | true
         Instant.parse("2022-12-03T10:15:30.999Z") | "20221203-10:15:30"     | false
         Instant.parse("2022-12-03T10:15:30.999Z") | "20221203-10:15:30.999" | true
+        Instant.parse("2020-08-31T05:59:20.808Z") | "20200831-05:59:20.808"     | true
     }
 }
