@@ -213,6 +213,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def resend = FixMessages.newOrderSingle(sessionID, 2, { msg ->
             msg.getHeader().setBoolean(PossDupFlag.FIELD, true)
         })
