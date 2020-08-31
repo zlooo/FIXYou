@@ -116,7 +116,7 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
     }
 
     protected ChannelFuture sendMessage(Channel channel, String message) {
-        return channel.writeAndFlush(Unpooled.wrappedBuffer(message.replaceAll("\n", "").replaceAll(" ", "").getBytes(StandardCharsets.US_ASCII))).sync()
+        return channel.writeAndFlush(Unpooled.wrappedBuffer(message.replaceAll("\n", "").replaceAll(" ", "").getBytes(StandardCharsets.US_ASCII))).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE).sync()
     }
 
     protected long nextExpectedInboundSequenceNumber() {

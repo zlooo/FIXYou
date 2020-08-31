@@ -51,6 +51,9 @@ class SimplifiedMessageCodec extends AbstractMessageEncoder implements ChannelIn
                 fixMessageParser.setFixMessage(fixMessage);
                 fixMessageParser.parseFixMsgBytes();
                 if (fixMessageParser.isDone()) {
+                    if (log.isTraceEnabled()) {
+                        log.trace("Message after decoding {}", fixMessage.toString(true));
+                    }
                     ctx.fireChannelRead(fixMessageParser.getFixMessage());
                 } else {
                     log.error("Incomplete logon message arrived, closing channel {}", ctx.channel());
