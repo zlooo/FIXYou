@@ -14,9 +14,7 @@ class ReceiveHeartbeatMessageIntegrationTest extends AbstractFixYOUAcceptorInteg
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
-        pollingConditions.eventually {
-            receivedMessages.size() == 1
-        }
+        waitForLogonResponse()
 
         when:
         sendMessage(channel, FixMessages.heartbeat(sessionID, null))

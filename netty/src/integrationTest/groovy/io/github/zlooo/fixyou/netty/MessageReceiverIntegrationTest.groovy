@@ -11,6 +11,7 @@ class MessageReceiverIntegrationTest extends AbstractFixYOUAcceptorIntegrationTe
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def clord1 = UUID.randomUUID().toString()
         def clord2 = UUID.randomUUID().toString()
         def newOrderSingle1 = FixMessages.newOrderSingle(sessionID, 2, { it.set(new ClOrdID(clord1)) })

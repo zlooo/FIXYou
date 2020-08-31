@@ -14,9 +14,7 @@ class SendTestRequestIntegrationTest extends AbstractFixYOUAcceptorIntegrationTe
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID, 1, 5))
-        pollingConditions.eventually {
-            receivedMessages.size() == 1
-        }
+        waitForLogonResponse()
 
         when:
         pollingConditions.eventually {

@@ -15,9 +15,7 @@ class ReceiveLogoutMessageIntegrationTest extends AbstractFixYOUAcceptorIntegrat
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
-        pollingConditions.eventually {
-            receivedMessages.size() == 1
-        }
+        waitForLogonResponse()
         FIXYouNetty.logoutSession(engine, fixYouSessionId).sync()
         pollingConditions.eventually {
             receivedMessages.size() == 2

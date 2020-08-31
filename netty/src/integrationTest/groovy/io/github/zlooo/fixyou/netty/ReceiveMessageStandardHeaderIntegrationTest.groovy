@@ -104,6 +104,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         String clordid
         def newOrderSingle = FixMessages.newOrderSingle(sessionID, 2, { msg -> clordid = msg.getClOrdID().getValue() })
 
@@ -150,6 +151,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         sendMessage(channel, FixMessages.newOrderSingle(sessionID, 4))
         def sequence2Resend = FixMessages.newOrderSingle(sessionID, 2, { msg ->
             msg.getHeader().setBoolean(PossDupFlag.FIELD, true)
@@ -175,6 +177,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def resend = FixMessages.newOrderSingle(sessionID, 2, { msg ->
             msg.getHeader().setBoolean(PossDupFlag.FIELD, true)
             msg.getHeader().setUtcTimeStamp(OrigSendingTime.FIELD, LocalDateTime.now().plusHours(1))
@@ -242,6 +245,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2, { msg ->
             msg.getHeader().setString(BeginString.FIELD, "FIX.4.2")
         })
@@ -274,6 +278,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2, { msg ->
             msg.getHeader().setString(SenderCompID.FIELD, "wrongSender")
         })
@@ -311,6 +316,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2, { msg ->
             msg.getHeader().setString(TargetCompID.FIELD, "wrongTarget")
         })
@@ -348,6 +354,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2).replaceAll("9=\\d+\\x01", "9=12345\u0001")
 
         when:
@@ -365,6 +372,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2, { msg ->
             msg.getHeader().setUtcTimeStamp(SendingTime.FIELD, LocalDateTime.now().minus(FixConstants.SENDING_TIME_ACCURACY_MILLIS + 10, ChronoUnit.MILLIS))
         })
@@ -401,6 +409,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2, { msg ->
             msg.getHeader().setString(MsgType.FIELD, "wrongValue")
         })
@@ -431,6 +440,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2).replaceAll("9=\\d+\\x0135=\\w++", "35=D\u00019=123")
 
         when:

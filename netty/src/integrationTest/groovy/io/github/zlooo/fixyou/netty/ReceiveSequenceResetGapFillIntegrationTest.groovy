@@ -67,9 +67,7 @@ class ReceiveSequenceResetGapFillIntegrationTest extends AbstractFixYOUAcceptorI
         QuickfixTestUtils.putSessionIdInfo(sessionID, sequenceReset.getHeader(), false)
         QuickfixTestUtils.putStandardHeaderFields(sequenceReset.getHeader(), 1)
         sequenceReset.getHeader().setBoolean(PossDupFlag.FIELD, true)
-        pollingConditions.eventually {
-            receivedMessages.size() >= 1
-        }
+        waitForLogonResponse()
 
         when:
         sendMessage(channel, sequenceReset.toString())

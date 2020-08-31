@@ -16,6 +16,7 @@ class ReceiveMessageStandardTrailerIntegrationTest extends AbstractFixYOUAccepto
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def expectedClordId
         def message = FixMessages.newOrderSingle(sessionID, 2, { newOrderSingle ->
             expectedClordId = newOrderSingle.getClOrdID().getValue().toCharArray()
@@ -36,6 +37,7 @@ class ReceiveMessageStandardTrailerIntegrationTest extends AbstractFixYOUAccepto
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2).replaceAll("10=\\d+\\x01", "10=666\u0001")
 
         when:
@@ -53,6 +55,7 @@ class ReceiveMessageStandardTrailerIntegrationTest extends AbstractFixYOUAccepto
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2)
         def expectedClordId
         def message2 = FixMessages.newOrderSingle(sessionID, 2, { newOrderSingle ->
@@ -85,6 +88,7 @@ class ReceiveMessageStandardTrailerIntegrationTest extends AbstractFixYOUAccepto
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2)
         def matcher = Pattern.compile(".*10=(\\d+)\\x01").matcher(message)
         matcher.matches()
@@ -120,6 +124,7 @@ class ReceiveMessageStandardTrailerIntegrationTest extends AbstractFixYOUAccepto
         setup:
         def channel = connect()
         sendMessage(channel, FixMessages.logon(sessionID))
+        waitForLogonResponse()
         def message = FixMessages.newOrderSingle(sessionID, 2,)
         def matcher = Pattern.compile(".*(10=\\d+\\x01)").matcher(message)
         matcher.matches()

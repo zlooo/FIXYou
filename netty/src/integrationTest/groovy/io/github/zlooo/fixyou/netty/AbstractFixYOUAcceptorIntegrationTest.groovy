@@ -90,6 +90,13 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
         }).connect("localhost", acceptorPort).sync().channel()
     }
 
+    protected void waitForLogonResponse(){
+        pollingConditions.eventually {
+            !receivedMessages.isEmpty()
+            receivedMessages.any {it.contains("35=A")}
+        }
+    }
+
     static List<String> splitMessagesIfNecessary(CharSequence message) {
         def result = []
         int messageStartIndex = 0
