@@ -17,12 +17,13 @@ import quickfix.fixt11.Logout
 import quickfix.fixt11.Reject
 import quickfix.fixt11.ResendRequest
 import spock.lang.Ignore
+import spock.lang.Timeout
 
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 
-//@Timeout(30)
+@Timeout(30)
 class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
     def "should process message with correct header normally 2-a,h,j,l,n,p,s"() {
