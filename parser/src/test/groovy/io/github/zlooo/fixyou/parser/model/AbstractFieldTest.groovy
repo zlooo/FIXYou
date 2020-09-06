@@ -57,7 +57,7 @@ class AbstractFieldTest extends Specification {
         }
 
         @Override
-        void appendByteBufWithValue(ByteBuf out) {
+        int appendByteBufWithValue(ByteBuf out) {
 
         }
     }

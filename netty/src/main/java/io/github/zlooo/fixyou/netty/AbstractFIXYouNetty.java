@@ -14,6 +14,7 @@ import io.github.zlooo.fixyou.session.SessionID;
 import io.github.zlooo.fixyou.session.SessionRegistry;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.util.ResourceLeakDetector;
 
 import java.util.Set;
 import java.util.concurrent.Future;
@@ -31,6 +32,9 @@ abstract class AbstractFIXYouNetty implements Engine {
         this.fixYouConfiguration = fixYouConfiguration;
         this.eventLoopGroup = new NioEventLoopGroup(fixYouConfiguration.getNumberOfIOThreads());
         this.configValidator = configValidator;
+        //netty specific optimalizations
+        ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.DISABLED);
+
     }
 
     @Override

@@ -9,4 +9,5 @@ dependencies {
     implementation group: 'org.agrona', name: 'agrona', version: "$agronaVersion"
     testImplementation group: 'org.springframework', name: 'spring-test', version: "$springVersion"
     jmhImplementation group: 'net.openhft', name: 'transfix', version: '1.0.2-alpha'
+    jmhAnnotationProcessor group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.21'
 }
