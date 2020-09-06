@@ -31,8 +31,6 @@ public final class GroupField extends AbstractField {
     private int repetitionCounter;
 
     private long value = DEFAULT_VALUE;
-    private byte[] rawValue = new byte[FIELD_DATA_LENGTH];
-    private char[] unparsedValue = new char[FIELD_DATA_LENGTH];
 
     public GroupField(int number, FixSpec spec) {
         super(number);
@@ -136,19 +134,20 @@ public final class GroupField extends AbstractField {
     }
 
     @Override
-    public void appendByteBufWithValue(ByteBuf out) {
-        FieldUtils.writeEncoded(repetitionCounter, out);
+    public int appendByteBufWithValue(ByteBuf out) {
+        int sumOfBytes = FieldUtils.writeEncoded(repetitionCounter, out) + FixMessage.FIELD_SEPARATOR;
         out.writeByte(FixMessage.FIELD_SEPARATOR);
         for (int i = 0; i <= repetitionCounter; i++) {
             for (final AbstractField repetitionField : repetitions[i].fieldsOrdered) {
                 if (repetitionField.isValueSet()) {
-                    repetitionField.appendFieldNumber(out);
-                    repetitionField.appendByteBufWithValue(out);
+                    sumOfBytes += repetitionField.appendFieldNumber(out);
+                    sumOfBytes += repetitionField.appendByteBufWithValue(out) + FixMessage.FIELD_SEPARATOR;
                     out.writeByte(FixMessage.FIELD_SEPARATOR);
                 }
             }
         }
         out.writerIndex(out.writerIndex() - 1); //"remove" last soh from buffer
+        return sumOfBytes - FixMessage.FIELD_SEPARATOR;
     }
 
     @Override

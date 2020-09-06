@@ -62,7 +62,7 @@ public final class TimestampField extends AbstractField {
     }
 
     @Override
-    public void appendByteBufWithValue(ByteBuf out) {
-        DateUtils.writeTimestamp(getValue(), out, true);
+    public int appendByteBufWithValue(ByteBuf out) {
+       return DateUtils.writeTimestamp(getValue(), out, true);
     }
 }

@@ -30,7 +30,7 @@ public class DateUtils {
      * @param withMillis        should millis be included
      */
     //TODO remove checkstyle suppression on this file
-    public static void writeTimestamp(long timestamp, ByteBuf destinationBuffer, boolean withMillis) {
+    public static int writeTimestamp(long timestamp, ByteBuf destinationBuffer, boolean withMillis) {
         long remainingMillis = timestamp - BEGINNING_OF_MIN_YEAR;
         int year = MIN_YEAR;
         boolean isLeapYear = true;
@@ -89,18 +89,23 @@ public class DateUtils {
             remainingMillis -= MILLIS_IN_SECOND;
             second++;
         }
-        FieldUtils.writeEncoded(year, destinationBuffer);
-        FieldUtils.writeEncoded(month, destinationBuffer, 2);
-        FieldUtils.writeEncoded(day, destinationBuffer, 2);
+        int sumOfBytes = FieldUtils.writeEncoded(year, destinationBuffer);
+        sumOfBytes += FieldUtils.writeEncoded(month, destinationBuffer, 2);
+        sumOfBytes += FieldUtils.writeEncoded(day, destinationBuffer, 2);
+        sumOfBytes += AsciiCodes.MINUS;
         destinationBuffer.writeByte(AsciiCodes.MINUS);
-        FieldUtils.writeEncoded(hour, destinationBuffer, 2);
+        sumOfBytes += FieldUtils.writeEncoded(hour, destinationBuffer, 2);
+        sumOfBytes += AsciiCodes.COLON;
         destinationBuffer.writeByte(AsciiCodes.COLON);
-        FieldUtils.writeEncoded(minute, destinationBuffer, 2);
+        sumOfBytes += FieldUtils.writeEncoded(minute, destinationBuffer, 2);
+        sumOfBytes += AsciiCodes.COLON;
         destinationBuffer.writeByte(AsciiCodes.COLON);
-        FieldUtils.writeEncoded(second, destinationBuffer, 2);
+        sumOfBytes += FieldUtils.writeEncoded(second, destinationBuffer, 2);
         if (withMillis) {
+            sumOfBytes += AsciiCodes.DOT;
             destinationBuffer.writeByte(AsciiCodes.DOT);
-            FieldUtils.writeEncoded(remainingMillis, destinationBuffer, 3);
+            sumOfBytes += FieldUtils.writeEncoded(remainingMillis, destinationBuffer, 3);
         }
+        return sumOfBytes;
     }
 }

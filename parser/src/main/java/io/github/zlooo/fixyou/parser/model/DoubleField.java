@@ -6,11 +6,11 @@ import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.github.zlooo.fixyou.utils.AsciiCodes;
 import io.netty.buffer.ByteBuf;
+import io.netty.util.AsciiString;
 import io.netty.util.ReferenceCountUtil;
+import io.netty.util.internal.PlatformDependent;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-
-import java.nio.charset.StandardCharsets;
 
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -60,13 +60,22 @@ public final class DoubleField extends AbstractField {
     }
 
     @Override
-    public void appendByteBufWithValue(ByteBuf out) {
+    public int appendByteBufWithValue(ByteBuf out) {
         //TODO refactor this so taht value is written directly, not converted to char[] first
         final ReusableCharArray valueAsChar = FieldUtils.toCharSequence(value, 1);
         final int separatorIndex = valueAsChar.length() - scale - 1;
-        ArrayUtils.insertElementAtIndex(valueAsChar.getCharArray(), FRACTION_SEPARATOR, separatorIndex);
-        out.writeCharSequence(valueAsChar, StandardCharsets.US_ASCII);
+        final char[] valueAsCharArray = valueAsChar.getCharArray();
+        ArrayUtils.insertElementAtIndex(valueAsCharArray, FRACTION_SEPARATOR, separatorIndex);
+        final byte[] bytesToWrite = new byte[valueAsChar.length()];
+        int sumOfBytes = 0;
+        for (int i = 0; i < bytesToWrite.length; i++) {
+            final byte byteToWrite = AsciiString.c2b(valueAsCharArray[i]);
+            sumOfBytes += byteToWrite;
+            PlatformDependent.putByte(bytesToWrite, i, byteToWrite);
+        }
+        out.writeBytes(bytesToWrite);
         ReferenceCountUtil.release(valueAsChar);
+        return sumOfBytes;
     }
 
     public short getScale() {

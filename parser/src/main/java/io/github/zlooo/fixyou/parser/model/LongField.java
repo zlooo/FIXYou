@@ -26,8 +26,8 @@ public final class LongField extends AbstractField {
     }
 
     @Override
-    public void appendByteBufWithValue(ByteBuf out) {
-        FieldUtils.writeEncoded(value, out);
+    public int appendByteBufWithValue(ByteBuf out) {
+        return FieldUtils.writeEncoded(value, out);
     }
 
     public long getValue() {

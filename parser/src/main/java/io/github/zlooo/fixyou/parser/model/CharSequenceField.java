@@ -2,12 +2,12 @@ package io.github.zlooo.fixyou.parser.model;
 
 import io.github.zlooo.fixyou.model.FieldType;
 import io.netty.buffer.ByteBuf;
+import io.netty.util.AsciiString;
+import io.netty.util.internal.PlatformDependent;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.agrona.collections.Hashing;
-
-import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @EqualsAndHashCode(callSuper = true, exclude = {"value"})
@@ -34,8 +34,16 @@ public final class CharSequenceField extends AbstractField {
     }
 
     @Override
-    public void appendByteBufWithValue(ByteBuf out) {
-        out.writeCharSequence(returnValue, StandardCharsets.US_ASCII);
+    public int appendByteBufWithValue(ByteBuf out) {
+        final byte[] bytesToWrite = new byte[length];
+        int sumOfBytes = 0;
+        for (int i = 0; i < bytesToWrite.length; i++) {
+            final byte byteToWrite = AsciiString.c2b(value[i]);
+            sumOfBytes += byteToWrite;
+            PlatformDependent.putByte(bytesToWrite, i, byteToWrite);
+        }
+        out.writeBytes(bytesToWrite);
+        return sumOfBytes;
     }
 
     public CharSequence getValue() {

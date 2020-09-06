@@ -37,8 +37,10 @@ public final class CharField extends AbstractField {
     }
 
     @Override
-    public void appendByteBufWithValue(ByteBuf out) {
-        out.writeByte(AsciiString.c2b(value));
+    public int appendByteBufWithValue(ByteBuf out) {
+        final byte valueToWrite = AsciiString.c2b(this.value);
+        out.writeByte(valueToWrite);
+        return valueToWrite;
     }
 
     @Override

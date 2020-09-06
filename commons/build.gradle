@@ -6,6 +6,7 @@ dependencies {
     api project(":api")
     api group: 'org.slf4j', name: 'slf4j-api', version: "$slf4jVersion"
     implementation group: 'io.netty', name: 'netty-common', version: "$nettyVersion"
+    jmhAnnotationProcessor group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.21'
 }
 
 jmh{

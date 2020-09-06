@@ -47,8 +47,14 @@ public final class BooleanField extends AbstractField {
     }
 
     @Override
-    public void appendByteBufWithValue(ByteBuf out) {
-        out.writeByte(value ? AsciiCodes.Y : AsciiCodes.N);
+    public int appendByteBufWithValue(ByteBuf out) {
+        if (value) {
+            out.writeByte(AsciiCodes.Y);
+            return AsciiCodes.Y;
+        } else {
+            out.writeByte(AsciiCodes.N);
+            return AsciiCodes.N;
+        }
     }
 
     @Override

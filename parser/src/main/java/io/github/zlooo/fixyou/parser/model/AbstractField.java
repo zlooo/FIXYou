@@ -22,6 +22,7 @@ public abstract class AbstractField implements Closeable {
     protected volatile boolean valueSet;
     @Getter(value = AccessLevel.PROTECTED)
     private final byte[] encodedFieldNumber;
+    private final int encodedFieldNumberSumOfBytes;
     @Getter
     private final int encodedFieldNumberLength;
 
@@ -30,10 +31,15 @@ public abstract class AbstractField implements Closeable {
         final char[] fieldNumberAsCharArray = Integer.toString(number).toCharArray(); //we're doing it just on startup so we can afford it
         final int encodedFieldNumberCapacity = fieldNumberAsCharArray.length + 1;
         encodedFieldNumber = new byte[encodedFieldNumberCapacity];
+        int sumOfBytes = 0;
         for (int i = 0; i < fieldNumberAsCharArray.length; i++) {
-            encodedFieldNumber[i] = AsciiString.c2b(fieldNumberAsCharArray[i]);
+            final byte encodedChar = AsciiString.c2b(fieldNumberAsCharArray[i]);
+            sumOfBytes += encodedChar;
+            encodedFieldNumber[i] = encodedChar;
         }
+        sumOfBytes += FixMessage.FIELD_VALUE_SEPARATOR;
         encodedFieldNumber[encodedFieldNumberCapacity - 1] = FixMessage.FIELD_VALUE_SEPARATOR;
+        encodedFieldNumberSumOfBytes = sumOfBytes;
         encodedFieldNumberLength = encodedFieldNumber.length;
     }
 
@@ -69,9 +75,10 @@ public abstract class AbstractField implements Closeable {
         //nothing to do
     }
 
-    public void appendFieldNumber(ByteBuf out) {
+    public int appendFieldNumber(ByteBuf out) {
         out.writeBytes(encodedFieldNumber);
+        return encodedFieldNumberSumOfBytes;
     }
 
-    public abstract void appendByteBufWithValue(ByteBuf out);
+    public abstract int appendByteBufWithValue(ByteBuf out);
 }

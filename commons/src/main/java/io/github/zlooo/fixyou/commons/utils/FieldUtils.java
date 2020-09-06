@@ -11,14 +11,17 @@ public final class FieldUtils {
     private static final int MAX_DIGIT_NUMBER_HOLDABLE_BY_LONG = 19;
     private static final ThreadLocal<ReusableCharArray> REUSABLE_CHAR_ARRAY_THREAD_LOCAL = ThreadLocal.withInitial(ReusableCharArray::new);
 
-    public static void writeEncoded(long valueToWrite, ByteBuf destinationBuffer) {
+    public static int writeEncoded(long valueToWrite, ByteBuf destinationBuffer) {
         if (valueToWrite == 0) {
             destinationBuffer.writeByte(AsciiCodes.ZERO);
-            return;
+            return AsciiCodes.ZERO;
         }
         long value = valueToWrite;
+        int sumOfBytes = 0;
         if (valueToWrite < 0) {
-            destinationBuffer.writeByte(AsciiCodes.MINUS);
+            final int minus = AsciiCodes.MINUS;
+            sumOfBytes += minus;
+            destinationBuffer.writeByte(minus);
             value = -1 * value;
         }
         int powerOfTenIndex = 0;
@@ -31,12 +34,15 @@ public final class FieldUtils {
         for (; powerOfTenIndex >= 0; powerOfTenIndex--) {
             final long currentTenPowerValue = NumberConstants.POWERS_OF_TEN[powerOfTenIndex];
             final long digit = value / currentTenPowerValue;
-            destinationBuffer.writeByte(AsciiCodes.ZERO + (int) digit);
+            final int digitInAscii = AsciiCodes.ZERO + (int) digit;
+            sumOfBytes += digitInAscii;
+            destinationBuffer.writeByte(digitInAscii);
             value = value - (digit * currentTenPowerValue);
         }
+        return sumOfBytes;
     }
 
-    public static void writeEncoded(long valueToWrite, ByteBuf destinationBuffer, int minLength) {
+    public static int writeEncoded(long valueToWrite, ByteBuf destinationBuffer, int minLength) {
         long value = valueToWrite;
         final boolean writeMinus;
         if (valueToWrite < 0) {
@@ -55,18 +61,24 @@ public final class FieldUtils {
         if (writeMinus) {
             numberOfZeros--;
         }
+        int sumOfBytes = 0;
         for (int i = numberOfZeros; i > 0; i--) {
+            sumOfBytes += AsciiCodes.ZERO;
             destinationBuffer.writeByte(AsciiCodes.ZERO);
         }
         if (writeMinus) {
+            sumOfBytes += AsciiCodes.MINUS;
             destinationBuffer.writeByte(AsciiCodes.MINUS);
         }
         for (powerOfTenIndex--; powerOfTenIndex >= 0; powerOfTenIndex--) {
             final long currentTenPowerValue = NumberConstants.POWERS_OF_TEN[powerOfTenIndex];
             final long digit = value / currentTenPowerValue;
-            destinationBuffer.writeByte(AsciiCodes.ZERO + (int) digit);
+            final int digitInAscii = AsciiCodes.ZERO + (int) digit;
+            sumOfBytes += digitInAscii;
+            destinationBuffer.writeByte(digitInAscii);
             value = value - (digit * currentTenPowerValue);
         }
+        return sumOfBytes;
     }
 
     //TODO get rid of this method

@@ -19,4 +19,6 @@ public class FIXYouConfiguration {
     private String acceptorBindInterface = DefaultConfiguration.DEFAULT_ACCEPTOR_BIND_INTERFACE;
     private int acceptorListenPort;
     private boolean initiator;
+    @Builder.Default
+    private boolean addLoggingHandler;
 }
