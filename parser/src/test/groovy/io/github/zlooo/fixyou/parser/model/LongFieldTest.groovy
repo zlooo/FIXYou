@@ -1,8 +1,10 @@
 package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.github.zlooo.fixyou.parser.TestUtils
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
+import io.netty.util.AsciiString
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
@@ -10,7 +12,7 @@ import java.nio.charset.StandardCharsets
 class LongFieldTest extends Specification {
 
     private LongField field
-        private ByteBuf underlyingBuf = Unpooled.buffer(10, 10)
+    private ByteBuf underlyingBuf = Unpooled.buffer(10, 10)
 
     void setup() {
         field = new LongField(1)
@@ -53,6 +55,9 @@ class LongFieldTest extends Specification {
 
         then:
         field.@value == LongField.DEFAULT_VALUE
+        field.@sumOfBytes == 0
+        field.@rawValue.readerIndex() == 0
+        field.@rawValue.writerIndex() == 0
     }
 
     def "should set value"() {
@@ -61,6 +66,10 @@ class LongFieldTest extends Specification {
 
         then:
         field.@value == 666
+        field.@rawValue.toString(0, 3, StandardCharsets.US_ASCII) == "666"
+        field.@rawValue.readerIndex() == 0
+        field.@rawValue.writerIndex() == 3
+        field.@sumOfBytes == 3 * AsciiString.c2b("6" as char)
         field.valueSet
     }
 
@@ -70,9 +79,10 @@ class LongFieldTest extends Specification {
         def buf = Unpooled.buffer(10, 10)
 
         when:
-        field.appendByteBufWithValue(buf)
+        def result = field.appendByteBufWithValue(buf)
 
         then:
         buf.toString(StandardCharsets.US_ASCII) == "14666"
+        result == TestUtils.sumBytes("14666".getBytes(StandardCharsets.US_ASCII))
     }
 }

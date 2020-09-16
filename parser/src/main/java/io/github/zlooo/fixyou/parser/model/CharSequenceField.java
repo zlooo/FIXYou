@@ -20,6 +20,7 @@ public final class CharSequenceField extends AbstractField {
     private int length;
     private byte[] rawValue;
     private char[] value;
+    private int sumOfBytes;
 
     public CharSequenceField(int number) {
         super(number);
@@ -35,14 +36,7 @@ public final class CharSequenceField extends AbstractField {
 
     @Override
     public int appendByteBufWithValue(ByteBuf out) {
-        final byte[] bytesToWrite = new byte[length];
-        int sumOfBytes = 0;
-        for (int i = 0; i < bytesToWrite.length; i++) {
-            final byte byteToWrite = AsciiString.c2b(value[i]);
-            sumOfBytes += byteToWrite;
-            PlatformDependent.putByte(bytesToWrite, i, byteToWrite);
-        }
-        out.writeBytes(bytesToWrite);
+        out.writeBytes(rawValue, 0, length);
         return sumOfBytes;
     }
 
@@ -78,19 +72,11 @@ public final class CharSequenceField extends AbstractField {
     }
 
     public void setValue(char[] value) {
-        length = value.length;
-        returnValue.setLength(length);
-        ensureSufficientTablesLength();
-        System.arraycopy(value, 0, this.value, 0, length);
-        this.valueSet = true;
+        setValue(value, value.length);
     }
 
     public void setValue(CharSequenceField sourceValue) {
-        length = sourceValue.length;
-        returnValue.setLength(length);
-        ensureSufficientTablesLength();
-        System.arraycopy(sourceValue.value, 0, this.value, 0, length);
-        this.valueSet = true;
+        setValue(sourceValue.value, sourceValue.length);
     }
 
     public void setValue(char[] newValue, int valueLength) {
@@ -98,6 +84,12 @@ public final class CharSequenceField extends AbstractField {
         returnValue.setLength(length);
         ensureSufficientTablesLength();
         System.arraycopy(newValue, 0, this.value, 0, length);
+        sumOfBytes = 0;
+        for (int i = 0; i < length; i++) {
+            final byte byteToWrite = AsciiString.c2b(value[i]);
+            sumOfBytes += byteToWrite;
+            PlatformDependent.putByte(rawValue, i, byteToWrite);
+        }
         this.valueSet = true;
     }
 
@@ -110,5 +102,6 @@ public final class CharSequenceField extends AbstractField {
     protected void resetInnerState() {
         length = 0;
         returnValue.setLength(length);
+        sumOfBytes = 0;
     }
 }

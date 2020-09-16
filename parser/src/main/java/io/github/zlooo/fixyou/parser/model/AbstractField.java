@@ -62,7 +62,7 @@ public abstract class AbstractField implements Closeable {
     protected abstract void resetInnerState();
 
     public void reset() {
-        if (valueSet) {
+        if (isValueSet()) {
             resetInnerState();
         }
         this.startIndex = 0;

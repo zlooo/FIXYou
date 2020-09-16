@@ -3,6 +3,7 @@ package io.github.zlooo.fixyou.parser.model;
 import io.github.zlooo.fixyou.commons.utils.FieldUtils;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
@@ -12,9 +13,9 @@ public final class LongField extends AbstractField {
 
     public static final long DEFAULT_VALUE = Long.MIN_VALUE;
     public static final int FIELD_DATA_LENGTH = 8; // 7 digits plus optional sign
+    private final ByteBuf rawValue = Unpooled.directBuffer(FIELD_DATA_LENGTH, FIELD_DATA_LENGTH);
     private long value = DEFAULT_VALUE;
-    private byte[] rawValue = new byte[FIELD_DATA_LENGTH];
-    private char[] unparsedValue = new char[FIELD_DATA_LENGTH];
+    private int sumOfBytes;
 
     public LongField(int number) {
         super(number);
@@ -27,7 +28,8 @@ public final class LongField extends AbstractField {
 
     @Override
     public int appendByteBufWithValue(ByteBuf out) {
-        return FieldUtils.writeEncoded(value, out);
+        out.writeBytes(rawValue, 0, rawValue.writerIndex());
+        return sumOfBytes;
     }
 
     public long getValue() {
@@ -40,10 +42,13 @@ public final class LongField extends AbstractField {
     public void setValue(long value) {
         this.value = value;
         this.valueSet = true;
+        sumOfBytes = FieldUtils.writeEncoded(value, rawValue.clear());
     }
 
     @Override
     protected void resetInnerState() {
         value = DEFAULT_VALUE;
+        rawValue.clear();
+        sumOfBytes = 0;
     }
 }

@@ -19,7 +19,10 @@ import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.LongField;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.github.zlooo.fixyou.session.SessionRegistry;
-import io.netty.channel.*;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelOutboundHandler;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -87,7 +90,8 @@ class LogonHandler implements AdministrativeMessageHandler {
                                 FixMessageUtils.toLogonMessage(sessionState.getFixMessageWritePool().getAndRetain(),
                                                                sessionState.getFixSpec().applicationVersionId().getValue(),
                                                                fixMessage.<LongField>getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).getValue(),
-                                                               fixMessage.<LongField>getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getValue(), resetSequenceFlagSet))
+                                                               fixMessage.<LongField>getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getValue(),
+                                                               resetSequenceFlagSet))
                            .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE).addListener(FixChannelListeners.LOGON_SENT);
                     } else {
                         log.debug("Logon has already been sent, not sending another one");

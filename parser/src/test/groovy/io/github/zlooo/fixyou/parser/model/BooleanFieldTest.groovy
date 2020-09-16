@@ -3,6 +3,7 @@ package io.github.zlooo.fixyou.parser.model
 import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
+import io.netty.util.AsciiString
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
@@ -43,7 +44,7 @@ class BooleanFieldTest extends Specification {
         "N"      | false
     }
 
-    def "should get default value when value is not set"(){
+    def "should get default value when value is not set"() {
         setup:
         field.reset()
 
@@ -60,7 +61,7 @@ class BooleanFieldTest extends Specification {
         field.setIndexes(0, 1)
 
         when:
-        def value = field.getValue()
+        field.getValue()
 
         then:
         thrown(IllegalArgumentException)
@@ -99,14 +100,15 @@ class BooleanFieldTest extends Specification {
         def buf = Unpooled.buffer(1, 1)
 
         when:
-        field.appendByteBufWithValue(buf)
+        def result = field.appendByteBufWithValue(buf)
 
         then:
         buf.toString(StandardCharsets.US_ASCII) == expectedValue
+        result == expectedResult
 
         where:
-        valueToSet | expectedValue
-        true       | "Y"
-        false      | "N"
+        valueToSet | expectedValue | expectedResult
+        true       | "Y"           | AsciiString.c2b('Y' as char)
+        false      | "N"           | AsciiString.c2b('N' as char)
     }
 }

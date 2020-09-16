@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.github.zlooo.fixyou.parser.TestUtils
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import spock.lang.Specification
@@ -52,6 +53,7 @@ class CharSequenceFieldTest extends Specification {
         then:
         field.@length == 0
         field.@returnValue.length() == 0
+        field.sumOfBytes == 0
     }
 
     def "should set value from char array"() {
@@ -62,6 +64,8 @@ class CharSequenceFieldTest extends Specification {
         field.@value.toString() == "someVeryLongValue"
         field.length == "someVeryLongValue".length()
         field.valueSet
+        field.rawValue == TestUtils.setBytes("someVeryLongValue".getBytes(StandardCharsets.US_ASCII), new byte[field.rawValue.length])
+        field.sumOfBytes == TestUtils.sumBytes(field.rawValue)
     }
 
     def "should set value from char sequence"() {
@@ -76,6 +80,8 @@ class CharSequenceFieldTest extends Specification {
         field.@value.toString() == "someVeryLongValue"
         field.length == "someVeryLongValue".length()
         field.valueSet
+        field.rawValue == TestUtils.setBytes("someVeryLongValue".getBytes(StandardCharsets.US_ASCII), new byte[field.rawValue.length])
+        field.sumOfBytes == TestUtils.sumBytes(field.rawValue)
     }
 
     def "should set value from char array with limited length"() {
@@ -86,6 +92,8 @@ class CharSequenceFieldTest extends Specification {
         field.@value.toString() == "some"
         field.length == 4
         field.valueSet
+        field.rawValue == TestUtils.setBytes("some".getBytes(StandardCharsets.US_ASCII), new byte[field.rawValue.length])
+        field.sumOfBytes == TestUtils.sumBytes(field.rawValue)
     }
 
     def "should append provided byte buf with value"() {
@@ -94,9 +102,10 @@ class CharSequenceFieldTest extends Specification {
         def buf = Unpooled.buffer(20, 20)
 
         when:
-        field.appendByteBufWithValue(buf)
+        def result = field.appendByteBufWithValue(buf)
 
         then:
         buf.toString(StandardCharsets.US_ASCII) == "textToWrite"
+        result == TestUtils.sumBytes("textToWrite".getBytes(StandardCharsets.US_ASCII))
     }
 }
