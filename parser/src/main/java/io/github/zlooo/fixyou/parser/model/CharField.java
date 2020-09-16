@@ -14,6 +14,7 @@ public final class CharField extends AbstractField {
 
     public static final char DEFAULT_VALUE = Character.MIN_VALUE;
     private char value = DEFAULT_VALUE;
+    private byte valueRaw = DEFAULT_VALUE;
 
     public CharField(int number) {
         super(number);
@@ -33,14 +34,14 @@ public final class CharField extends AbstractField {
 
     public void setValue(char value) {
         this.value = value;
+        this.valueRaw = AsciiString.c2b(this.value);
         this.valueSet = true;
     }
 
     @Override
     public int appendByteBufWithValue(ByteBuf out) {
-        final byte valueToWrite = AsciiString.c2b(this.value);
-        out.writeByte(valueToWrite);
-        return valueToWrite;
+        out.writeByte(valueRaw);
+        return valueRaw;
     }
 
     @Override

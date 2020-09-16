@@ -3,6 +3,7 @@ package io.github.zlooo.fixyou.parser.model
 import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
+import io.netty.util.AsciiString
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
@@ -64,6 +65,7 @@ class CharFieldTest extends Specification {
         then:
         field.@value == 'B' as char
         field.getValue() == 'B' as char
+        field.valueRaw == AsciiString.c2b('B' as char)
         field.valueSet
         underlyingBuf.readerIndex(5).toString(StandardCharsets.US_ASCII) == "A"
     }
@@ -74,9 +76,10 @@ class CharFieldTest extends Specification {
         def buf = Unpooled.buffer(1, 1)
 
         when:
-        field.appendByteBufWithValue(buf)
+        def result = field.appendByteBufWithValue(buf)
 
         then:
         buf.toString(StandardCharsets.US_ASCII) == "Z"
+        result == AsciiString.c2b('Z' as char)
     }
 }

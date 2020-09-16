@@ -9,6 +9,8 @@ import io.github.zlooo.fixyou.parser.FixFieldsTypes
 class TestSpec implements FixSpec {
 
     static INSTANCE = new TestSpec()
+    static TEST_DOUBLE_FIELD_NUMBER = 5001
+    static TEST_CHAR_FIELD_NUMBER = 5002
 
     @Override
     int[] getFieldsOrder() {
@@ -16,7 +18,7 @@ class TestSpec implements FixSpec {
                 FixConstants.SENDER_COMP_ID_FIELD_NUMBER, FixConstants.TARGET_COMP_ID_FIELD_NUMBER, FixConstants.SENDING_TIME_FIELD_NUMBER, FixConstants.TEST_REQ_ID_FIELD_NUMBER, FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER, FixConstants.
                 BEGIN_SEQUENCE_NUMBER_FIELD_NUMBER, FixConstants.END_SEQUENCE_NUMBER_FIELD_NUMBER, FixConstants.NEW_SEQUENCE_NUMBER_FIELD_NUMBER, FixConstants.REFERENCED_SEQUENCE_NUMBER_FIELD_NUMBER, FixConstants.
                 ENCRYPT_METHOD_FIELD_NUMBER, FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER, FixConstants.GAP_FILL_FLAG_FIELD_NUMBER, FixConstants.TEXT_FIELD_NUMBER, FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER, FixConstants.
-                REFERENCED_TAG_ID_FIELD_NUMBER, FixConstants.SESSION_REJECT_REASON_FIELD_NUMBER, 453, FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER, FixConstants.CHECK_SUM_FIELD_NUMBER]
+                REFERENCED_TAG_ID_FIELD_NUMBER, FixConstants.SESSION_REJECT_REASON_FIELD_NUMBER, 453, FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER, TEST_DOUBLE_FIELD_NUMBER, TEST_CHAR_FIELD_NUMBER, FixConstants.CHECK_SUM_FIELD_NUMBER]
     }
 
     @Override
@@ -24,7 +26,7 @@ class TestSpec implements FixSpec {
         return [FixFieldsTypes.BEGIN_STRING, FixFieldsTypes.BODY_LENGTH, FixFieldsTypes.MESSAGE_TYPE, FixFieldsTypes.MESSAGE_SEQUENCE_NUMBER, FixFieldsTypes.POSS_DUP_FLAG, FixFieldsTypes.SENDER_COMP_ID, FixFieldsTypes.TARGET_COMP_ID,
                 FixFieldsTypes.SENDING_TIME, FieldType.CHAR_ARRAY, FieldType.TIMESTAMP, FixFieldsTypes.BEGIN_SEQUENCE_NUMBER, FixFieldsTypes.END_SEQUENCE_NUMBER, FixFieldsTypes.NEW_SEQUENCE_NUMBER, FixFieldsTypes.
                 REFERENCED_SEQUENCE_NUMBER, FixFieldsTypes.ENCRYPT_METHOD, FixFieldsTypes.HEARTBEAT_INTERVAL, FixFieldsTypes.GAP_FILL_FLAG, FixFieldsTypes.TEXT, FixFieldsTypes.RESET_SEQ_NUMBER_FLAG, FixFieldsTypes.REFERENCED_TAG_ID,
-                FixFieldsTypes.SESSION_REJECT_REASON, FieldType.GROUP, FixFieldsTypes.DEFAULT_APP_VERSION, FixFieldsTypes.CHECK_SUM]
+                FixFieldsTypes.SESSION_REJECT_REASON, FieldType.GROUP, FixFieldsTypes.DEFAULT_APP_VERSION, FieldType.DOUBLE, FieldType.CHAR, FixFieldsTypes.CHECK_SUM]
     }
 
     @Override

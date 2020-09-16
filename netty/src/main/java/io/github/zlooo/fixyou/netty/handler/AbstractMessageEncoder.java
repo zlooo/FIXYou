@@ -26,7 +26,7 @@ abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
         final AbstractField[] fieldsOrdered = msg.getFieldsOrdered();
         final AbstractField beginString = fieldsOrdered[0];
         final LongField bodyLength = (LongField) fieldsOrdered[1];
-        final int afterBodyLengthIndex = beginString.getEncodedFieldNumberLength() + beginString.getLength() + bodyLength.getEncodedFieldNumberLength() + MAX_BODY_LENGTH_FIELD_LENGTH;
+        final int afterBodyLengthIndex = beginString.getEncodedFieldNumberLength() + beginString.getLength() + bodyLength.getEncodedFieldNumberLength() + MAX_BODY_LENGTH_FIELD_LENGTH + 2;
         out.writerIndex(afterBodyLengthIndex);
         int sumOfBytes = 0;
         for (int i = 2; i < fieldsOrdered.length - 1; i++) {
@@ -40,7 +40,7 @@ abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
         sumOfBytes += prependTwoFirstFields(out, afterBodyLengthIndex, beginString, bodyLength);
         appendWithChecksum(out, msg.getField(FixConstants.CHECK_SUM_FIELD_NUMBER), sumOfBytes);
         if (log.isDebugEnabled()) {
-            log.debug("Encoded message " + out.toString(StandardCharsets.US_ASCII));
+            log.debug("Encoded message " + out.toString(StandardCharsets.US_ASCII) + " buffer " + out);
         }
     }
 

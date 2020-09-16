@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.github.zlooo.fixyou.parser.TestUtils
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import spock.lang.Specification
@@ -54,14 +55,19 @@ class TimestampFieldTest extends Specification {
 
         then:
         field.@value == TimestampField.DEFAULT_VALUE
+        field.@sumOfBytes == 0
+        field.@rawValueAsBuffer.readerIndex() == 0
+        field.@rawValueAsBuffer.writerIndex() == 0
     }
 
     def "should set value"() {
         when:
-        field.setValue(666)
+        field.setValue(1600241144694)
 
         then:
-        field.@value == 666
+        field.@value == 1600241144694
+        field.@rawValue == "20200916-07:25:44.694".getBytes(StandardCharsets.US_ASCII)
+        field.sumOfBytes == TestUtils.sumBytes(field.@rawValue)
         field.valueSet
     }
 
@@ -71,9 +77,12 @@ class TimestampFieldTest extends Specification {
         def buf = Unpooled.buffer(30, 30)
 
         when:
-        field.appendByteBufWithValue(buf)
+        def result = field.appendByteBufWithValue(buf)
 
         then:
         buf.toString(StandardCharsets.US_ASCII) == "20260606-22:45:16.666"
+        result == TestUtils.sumBytes("20260606-22:45:16.666".getBytes(StandardCharsets.US_ASCII))
     }
+
+
 }

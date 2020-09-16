@@ -4,6 +4,7 @@ import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.commons.utils.DateUtils;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
@@ -16,10 +17,13 @@ import java.time.format.DateTimeFormatter;
 public final class TimestampField extends AbstractField {
 
     public static final long DEFAULT_VALUE = Long.MIN_VALUE;
+    private static final int ENCODED_TIMESTAMP_LENGTH = FixConstants.UTC_TIMESTAMP_PATTERN.length();
     private final MutableCharSequence charSequence = new MutableCharSequence();
+    private final byte[] rawValue = new byte[ENCODED_TIMESTAMP_LENGTH];
+    private final ByteBuf rawValueAsBuffer = Unpooled.wrappedBuffer(rawValue);
+    private final char[] charValue = new char[FixConstants.UTC_TIMESTAMP_PATTERN.length()];
     private long value = DEFAULT_VALUE;
-    private byte[] rawValue = new byte[FixConstants.UTC_TIMESTAMP_PATTERN.length()];
-    private char[] charValue = new char[FixConstants.UTC_TIMESTAMP_PATTERN.length()];
+    private int sumOfBytes;
 
     public TimestampField(int number) {
         super(number);
@@ -54,15 +58,19 @@ public final class TimestampField extends AbstractField {
     @Override
     protected void resetInnerState() {
         value = DEFAULT_VALUE;
+        sumOfBytes = 0;
+        rawValueAsBuffer.clear();
     }
 
     public void setValue(long value) {
         this.value = value;
         this.valueSet = true;
+        sumOfBytes = DateUtils.writeTimestamp(value, rawValueAsBuffer.clear(), true);
     }
 
     @Override
     public int appendByteBufWithValue(ByteBuf out) {
-       return DateUtils.writeTimestamp(getValue(), out, true);
+        out.writeBytes(rawValueAsBuffer, 0, ENCODED_TIMESTAMP_LENGTH);
+        return sumOfBytes;
     }
 }

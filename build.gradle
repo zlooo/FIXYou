@@ -20,6 +20,9 @@ ext {
     objenesisVersion = '3.1'
     quickfixVersion = '2.1.1'
     logbackClassicVersion = '1.2.3'
+    transfixVersion = '1.0.2-alpha'
+    commonsLangVersion = '3.11'
+    jmhVersion = '1.21'
 }
 
 allprojects {

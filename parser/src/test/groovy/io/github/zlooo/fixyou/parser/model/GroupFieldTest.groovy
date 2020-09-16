@@ -4,6 +4,7 @@ import io.github.zlooo.fixyou.DefaultConfiguration
 import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.model.FieldType
 import io.github.zlooo.fixyou.parser.TestSpec
+import io.github.zlooo.fixyou.parser.TestUtils
 import io.github.zlooo.fixyou.parser.utils.FieldTypeUtils
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -69,7 +70,6 @@ class GroupFieldTest extends Specification {
         setup:
         groupField.getFieldForCurrentRepetition(TestSpec.LONG_FIELD_NUMBER).setValue(666L)
         groupField.getFieldForCurrentRepetition(TestSpec.BOOLEAN_FIELD_NUMBER).setValue(true)
-        groupField.value = 1
 
         when:
         groupField.reset()
@@ -197,10 +197,11 @@ class GroupFieldTest extends Specification {
         def buffer = Unpooled.buffer(100, 100)
 
         when:
-        groupField.appendByteBufWithValue(buffer)
+        def result = groupField.appendByteBufWithValue(buffer)
 
         then:
         buffer.toString(StandardCharsets.US_ASCII) == "1\u00011=666\u00012=Y"
+        result == TestUtils.sumBytes("1\u00011=666\u00012=Y".getBytes(StandardCharsets.US_ASCII))
     }
 
     def "should append child field values to buffer when multiple repetitions are stored"() {
@@ -215,10 +216,11 @@ class GroupFieldTest extends Specification {
         def buffer = Unpooled.buffer(300, 300)
 
         when:
-        groupField.appendByteBufWithValue(buffer)
+        def result = groupField.appendByteBufWithValue(buffer)
 
         then:
         buffer.toString(StandardCharsets.US_ASCII) == "3\u00011=666\u00012=Y\u00011=666\u00011=666"
+        result == TestUtils.sumBytes("3\u00011=666\u00012=Y\u00011=666\u00011=666".getBytes(StandardCharsets.US_ASCII))
     }
 
     def "should close child fields when group field is closed"() {

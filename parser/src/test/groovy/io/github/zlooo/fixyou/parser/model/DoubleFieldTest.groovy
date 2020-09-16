@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.github.zlooo.fixyou.parser.TestUtils
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import spock.lang.Specification
@@ -100,6 +101,8 @@ class DoubleFieldTest extends Specification {
         then:
         field.@value == DoubleField.DEFAULT_VALUE
         field.@scale == 0 as short
+        field.sumOfBytes == 0
+        field.valueLength == 0
     }
 
     def "should set value"() {
@@ -109,6 +112,9 @@ class DoubleFieldTest extends Specification {
         then:
         field.@value == 666777L
         field.@scale == 3 as short
+        field.valueLength == 7
+        field.rawValue == TestUtils.setBytes("666.777".getBytes(StandardCharsets.US_ASCII), new byte[DoubleField.FIELD_DATA_LENGTH])
+        field.sumOfBytes == TestUtils.sumBytes(field.rawValue)
         field.valueSet
     }
 
@@ -118,9 +124,10 @@ class DoubleFieldTest extends Specification {
         def buf = Unpooled.buffer(10, 10)
 
         when:
-        field.appendByteBufWithValue(buf)
+        def result = field.appendByteBufWithValue(buf)
 
         then:
         buf.toString(StandardCharsets.US_ASCII) == "1.472"
+        result == TestUtils.sumBytes("1.472".getBytes(StandardCharsets.US_ASCII))
     }
 }

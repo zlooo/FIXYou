@@ -23,6 +23,8 @@ public final class DoubleField extends AbstractField {
     private final char[] unparsedValue = new char[FIELD_DATA_LENGTH];
     private long value = DEFAULT_VALUE;
     private short scale;
+    private int sumOfBytes;
+    private int valueLength;
 
     public DoubleField(int number) {
         super(number);
@@ -42,16 +44,16 @@ public final class DoubleField extends AbstractField {
 
     private void decodeValuesFromFieldData() {
         //TODO after JMH check in LongField is done and you're right, check this one as well
-        final int length = endIndex - startIndex;
-        ParsingUtils.readChars(fieldData, startIndex, length, rawValue, unparsedValue);
+        valueLength = endIndex - startIndex;
+        ParsingUtils.readChars(fieldData, startIndex, valueLength, rawValue, unparsedValue);
         final boolean negative = unparsedValue[0] == '-';
         value = 0;
-        for (int i = negative ? 1 : 0; i < length; i++) {
+        for (int i = negative ? 1 : 0; i < valueLength; i++) {
             final char nextChar = unparsedValue[i];
             if (nextChar != FRACTION_SEPARATOR) {
                 value = value * ParsingUtils.RADIX + ((int) nextChar - AsciiCodes.ZERO);
             } else {
-                scale = (short) (length - i - 1);
+                scale = (short) (valueLength - i - 1);
             }
         }
         if (negative) {
@@ -61,20 +63,7 @@ public final class DoubleField extends AbstractField {
 
     @Override
     public int appendByteBufWithValue(ByteBuf out) {
-        //TODO refactor this so taht value is written directly, not converted to char[] first
-        final ReusableCharArray valueAsChar = FieldUtils.toCharSequence(value, 1);
-        final int separatorIndex = valueAsChar.length() - scale - 1;
-        final char[] valueAsCharArray = valueAsChar.getCharArray();
-        ArrayUtils.insertElementAtIndex(valueAsCharArray, FRACTION_SEPARATOR, separatorIndex);
-        final byte[] bytesToWrite = new byte[valueAsChar.length()];
-        int sumOfBytes = 0;
-        for (int i = 0; i < bytesToWrite.length; i++) {
-            final byte byteToWrite = AsciiString.c2b(valueAsCharArray[i]);
-            sumOfBytes += byteToWrite;
-            PlatformDependent.putByte(bytesToWrite, i, byteToWrite);
-        }
-        out.writeBytes(bytesToWrite);
-        ReferenceCountUtil.release(valueAsChar);
+        out.writeBytes(rawValue, 0, valueLength);
         return sumOfBytes;
     }
 
@@ -88,6 +77,19 @@ public final class DoubleField extends AbstractField {
     public void setValue(long newValue, short newScale) {
         this.value = newValue;
         this.scale = newScale;
+        //TODO refactor this so that value is written directly, not converted to char[] first
+        final ReusableCharArray valueAsChar = FieldUtils.toCharSequence(value, 1);
+        valueLength = valueAsChar.length();
+        final int separatorIndex = valueLength - scale - 1;
+        final char[] valueAsCharArray = valueAsChar.getCharArray();
+        ArrayUtils.insertElementAtIndex(valueAsCharArray, FRACTION_SEPARATOR, separatorIndex);
+        sumOfBytes = 0;
+        for (int i = 0; i < valueLength; i++) {
+            final byte byteToWrite = AsciiString.c2b(valueAsCharArray[i]);
+            sumOfBytes += byteToWrite;
+            PlatformDependent.putByte(rawValue, i, byteToWrite);
+        }
+        ReferenceCountUtil.release(valueAsChar);
         this.valueSet = true;
     }
 
@@ -95,5 +97,7 @@ public final class DoubleField extends AbstractField {
     protected void resetInnerState() {
         value = DEFAULT_VALUE;
         scale = 0;
+        sumOfBytes = 0;
+        valueLength = 0;
     }
 }

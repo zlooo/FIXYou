@@ -80,11 +80,6 @@ public final class GroupField extends AbstractField {
         return value;
     }
 
-    public void setValue(long value) {
-        this.value = value;
-        this.valueSet = true;
-    }
-
     @Override
     public FieldType getFieldType() {
         return FieldType.GROUP;

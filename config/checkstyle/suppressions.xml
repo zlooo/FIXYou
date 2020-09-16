@@ -11,6 +11,7 @@
     <suppress checks="VariableDeclarationUsageDistance" files="io.github.zlooo.fixyou.parser.FixMessageParser\.java" lines="87" />
     <suppress checks="EmptyLineSeparator" files="io.github.zlooo.fixyou.commons.ByteBufComposer\.java"/>
     <suppress checks="MultipleVariableDeclarations" files="io.github.zlooo.fixyou.commons.ByteBufComposer\.java"/>
+    <suppress checks="ExplicitInitialization" files="io.github.zlooo.fixyou.FIXYouConfiguration\.java"/>
     <suppress checks="" files="io.github.zlooo.fixyou.netty.handler.MutableIdleStateHandler\.java" />
     <suppress checks="" files="io.github.zlooo.fixyou.commons.utils.DateUtils\.java"/>
     <suppress checks="" files="ObjectFactory\.java" />

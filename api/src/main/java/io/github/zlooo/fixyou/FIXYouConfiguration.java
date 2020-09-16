@@ -20,5 +20,5 @@ public class FIXYouConfiguration {
     private int acceptorListenPort;
     private boolean initiator;
     @Builder.Default
-    private boolean addLoggingHandler;
+    private boolean addLoggingHandler = false;
 }
