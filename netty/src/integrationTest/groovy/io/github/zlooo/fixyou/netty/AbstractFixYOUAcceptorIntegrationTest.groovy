@@ -55,7 +55,7 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
         acceptorPort = SocketUtils.findAvailableTcpPort()
         LOGGER.debug("Starting FIXYou, listening on port {}", acceptorPort)
         engine = FIXYouNetty.
-                create(FIXYouConfiguration.builder().acceptorListenPort(acceptorPort).initiator(false).build(), testFixMessageListener).
+                create(FIXYouConfiguration.builder().acceptorListenPort(acceptorPort).initiator(false).fixMessageReadPoolSize(4).fixMessageWritePoolSize(4).fixMessageListenerInvokerDisruptorSize(8).build(), testFixMessageListener).
                 //TODO test spec for now but once we have real one it should be used here instead
                         registerSessionAndDictionary(fixYouSessionId, "dictionaryId", TestSpec.INSTANCE, createConfig())
         engine.start().get()
@@ -90,10 +90,10 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
         }).connect("localhost", acceptorPort).sync().channel()
     }
 
-    protected void waitForLogonResponse(){
+    protected void waitForLogonResponse() {
         pollingConditions.eventually {
             !receivedMessages.isEmpty()
-            receivedMessages.any {it.contains("35=A")}
+            receivedMessages.any { it.contains("35=A") }
         }
     }
 

@@ -36,7 +36,7 @@ class FixMessageListenerInvokingHandler extends SimpleChannelInboundHandler<FixM
         super(!configuration.isSeparateIoFromAppThread());
         this.fixMessageListener = fixMessageListener;
         if (configuration.isSeparateIoFromAppThread()) {
-            disruptor = new Disruptor<>(() -> new Event(fixMessageListener), DefaultConfiguration.FIX_MESSAGE_LISTENER_INVOKER_DISRUPTOR_SIZE, new NamingThreadFactory("FixMessageListenerInvoker"), ProducerType.MULTI,
+            disruptor = new Disruptor<>(() -> new Event(fixMessageListener), configuration.getFixMessageListenerInvokerDisruptorSize(), new NamingThreadFactory("FixMessageListenerInvoker"), ProducerType.MULTI,
                                         PhasedBackoffWaitStrategy.withSleep(DefaultConfiguration.FIX_MESSAGE_LISTENER_INVOKER_DISRUPTOR_TIMEOUT, DefaultConfiguration.FIX_MESSAGE_LISTENER_INVOKER_DISRUPTOR_TIMEOUT,
                                                                             TimeUnit.MILLISECONDS));
             for (int i = 0; i < configuration.getNumberOfAppThreads(); i++) {

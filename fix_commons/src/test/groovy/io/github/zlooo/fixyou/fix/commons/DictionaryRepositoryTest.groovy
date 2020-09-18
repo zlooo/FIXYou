@@ -1,5 +1,6 @@
 package io.github.zlooo.fixyou.fix.commons
 
+
 import io.github.zlooo.fixyou.FIXYouConfiguration
 import io.github.zlooo.fixyou.FIXYouException
 import io.github.zlooo.fixyou.commons.pool.ArrayBackedObjectPool
@@ -32,7 +33,7 @@ class DictionaryRepositoryTest extends Specification {
         def dictionary2 = new DictionaryRepository.Dictionary(TestSpec.INSTANCE, Mock(DefaultObjectPool), Mock(DefaultObjectPool))
 
         when:
-        dictionaryRepository.registerDictionary("testDictionary2", TestSpec.INSTANCE)
+        dictionaryRepository.registerDictionary("testDictionary2", TestSpec.INSTANCE, 1, 1)
 
         then:
         Assertions.assertThat(dictionaryRepository.@dictionaries).contains(Assertions.entry("testDictionary1", testDictionary1)).hasSize(2).containsKey("testDictionary2")
@@ -46,7 +47,7 @@ class DictionaryRepositoryTest extends Specification {
         dictionaryRepository = new DictionaryRepository(new FIXYouConfiguration.FIXYouConfigurationBuilder().separateIoFromAppThread(false).build())
 
         when:
-        dictionaryRepository.registerDictionary("testDictionary2", TestSpec.INSTANCE)
+        dictionaryRepository.registerDictionary("testDictionary2", TestSpec.INSTANCE, 1, 1)
 
         then:
         Assertions.assertThat(dictionaryRepository.@dictionaries).hasSize(1).containsKey("testDictionary2")
@@ -56,7 +57,7 @@ class DictionaryRepositoryTest extends Specification {
 
     def "should not register dictionary with same id twice"() {
         when:
-        dictionaryRepository.registerDictionary("testDictionary1", TestSpec.INSTANCE)
+        dictionaryRepository.registerDictionary("testDictionary1", TestSpec.INSTANCE, 1, 1)
 
         then:
         thrown(FIXYouException)
