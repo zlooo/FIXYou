@@ -55,9 +55,6 @@ public class PipelineUtils {
     }
 
     private static ValidationConfig addHandlersBasedOnGenericHandler(NettyHandlerAwareSessionState sessionState, ChannelHandler preSessionValidator, ChannelPipeline pipeline, Map<String, Resettable> resettables, Handlers[] excludes) {
-        if (canHandlerBeAdded(Handlers.MESSAGE_ENCODER, Handlers.GENERIC, pipeline, excludes)) {
-            pipeline.addBefore(Handlers.GENERIC.getName(), Handlers.MESSAGE_ENCODER.getName(), (ChannelHandler) resettables.get(NettyResettablesNames.MESSAGE_ENCODER));
-        }
         if (sessionState.getSessionConfig().isPersistent() && canHandlerBeAdded(Handlers.MESSAGE_STORE_HANDLER, Handlers.GENERIC, pipeline, excludes)) {
             pipeline.addAfter(Handlers.GENERIC.getName(), Handlers.MESSAGE_STORE_HANDLER.getName(), (ChannelHandler) resettables.get(NettyResettablesNames.MESSAGE_STORE_HANDLER));
         }

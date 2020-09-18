@@ -9,9 +9,9 @@ import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
 
-class SimplifiedMessageCodecTest extends Specification {
+class SimplifiedMessageDecoderTest extends Specification {
 
-    private SimplifiedMessageCodec messageDecoder = new SimplifiedMessageCodec()
+    private SimplifiedMessageDecoder messageDecoder = new SimplifiedMessageDecoder()
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
 

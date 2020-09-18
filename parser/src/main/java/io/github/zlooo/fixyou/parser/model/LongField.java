@@ -51,4 +51,10 @@ public final class LongField extends AbstractField {
         rawValue.clear();
         sumOfBytes = 0;
     }
+
+    @Override
+    public void close() {
+        rawValue.release();
+        super.close();
+    }
 }

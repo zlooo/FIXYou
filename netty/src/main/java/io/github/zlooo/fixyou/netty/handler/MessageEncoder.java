@@ -4,30 +4,38 @@ import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.commons.utils.FieldUtils;
 import io.github.zlooo.fixyou.commons.utils.NumberConstants;
-import io.github.zlooo.fixyou.netty.utils.ValueAddingByteProcessor;
 import io.github.zlooo.fixyou.parser.model.AbstractField;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.LongField;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 import lombok.extern.slf4j.Slf4j;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.nio.charset.StandardCharsets;
 
 @Slf4j
-abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
+@Singleton
+@ChannelHandler.Sharable
+class MessageEncoder extends MessageToByteEncoder<FixMessage> {
 
     private static final int CHECKSUM_VALUE_LENGTH = 3;
     private static final int MAX_BODY_LENGTH_FIELD_LENGTH = LongField.FIELD_DATA_LENGTH; //on one hand we should -1 it because it can only be positive value but on the other we have to terminate this field with SOH so it evens out
 
+    @Inject
+    MessageEncoder() {
+    }
+
     @Override
     protected void encode(ChannelHandlerContext ctx, FixMessage msg, ByteBuf out) {
-        final AbstractField[] fieldsOrdered = msg.getFieldsOrdered();
-        final AbstractField beginString = fieldsOrdered[0];
-        final LongField bodyLength = (LongField) fieldsOrdered[1];
+        final AbstractField beginString = msg.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER);
+        final LongField bodyLength = msg.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER);
         final int afterBodyLengthIndex = beginString.getEncodedFieldNumberLength() + beginString.getLength() + bodyLength.getEncodedFieldNumberLength() + MAX_BODY_LENGTH_FIELD_LENGTH + 2;
         out.writerIndex(afterBodyLengthIndex);
+        final AbstractField[] fieldsOrdered = msg.getFieldsOrdered();
         int sumOfBytes = 0;
         for (int i = 2; i < fieldsOrdered.length - 1; i++) {
             final AbstractField field = fieldsOrdered[i];
@@ -69,8 +77,6 @@ abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
         out.writeByte(FixMessage.FIELD_SEPARATOR).resetWriterIndex();
         return sumOfBytes;
     }
-
-    protected abstract ValueAddingByteProcessor getValueAddingByteProcessor();
 
     private static void appendWithChecksum(ByteBuf out, AbstractField checksumField, int sumOfBytes) {
         checksumField.appendFieldNumber(out);

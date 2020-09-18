@@ -24,7 +24,6 @@ import java.util.function.Supplier;
 public final class GroupField extends AbstractField {
 
     public static final long DEFAULT_VALUE = 0;
-    public static final int FIELD_DATA_LENGTH = 7;
     private final Supplier<Repetition> repetitionSupplier;
     private final IntHashSet memberNumbers;
     private Repetition[] repetitions;

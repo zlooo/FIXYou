@@ -5,7 +5,9 @@ import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.parser.utils.FieldTypeUtils;
+import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.github.zlooo.fixyou.utils.AsciiCodes;
+import io.netty.buffer.ByteBuf;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,7 +20,9 @@ public class FixMessage extends AbstractPoolableObject {
     public static final byte FIELD_SEPARATOR = AsciiCodes.SOH;
     public static final byte FIELD_VALUE_SEPARATOR = AsciiCodes.EQUALS;
     private static final int NOT_SET = -1;
+    private static final PlaceholderField PLACEHOLDER = new PlaceholderField(NOT_SET);
 
+    private final FixSpec fixSpec;
     private final AbstractField[] fieldsOrdered;
     private final AbstractField[] fields;
     private ByteBufComposer messageByteSource;
@@ -28,16 +32,14 @@ public class FixMessage extends AbstractPoolableObject {
     private int endIndex = NOT_SET;
 
     public FixMessage(@Nonnull FixSpec spec) {
+        fixSpec = spec;
         final int[] fieldsOrder = spec.getFieldsOrder();
-        final FieldType[] fieldTypes = spec.getTypes();
         fieldsOrdered = new AbstractField[fieldsOrder.length];
         fields = new AbstractField[spec.highestFieldNumber() + 1];
         for (int i = 0; i < fieldsOrder.length; i++) {
             final int fieldNumber = fieldsOrder[i];
-            final FieldType fieldType = fieldTypes[i];
-            final AbstractField field = FieldTypeUtils.createField(fieldType, fieldNumber, spec);
-            fieldsOrdered[i] = field;
-            fields[fieldNumber] = field;
+            fieldsOrdered[i] = PLACEHOLDER;
+            fields[fieldNumber] = PLACEHOLDER;
         }
     }
 
@@ -50,7 +52,15 @@ public class FixMessage extends AbstractPoolableObject {
 
     @Nullable
     public <T extends AbstractField> T getField(int number) {
-        return (T) fields[number];
+        T field = (T) fields[number];
+        if (field == PLACEHOLDER) {
+            final int fieldIndex = ArrayUtils.indexOf(fixSpec.getFieldsOrder(), number);
+            field = FieldTypeUtils.createField(fixSpec.getTypes()[fieldIndex], number, fixSpec);
+            fields[number] = field;
+            fieldsOrdered[fieldIndex] = field;
+            field.setFieldData(messageByteSource);
+        }
+        return field;
     }
 
     /**
@@ -98,5 +108,36 @@ public class FixMessage extends AbstractPoolableObject {
     @Nonnull
     public AbstractField[] getFieldsOrdered() {
         return fieldsOrdered;
+    }
+
+    private static final class PlaceholderField extends AbstractField {
+
+        private PlaceholderField(int number) {
+            super(number);
+        }
+
+        @Override
+        public FieldType getFieldType() {
+            return null;
+        }
+
+        @Override
+        protected void resetInnerState() { //nothing to do
+        }
+
+        @Override
+        public int appendByteBufWithValue(ByteBuf out) { //nothing to do
+            return 0;
+        }
+
+        @Override
+        public boolean isValueSet() {
+            return false;
+        }
+
+        @Override
+        public int getLength() {
+            return 0;
+        }
     }
 }
