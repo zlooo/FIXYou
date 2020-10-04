@@ -20,7 +20,7 @@ public class FixMessage extends AbstractPoolableObject {
     public static final byte FIELD_SEPARATOR = AsciiCodes.SOH;
     public static final byte FIELD_VALUE_SEPARATOR = AsciiCodes.EQUALS;
     private static final int NOT_SET = -1;
-    private static final PlaceholderField PLACEHOLDER = new PlaceholderField(NOT_SET);
+    private static final PlaceholderField PLACEHOLDER = new PlaceholderField();
 
     private final FixSpec fixSpec;
     private final AbstractField[] fieldsOrdered;
@@ -63,9 +63,6 @@ public class FixMessage extends AbstractPoolableObject {
         return field;
     }
 
-    /**
-     * Call only for debug purposes, NOT on production. Why? Take a look at how it's implemented ;)
-     */
     @Override
     public String toString() {
         return toString(false);
@@ -112,8 +109,8 @@ public class FixMessage extends AbstractPoolableObject {
 
     private static final class PlaceholderField extends AbstractField {
 
-        private PlaceholderField(int number) {
-            super(number);
+        private PlaceholderField() {
+            super(NOT_SET);
         }
 
         @Override

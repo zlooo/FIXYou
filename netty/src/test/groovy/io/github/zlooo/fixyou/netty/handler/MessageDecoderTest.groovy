@@ -70,10 +70,10 @@ class MessageDecoderTest extends Specification {
 
     def "should finish off decoding fragmented message"() {
         setup:
-        ByteBuf encodedMessagePart1 = Unpooled.wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=te".getBytes(StandardCharsets.US_ASCII))
+        ByteBuf encodedMessagePart1 = Unpooled.wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158".getBytes(StandardCharsets.US_ASCII))
         fixMessageObjectPool.tryGetAndRetain() >> fixMessage
         messageDecoder.channelRead(channelHandlerContext, encodedMessagePart1)
-        ByteBuf encodedMessagePart2 = Unpooled.wrappedBuffer("st\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
+        ByteBuf encodedMessagePart2 = Unpooled.wrappedBuffer("=test\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
 
         when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessagePart2)
