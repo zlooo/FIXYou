@@ -50,7 +50,19 @@ class ArrayUtilsTest extends Specification {
         where:
         array                     | charSequence || result
         ['a', 'b', 'c'] as char[] | "abc"         | true
-        ['a', 'b', 'c'] as char[] | "abcd"         | false
+        ['a', 'b', 'c'] as char[] | "abcd"        | false
         ['a', 'b', 'c'] as char[] | "adc"         | false
+    }
+
+    def "should find index of"() {
+        expect:
+        ArrayUtils.indexOf(array, element) == expectedResult
+
+        where:
+        array                    | element | expectedResult
+        [1, 2, 3, 4, 5] as int[] | 1       | 0
+        [1, 2, 3, 4, 5] as int[] | 3       | 2
+        [1, 2, 3, 4, 5] as int[] | 5       | 4
+        [1, 2, 3, 4, 5] as int[] | -1      | ArrayUtils.NOT_FOUND
     }
 }

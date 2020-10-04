@@ -89,7 +89,7 @@ public class ByteBufComposer implements Resettable {
                 final boolean startEqualsOrPrecedesComponentsStart = startIndexInclusive <= component.startIndex;
                 if (!(startEqualsOrPrecedesComponentsStart || endEqualsOrExceedsComponentsEnd)) {
                     throw new IllegalArgumentException(
-                            String.format("No holes allowed, after releasing <%1$d, %2$d> from <%3$d, %4$d> we'd have 1 ranges", startIndexInclusive, endIndexInclusive, component.startIndex, component.endIndex));
+                            String.format("No holes allowed, after releasing <%1$d, %2$d> from <%3$d, %4$d> we'd have 2 ranges", startIndexInclusive, endIndexInclusive, component.startIndex, component.endIndex));
                 }
                 if (endEqualsOrExceedsComponentsEnd && startEqualsOrPrecedesComponentsStart) {
                     component.reset();

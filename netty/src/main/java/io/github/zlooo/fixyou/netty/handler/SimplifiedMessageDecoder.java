@@ -6,7 +6,6 @@ import io.github.zlooo.fixyou.model.ApplicationVersionID;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
-import io.github.zlooo.fixyou.netty.utils.ValueAddingByteProcessor;
 import io.github.zlooo.fixyou.parser.FixFieldsTypes;
 import io.github.zlooo.fixyou.parser.FixMessageParser;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
@@ -15,7 +14,7 @@ import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandler;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nonnull;
@@ -26,14 +25,14 @@ import javax.inject.Singleton;
 @Slf4j
 @Singleton
 @ChannelHandler.Sharable
-class SimplifiedMessageCodec extends AbstractMessageEncoder implements ChannelInboundHandler {
+class SimplifiedMessageDecoder extends ChannelInboundHandlerAdapter {
 
     private static final SimplifiedSpec SIMPLIFIED_SPEC = new SimplifiedSpec();
     private final ByteBufComposer byteBufComposer = new ByteBufComposer(1);
     private final FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer);
 
     @Inject
-    SimplifiedMessageCodec() {
+    SimplifiedMessageDecoder() {
     }
 
     @Override
@@ -71,46 +70,6 @@ class SimplifiedMessageCodec extends AbstractMessageEncoder implements ChannelIn
         } else {
             ctx.fireChannelRead(msg);
         }
-    }
-
-    @Override
-    protected ValueAddingByteProcessor getValueAddingByteProcessor() {
-        return new ValueAddingByteProcessor();
-    }
-
-    @Override
-    public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
-        ctx.fireChannelRegistered();
-    }
-
-    @Override
-    public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
-        ctx.fireChannelUnregistered();
-    }
-
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        ctx.fireChannelActive();
-    }
-
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        ctx.fireChannelInactive();
-    }
-
-    @Override
-    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-        ctx.fireChannelReadComplete();
-    }
-
-    @Override
-    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        ctx.fireUserEventTriggered(evt);
-    }
-
-    @Override
-    public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-        ctx.fireChannelWritabilityChanged();
     }
 
     /**

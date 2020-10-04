@@ -11,7 +11,7 @@ import java.security.PrivilegedExceptionAction;
 @UtilityClass
 public class UnsafeAccessor {
     public static final Unsafe UNSAFE;
-    public static final int ARRAY_BYTE_BASE_OFFSET;
+    public static final long ARRAY_OBJECT_BASE_OFFSET;
 
     static {
         Unsafe unsafe = null;
@@ -31,6 +31,6 @@ public class UnsafeAccessor {
         }
 
         UNSAFE = unsafe;
-        ARRAY_BYTE_BASE_OFFSET = Unsafe.ARRAY_BYTE_BASE_OFFSET;
+        ARRAY_OBJECT_BASE_OFFSET = Unsafe.ARRAY_OBJECT_BASE_OFFSET;
     }
 }

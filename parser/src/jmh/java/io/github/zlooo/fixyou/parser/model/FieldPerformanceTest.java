@@ -21,13 +21,13 @@ public class FieldPerformanceTest {
     @Benchmark
     @BenchmarkMode({Mode.Throughput})
     public ByteBuf heap(TestState state) {
-        return state.sink.writeBytes(state.heapByteBuf).clear();
+        return state.sink.writeBytes(state.heapByteBuf, 0, state.dataToWriteLength).clear();
     }
 
     @Benchmark
     @BenchmarkMode({Mode.Throughput})
     public ByteBuf direct(TestState state) {
-        return state.sink.writeBytes(state.directByteBuf).clear();
+        return state.sink.writeBytes(state.directByteBuf, 0, state.dataToWriteLength).clear();
     }
 
     @State(Scope.Benchmark)

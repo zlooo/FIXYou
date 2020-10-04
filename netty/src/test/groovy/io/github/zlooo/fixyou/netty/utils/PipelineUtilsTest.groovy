@@ -26,9 +26,9 @@ class PipelineUtilsTest extends Specification {
     private DefaultObjectPool<FixMessage> fixMessageObjectWritePool = Mock()
     private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)), new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0),
                                                                                            fixMessageObjectReadPool, fixMessageObjectWritePool, TestSpec.INSTANCE)
-    private ChannelHandler messageEncoder = Mock()
     private ChannelHandler messageDecoder = Mock()
     private ChannelHandler genericDecoder = Mock()
+    private ChannelHandler messageEncoder = Mock()
     private ChannelHandler adminMessageHandler = Mock()
     private ChannelHandler fixMessageListenerInvokingHandler = Mock()
     private ChannelHandler genericHandler = Mock()
@@ -41,8 +41,7 @@ class PipelineUtilsTest extends Specification {
     private Attribute sessionAttribute = Mock()
 
     void setup() {
-        sessionState.resettables.putAll([(NettyResettablesNames.MESSAGE_ENCODER)                                             : messageEncoder,
-                                         (NettyResettablesNames.MESSAGE_DECODER)                                             : messageDecoder,
+        sessionState.resettables.putAll([(NettyResettablesNames.MESSAGE_DECODER)                                             : messageDecoder,
                                          (NettyResettablesNames.SESSION)                                                     : sessionHandler,
                                          (NettyResettablesNames.NOT_MOVING_FORWARD_ON_READ_AND_WRITE_CHANNEL_HANDLER_CONTEXT): nmfCtx,
                                          (NettyResettablesNames.IDLE_STATE_HANDLER)                                          : idleStateHandler,
@@ -55,7 +54,7 @@ class PipelineUtilsTest extends Specification {
         TestPipeline channelPipeline = pipeline()
 
         when:
-        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator,  30)
+        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator, 30)
 
         then:
         result == sessionHandler
@@ -80,7 +79,7 @@ class PipelineUtilsTest extends Specification {
         sessionState.getSessionConfig().setConsolidateFlushes(false)
 
         when:
-        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator,  30)
+        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator, 30)
 
         then:
         result == sessionHandler
@@ -104,7 +103,7 @@ class PipelineUtilsTest extends Specification {
         sessionState.getSessionConfig().setConsolidateFlushes(true).setConsolidateFlushes(true)
 
         when:
-        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator,  30)
+        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator, 30)
 
         then:
         result == sessionHandler
@@ -130,12 +129,13 @@ class PipelineUtilsTest extends Specification {
          * should be same as in {@link io.github.zlooo.fixyou.netty.handler.FIXYouChannelInitializer#initChannel}
          */
         channelPipeline.addLast(Handlers.GENERIC_DECODER.getName(), genericDecoder)
+                       .addLast(Handlers.MESSAGE_ENCODER.getName(), messageEncoder)
                        .addLast(Handlers.GENERIC.getName(), genericHandler)
                        .addLast(Handlers.ADMIN_MESSAGES.getName(), adminMessageHandler)
                        .addLast(Handlers.LISTENER_INVOKER.getName(), fixMessageListenerInvokingHandler)
 
         when:
-        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator,  30, Handlers.AFTER_SESSION_MESSAGE_VALIDATOR)
+        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator, 30, Handlers.AFTER_SESSION_MESSAGE_VALIDATOR)
 
         then:
         result == sessionHandler
@@ -158,13 +158,14 @@ class PipelineUtilsTest extends Specification {
         NioSocketChannel channel = Mock()
         ChannelPipeline channelPipeline = new TestPipeline()
         channelPipeline.addLast(Handlers.GENERIC_DECODER.getName(), genericDecoder)
+                       .addLast(Handlers.MESSAGE_ENCODER.getName(), messageEncoder)
                        .addLast(Handlers.GENERIC.getName(), genericHandler)
                        .addLast(Handlers.SESSION.getName(), sessionHandler)
                        .addLast(Handlers.ADMIN_MESSAGES.getName(), adminMessageHandler)
                        .addLast(Handlers.LISTENER_INVOKER.getName(), fixMessageListenerInvokingHandler)
 
         when:
-        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator,  30)
+        def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator, 30)
 
         then:
         result == null
@@ -186,7 +187,8 @@ class PipelineUtilsTest extends Specification {
         setup:
         NioSocketChannel channel = Mock()
         ChannelPipeline channelPipeline = new TestPipeline()
-        channelPipeline.addLast(Handlers.GENERIC.getName(), genericHandler)
+        channelPipeline.addLast(Handlers.MESSAGE_ENCODER.getName(), messageEncoder)
+                       .addLast(Handlers.GENERIC.getName(), genericHandler)
                        .addLast(Handlers.ADMIN_MESSAGES.getName(), adminMessageHandler)
                        .addLast(Handlers.LISTENER_INVOKER.getName(), fixMessageListenerInvokingHandler)
 
@@ -215,6 +217,7 @@ class PipelineUtilsTest extends Specification {
          * should be same as in {@link io.github.zlooo.fixyou.netty.handler.FIXYouChannelInitializer#initChannel}
          */
         channelPipeline.addLast(Handlers.GENERIC_DECODER.getName(), genericDecoder)
+                       .addLast(Handlers.MESSAGE_ENCODER.getName(), messageEncoder)
                        .addLast(Handlers.GENERIC.getName(), genericHandler)
                        .addLast(Handlers.ADMIN_MESSAGES.getName(), adminMessageHandler)
                        .addLast(Handlers.LISTENER_INVOKER.getName(), fixMessageListenerInvokingHandler)

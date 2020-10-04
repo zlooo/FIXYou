@@ -40,7 +40,7 @@ class InitiatorSessionInitializationIntegrationTest extends Specification {
     void setup() {
         acceptorPort = SocketUtils.findAvailableTcpPort()
         engine = FIXYouNetty.
-                create(FIXYouConfiguration.builder().initiator(true).build(), new TestFixMessageListener()).
+                create(FIXYouConfiguration.builder().initiator(true).fixMessageReadPoolSize(4).fixMessageWritePoolSize(4).fixMessageListenerInvokerDisruptorSize(4).build(), new TestFixMessageListener()).
                 registerSessionAndDictionary(new io.github.zlooo.fixyou.session.SessionID("FIXT.1.1".toCharArray(), 8, senderCompId.toCharArray(), senderCompId.length(), targetCompId.toCharArray(), targetCompId.length()), "dictionaryId",
                                              TestSpec.INSTANCE,
                                              //TODO test spec for now but once we have real one it should be used here instead

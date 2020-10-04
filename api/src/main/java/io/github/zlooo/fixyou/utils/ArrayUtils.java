@@ -5,6 +5,8 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public final class ArrayUtils {
 
+    public static final int NOT_FOUND = -1;
+
     /**
      * Adds given element at given index moving following elements to the right if necessary. This method assumes sufficient capacity.
      */
@@ -46,5 +48,14 @@ public final class ArrayUtils {
             }
         }
         return true;
+    }
+
+    public static int indexOf(int[] array, int element) {
+        for (int i = 0; i < array.length; i++) {
+            if (element == array[i]) {
+                return i;
+            }
+        }
+        return NOT_FOUND;
     }
 }

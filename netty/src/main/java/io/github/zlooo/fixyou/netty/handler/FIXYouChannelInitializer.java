@@ -22,7 +22,9 @@ public class FIXYouChannelInitializer extends ChannelInitializer<NioSocketChanne
     @Inject
     protected AdminMessagesHandler adminMessagesHandler;
     @Inject
-    protected SimplifiedMessageCodec simplifiedMessageCodec;
+    protected SimplifiedMessageDecoder simplifiedMessageDecoder;
+    @Inject
+    protected MessageEncoder messageEncoder;
     @Inject
     @NamedHandler(Handlers.LISTENER_INVOKER)
     protected ChannelHandler fixMessageListenerInvokingHandler;
@@ -40,7 +42,8 @@ public class FIXYouChannelInitializer extends ChannelInitializer<NioSocketChanne
         if (fixYouConfiguration.isAddLoggingHandler()) {
             pipeline.addFirst(LOGGING_HANDLER);
         }
-        pipeline.addLast(Handlers.GENERIC_DECODER.getName(), simplifiedMessageCodec)
+        pipeline.addLast(Handlers.GENERIC_DECODER.getName(), simplifiedMessageDecoder)
+                .addLast(Handlers.MESSAGE_ENCODER.getName(), messageEncoder)
                 .addLast(Handlers.GENERIC.getName(), genericHandler)
                 .addLast(Handlers.ADMIN_MESSAGES.getName(), adminMessagesHandler)
                 .addLast(Handlers.LISTENER_INVOKER.getName(), fixMessageListenerInvokingHandler);

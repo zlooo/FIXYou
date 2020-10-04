@@ -11,10 +11,10 @@ import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
 
-class StatefulMessageEncoderTest extends Specification {
+class MessageEncoderTest extends Specification {
 
     private static final int CHECK_SUM_MODULO = 256
-    private StatefulMessageEncoder messageEncoder = new StatefulMessageEncoder()
+    private MessageEncoder messageEncoder = new MessageEncoder()
     private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
     private ChannelHandlerContext channelHandlerContext = Mock()
 
@@ -54,17 +54,6 @@ class StatefulMessageEncoderTest extends Specification {
 
         then:
         buf.toString(StandardCharsets.US_ASCII) == expectedBuffer("49=sender\u000156=target\u000158=test\u0001453=1\u0001448=partyID\u0001").toString(StandardCharsets.US_ASCII)
-    }
-
-    def "should reset processor when handler is reset"() {
-        setup:
-        messageEncoder.getValueAddingByteProcessor().process(1 as byte)
-
-        when:
-        messageEncoder.reset()
-
-        then:
-        messageEncoder.getValueAddingByteProcessor().getResult() == 0
     }
 
     ByteBuf expectedBuffer(String body) {

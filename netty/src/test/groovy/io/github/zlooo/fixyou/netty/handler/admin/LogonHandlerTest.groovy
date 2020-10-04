@@ -58,8 +58,7 @@ class LogonHandlerTest extends Specification {
     private ChannelHandlerContext sessionHandlerContext = Mock()
 
     void setup() {
-        sessionState.resettables.putAll([(NettyResettablesNames.MESSAGE_ENCODER)                                             : messageEncoder,
-                                         (NettyResettablesNames.MESSAGE_DECODER)                                             : messageDecoder,
+        sessionState.resettables.putAll([(NettyResettablesNames.MESSAGE_DECODER)                                             : messageDecoder,
                                          (NettyResettablesNames.SESSION)                                                     : sessionHandler,
                                          (NettyResettablesNames.NOT_MOVING_FORWARD_ON_READ_AND_WRITE_CHANNEL_HANDLER_CONTEXT): nmfCtx,
                                          (NettyResettablesNames.IDLE_STATE_HANDLER)                                          : idleStateHandler] as Map<? extends String, ? extends Resettable>)
@@ -350,7 +349,7 @@ class LogonHandlerTest extends Specification {
         1 * channelPipeline.get(Handlers.GENERIC_DECODER.getName()) >> genericDecoder
         1 * channelPipeline.get(Handlers.MESSAGE_DECODER.getName())
         1 * channelPipeline.replace(Handlers.GENERIC_DECODER.getName(), Handlers.MESSAGE_DECODER.getName(), messageDecoder)
-        2 * channelPipeline.get(Handlers.GENERIC.getName()) >> genericHandler
+        1 * channelPipeline.get(Handlers.GENERIC.getName()) >> genericHandler
         1 * channelPipeline.get(Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR.getName())
         1 * channelPipeline.addBefore(Handlers.GENERIC.getName(), Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR.getName(), preMessageValidatorHandler)
         1 * channelPipeline.get(Handlers.ADMIN_MESSAGES.getName()) >> adminMessageHandler
@@ -362,8 +361,6 @@ class LogonHandlerTest extends Specification {
         1 * idleStateHandler.setReaderIdleTimeNanos(TimeUnit.SECONDS.toNanos(heartbeatInterval) * PipelineUtils.TEST_REQUEST_MULTIPLIER)
         1 * idleStateHandler.setWriterIdleTimeNanos(TimeUnit.SECONDS.toNanos(heartbeatInterval))
         1 * channelPipeline.addAfter(Handlers.SESSION.getName(), Handlers.IDLE_STATE_HANDLER.getName(), idleStateHandler)
-        1 * channelPipeline.get(Handlers.MESSAGE_ENCODER.getName())
-        1 * channelPipeline.addBefore(Handlers.GENERIC.getName(), Handlers.MESSAGE_ENCODER.getName(), messageEncoder)
         1 * channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY) >> sessionAttribute
         1 * sessionAttribute.set(sessionState)
     }

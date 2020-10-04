@@ -1,6 +1,5 @@
 package io.github.zlooo.fixyou.fix.commons;
 
-import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.FIXYouConfiguration;
 import io.github.zlooo.fixyou.FIXYouException;
 import io.github.zlooo.fixyou.commons.pool.ArrayBackedObjectPool;
@@ -32,8 +31,8 @@ public class DictionaryRepository {
         return dictionaries.get(dictionaryID);
     }
 
-    public void registerDictionary(String dictionaryID, FixSpec fixSpec) {
-        if (dictionaries.putIfAbsent(dictionaryID, new Dictionary(fixSpec, createPool(fixSpec, DefaultConfiguration.FIX_MESSAGE_READ_POOL_SIZE), createPool(fixSpec, DefaultConfiguration.FIX_MESSAGE_WRITE_POOL_SIZE))) != null) {
+    public void registerDictionary(String dictionaryID, FixSpec fixSpec, int fixMessageReadPoolSize, int fixMessageWritePoolSize) {
+        if (dictionaries.putIfAbsent(dictionaryID, new Dictionary(fixSpec, createPool(fixSpec, fixMessageReadPoolSize), createPool(fixSpec, fixMessageWritePoolSize))) != null) {
             throw new FIXYouException("Dictionary with id " + dictionaryID + " already exist");
         }
     }
