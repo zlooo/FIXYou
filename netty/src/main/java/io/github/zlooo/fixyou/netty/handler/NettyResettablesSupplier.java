@@ -26,7 +26,7 @@ public class NettyResettablesSupplier implements Function<NettyHandlerAwareSessi
     public Map<String, Resettable> apply(NettyHandlerAwareSessionState nettyHandlerAwareSessionState) {
         final Map<String, Resettable> resetables = new HashMap<>();
         resetables.put(NettyResettablesNames.SESSION, new SessionHandler(nettyHandlerAwareSessionState));
-        resetables.put(NettyResettablesNames.MESSAGE_DECODER, new MessageDecoder(nettyHandlerAwareSessionState.getFixMessageReadPool()));
+        resetables.put(NettyResettablesNames.MESSAGE_DECODER, new MessageDecoder(nettyHandlerAwareSessionState.getFixMessageReadPool(), nettyHandlerAwareSessionState.getFixSpec()));
         resetables.put(NettyResettablesNames.IDLE_STATE_HANDLER, new MutableIdleStateHandler(nettyHandlerAwareSessionState));
         final SessionConfig sessionConfig = nettyHandlerAwareSessionState.getSessionConfig();
         if (sessionConfig.isPersistent() && sessionConfig.getMessageStore() != null) {

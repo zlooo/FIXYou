@@ -1,10 +1,7 @@
 package io.github.zlooo.fixyou.netty.test.framework
 
 import io.github.zlooo.fixyou.FixConstants
-import io.github.zlooo.fixyou.parser.model.CharField
-import io.github.zlooo.fixyou.parser.model.CharSequenceField
 import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.parser.model.TimestampField
 import quickfix.SessionID
 import quickfix.field.*
 import quickfix.fix50sp2.NewOrderSingle
@@ -79,17 +76,17 @@ class FixMessages {
 
     static Consumer<FixMessage> createFIXYouNewOrderSingle(UUID clordid) {
         return { fixMessage ->
-            fixMessage.<CharSequenceField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(NewOrderSingle.MSGTYPE.toCharArray())
-            fixMessage.<CharSequenceField> getField(ClOrdID.FIELD).setValue(clordid.toString().toCharArray())
-            fixMessage.<CharField> getField(Side.FIELD).setValue(Side.BUY)
-            fixMessage.<TimestampField> getField(TransactTime.FIELD).setValue(Instant.now().toEpochMilli())
-            fixMessage.<CharField> getField(OrdType.FIELD).setValue(OrdType.MARKET)
+            fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue(NewOrderSingle.MSGTYPE.toCharArray())
+            fixMessage.getField(ClOrdID.FIELD).setCharSequenceValue(clordid.toString().toCharArray())
+            fixMessage.getField(Side.FIELD).setCharValue(Side.BUY)
+            fixMessage.getField(TransactTime.FIELD).setTimestampValue(Instant.now().toEpochMilli())
+            fixMessage.getField(OrdType.FIELD).setCharValue(OrdType.MARKET)
         }
     }
 
     static Consumer<FixMessage> createFIXYouHeartbeat() {
         return { fixMessage ->
-            fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = FixConstants.HEARTBEAT
+            fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue = FixConstants.HEARTBEAT
             fixMessage.retain()
         }
     }

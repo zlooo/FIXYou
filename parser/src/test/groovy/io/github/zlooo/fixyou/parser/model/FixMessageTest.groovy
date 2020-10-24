@@ -7,7 +7,7 @@ import spock.lang.Specification
 
 class FixMessageTest extends Specification {
 
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
+    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
 
     def "should set new message byte source"() {
         setup:
@@ -26,11 +26,11 @@ class FixMessageTest extends Specification {
     def "should reset all data fields and release message byte source"() {
         setup:
         def longField = fixMessage.getField(TestSpec.LONG_FIELD_NUMBER)
-        longField.value = 666L
+        longField.booleanValue = 666L
         longField.startIndex = 7
         longField.endIndex = 10
         def booleanField = fixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER)
-        booleanField.value = true
+        booleanField.booleanValue = true
         booleanField.startIndex = 12
         booleanField.endIndex = 13
         def messageByteSource = Mock(ByteBufComposer)
@@ -50,7 +50,7 @@ class FixMessageTest extends Specification {
     }
 
     def "should close fields when message is closed"() {
-        def field = Mock(AbstractField)
+        def field = Mock(Field)
         def fieldsOrdered = fixMessage.fieldsOrdered
         (0..fieldsOrdered.length - 1).forEach { fieldsOrdered[it] = field }
 

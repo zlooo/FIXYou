@@ -146,7 +146,7 @@ public class ByteBufComposer implements Resettable {
         return index & mask;
     }
 
-    public void getBytes(int index, int length, byte[] destination) {
+    public void getBytes(int index, int length, ByteBuf destination) {
         checkIndex(index, length);
         int readerComponentIndex = findReaderComponentIndex(index);
         int remainingBytesToRead = length;
@@ -187,11 +187,12 @@ public class ByteBufComposer implements Resettable {
         throw new IndexOutOfBoundsException(IOOBE_MESSAGE + index, this);
     }
 
-    private int readDataFromComponent(Component component, int index, int maxLength, byte[] destination, int destinationIndex) {
+    private int readDataFromComponent(Component component, int index, int maxLength, ByteBuf destination, int destinationIndex) {
         final int startIndex = index - component.offset;
         final ByteBuf buffer = component.buffer;
         final int numberOfBytesToTransfer = Math.min(maxLength, buffer.capacity() - startIndex);
         buffer.getBytes(startIndex, destination, destinationIndex, numberOfBytesToTransfer);
+        destination.writerIndex(destinationIndex + numberOfBytesToTransfer);
         return numberOfBytesToTransfer;
     }
 

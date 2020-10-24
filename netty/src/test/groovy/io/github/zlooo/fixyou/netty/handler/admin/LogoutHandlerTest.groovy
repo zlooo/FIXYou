@@ -2,6 +2,7 @@ package io.github.zlooo.fixyou.netty.handler.admin
 
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
+import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID
@@ -22,7 +23,7 @@ class LogoutHandlerTest extends Specification {
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
     private Channel channel = Mock()
     private ChannelHandlerContext channelHandlerContext = Mock()
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
+    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
     private ChannelFuture channelFuture = Mock()
 
     def "should send logout message if none was sent"() {

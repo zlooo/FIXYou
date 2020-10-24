@@ -4,6 +4,7 @@ import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.Resettable;
 import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
+import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.parser.FixMessageParser;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
@@ -29,12 +30,13 @@ class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable 
     private final ReadTask readTask = new ReadTask();
     private final ObjectPool<FixMessage> fixMessagePool;
     private final ByteBufComposer byteBufComposer = new ByteBufComposer(DefaultConfiguration.BYTE_BUF_COMPOSER_DEFAULT_COMPONENT_NUMBER);
-    private final FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer);
+    private final FixMessageParser fixMessageParser;
     private State state = State.READY_TO_DECODE;
     private ChannelHandlerContext currentContext;
 
-    public MessageDecoder(ObjectPool<FixMessage> fixMessagePool) {
+    public MessageDecoder(ObjectPool<FixMessage> fixMessagePool, FixSpec fixSpec) {
         this.fixMessagePool = fixMessagePool;
+        this.fixMessageParser = new FixMessageParser(byteBufComposer, fixSpec);
     }
 
     @Override

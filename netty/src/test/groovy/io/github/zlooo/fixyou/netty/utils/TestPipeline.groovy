@@ -3,7 +3,6 @@ package io.github.zlooo.fixyou.netty.utils
 import io.netty.channel.*
 import io.netty.util.concurrent.EventExecutorGroup
 import org.assertj.core.api.Assertions
-import org.spockframework.mock.MockUtil
 import spock.mock.DetachedMockFactory
 
 class TestPipeline implements ChannelPipeline {

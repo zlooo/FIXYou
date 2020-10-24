@@ -21,7 +21,7 @@
 
 package io.github.zlooo.fixyou.commons.pool;
 
-import io.github.zlooo.fixyou.commons.utils.UnsafeAccessor;
+import io.github.zlooo.fixyou.utils.UnsafeAccessor;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;

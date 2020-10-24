@@ -6,6 +6,7 @@ import io.github.zlooo.fixyou.fix.commons.FixMessageListener
 import io.github.zlooo.fixyou.netty.AbstractNettyAwareFixMessageListener
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
+import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.SessionID
 import io.netty.channel.Channel
@@ -23,7 +24,7 @@ class FixMessageListenerInvokingHandlerTest extends Specification {
     private Attribute<Integer> ordinalNumberAttribute = Mock()
     private NettyHandlerAwareSessionState sessionState = Mock()
     private SessionID sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
+    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
     def fixYouConfiguration = new FIXYouConfiguration.FIXYouConfigurationBuilder().separateIoFromAppThread(false).build()
 
     def "should invoke fix message listener directly"() {

@@ -20,7 +20,7 @@ public class FIXYouParser {
         final ByteBuf byteBufBytes = Unpooled.directBuffer(msgBytes.length);
         byteBufBytes.writeBytes(msgBytes);
         byteBufComposer.addByteBuf(byteBufBytes);
-        fixMessageParser = new FixMessageParser(byteBufComposer);
+        fixMessageParser = new FixMessageParser(byteBufComposer, new FixSpec50SP2());
     }
 
     @TearDown

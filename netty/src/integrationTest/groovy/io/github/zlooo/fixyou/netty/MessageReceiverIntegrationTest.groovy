@@ -1,7 +1,6 @@
 package io.github.zlooo.fixyou.netty
 
 import io.github.zlooo.fixyou.netty.test.framework.FixMessages
-import io.github.zlooo.fixyou.parser.model.CharSequenceField
 import org.assertj.core.api.Assertions
 import quickfix.field.ClOrdID
 
@@ -24,7 +23,7 @@ class MessageReceiverIntegrationTest extends AbstractFixYOUAcceptorIntegrationTe
         }
 
         then:
-        Assertions.assertThat(testFixMessageListener.messagesReceived[0].<CharSequenceField> getField(11).value).isEqualToIgnoringNewLines(clord1)
-        Assertions.assertThat(testFixMessageListener.messagesReceived[1].<CharSequenceField> getField(11).value).isEqualToIgnoringNewLines(clord2)
+        Assertions.assertThat(testFixMessageListener.messagesReceived[0].getField(11).charSequenceValue).isEqualToIgnoringNewLines(clord1)
+        Assertions.assertThat(testFixMessageListener.messagesReceived[1].getField(11).charSequenceValue).isEqualToIgnoringNewLines(clord2)
     }
 }

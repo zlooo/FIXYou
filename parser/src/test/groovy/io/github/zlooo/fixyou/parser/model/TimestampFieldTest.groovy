@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.github.zlooo.fixyou.parser.TestSpec
 import io.github.zlooo.fixyou.parser.TestUtils
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -11,12 +12,12 @@ import java.time.Instant
 
 class TimestampFieldTest extends Specification {
 
-    private TimestampField field
+    private Field field
     private long millis = Instant.parse("2020-06-08T22:45:16.666Z").toEpochMilli()
     private ByteBuf underlyingBuf = Unpooled.buffer(30, 30)
 
     void setup() {
-        field = new TimestampField(1)
+        field = new Field(1, TestSpec.INSTANCE, new FieldCodec())
         def byteBufComposer = new ByteBufComposer(1)
         field.setFieldData(byteBufComposer)
         underlyingBuf.clear().writeCharSequence("20200608-22:45:16.666", StandardCharsets.US_ASCII)
@@ -24,9 +25,9 @@ class TimestampFieldTest extends Specification {
         field.setIndexes(0, 21)
     }
 
-    def "should get value"() {
+    def "should get timestamp value"() {
         expect:
-        field.getValue() == millis
+        field.timestampValue == millis
         field.valueSet
     }
 
@@ -35,45 +36,45 @@ class TimestampFieldTest extends Specification {
         field.reset()
 
         expect:
-        field.value == TimestampField.DEFAULT_VALUE
+        field.timestampValue == FieldValue.LONG_DEFAULT_VALUE
     }
 
     def "should cache value once parsed"() {
         setup:
-        field.getValue()
+        field.timestampValue
         underlyingBuf.clear().writeCharSequence("!", StandardCharsets.US_ASCII)
         field.setIndexes(0, 1)
 
         expect:
-        field.getValue() == millis
+        field.timestampValue == millis
         field.valueSet
     }
 
     def "should reset state"() {
         when:
-        field.resetInnerState()
+        field.reset()
 
         then:
-        field.@value == TimestampField.DEFAULT_VALUE
-        field.@sumOfBytes == 0
-        field.@rawValueAsBuffer.readerIndex() == 0
-        field.@rawValueAsBuffer.writerIndex() == 0
+        field.@fieldValue.longValue == FieldValue.LONG_DEFAULT_VALUE
+        field.@fieldValue.sumOfBytes == 0
+        field.@fieldValue.rawValue.readerIndex() == 0
+        field.@fieldValue.rawValue.writerIndex() == 0
     }
 
     def "should set value"() {
         when:
-        field.setValue(1600241144694)
+        field.timestampValue = 1600241144694
 
         then:
-        field.@value == 1600241144694
-        field.@rawValue == "20200916-07:25:44.694".getBytes(StandardCharsets.US_ASCII)
-        field.sumOfBytes == TestUtils.sumBytes(field.@rawValue)
+        field.@fieldValue.longValue == 1600241144694
+        field.@fieldValue.rawValue.toString(0, field.@fieldValue.length, StandardCharsets.US_ASCII) == "20200916-07:25:44.694"
+        field.fieldValue.sumOfBytes == TestUtils.sumBytes("20200916-07:25:44.694".getBytes(StandardCharsets.US_ASCII))
         field.valueSet
     }
 
     def "should append provided byte buf with value"() {
         setup:
-        field.value = Instant.parse("2026-06-06T22:45:16.666Z").toEpochMilli()
+        field.timestampValue = Instant.parse("2026-06-06T22:45:16.666Z").toEpochMilli()
         def buf = Unpooled.buffer(30, 30)
 
         when:
@@ -83,6 +84,4 @@ class TimestampFieldTest extends Specification {
         buf.toString(StandardCharsets.US_ASCII) == "20260606-22:45:16.666"
         result == TestUtils.sumBytes("20260606-22:45:16.666".getBytes(StandardCharsets.US_ASCII))
     }
-
-
 }

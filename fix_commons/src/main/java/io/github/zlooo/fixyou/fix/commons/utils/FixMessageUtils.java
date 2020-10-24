@@ -2,7 +2,10 @@ package io.github.zlooo.fixyou.fix.commons.utils;
 
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.model.FixSpec;
-import io.github.zlooo.fixyou.parser.model.*;
+import io.github.zlooo.fixyou.parser.FakeFixSpec;
+import io.github.zlooo.fixyou.parser.model.Field;
+import io.github.zlooo.fixyou.parser.model.FixMessage;
+import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 import lombok.experimental.UtilityClass;
@@ -17,32 +20,32 @@ public final class FixMessageUtils {
     }
 
     public static final FixSpec FAKE_SPEC = new FakeFixSpec();
-    public static final FixMessage EMPTY_FAKE_MESSAGE = new NotPoolableFixMessage(FixMessageUtils.FAKE_SPEC);
+    public static final FixMessage EMPTY_FAKE_MESSAGE = new NotPoolableFixMessage(FixMessageUtils.FAKE_SPEC, null);
 
     public static FixMessage toRejectMessage(FixMessage sourceMessage, long rejectReasonCode) {
-        final long sourceMessageSequenceNumber = sourceMessage.<LongField>getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).getValue();
+        final long sourceMessageSequenceNumber = sourceMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).getLongValue();
         sourceMessage.resetAllDataFieldsAndReleaseByteSource();
-        sourceMessage.<LongField>getField(FixConstants.REFERENCED_SEQUENCE_NUMBER_FIELD_NUMBER).setValue(sourceMessageSequenceNumber);
-        sourceMessage.<LongField>getField(FixConstants.SESSION_REJECT_REASON_FIELD_NUMBER).setValue(rejectReasonCode);
-        sourceMessage.<CharSequenceField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(FixConstants.REJECT);
+        sourceMessage.getField(FixConstants.REFERENCED_SEQUENCE_NUMBER_FIELD_NUMBER).setLongValue(sourceMessageSequenceNumber);
+        sourceMessage.getField(FixConstants.SESSION_REJECT_REASON_FIELD_NUMBER).setLongValue(rejectReasonCode);
+        sourceMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue(FixConstants.REJECT);
         return sourceMessage;
     }
 
     public static FixMessage toRejectMessage(FixMessage sourceMessage, long rejectReasonCode, long referencedTagNumber) {
         final FixMessage fixMessage = toRejectMessage(sourceMessage, rejectReasonCode);
-        fixMessage.<LongField>getField(FixConstants.REFERENCED_TAG_ID_FIELD_NUMBER).setValue(referencedTagNumber);
+        fixMessage.getField(FixConstants.REFERENCED_TAG_ID_FIELD_NUMBER).setLongValue(referencedTagNumber);
         return fixMessage;
     }
 
     public static FixMessage toRejectMessage(FixMessage sourceMessage, long rejectReasonCode, long referencedTagNumber, char[] rejectDescription) {
         final FixMessage fixMessage = toRejectMessage(sourceMessage, rejectReasonCode, referencedTagNumber);
-        fixMessage.<CharSequenceField>getField(FixConstants.TEXT_FIELD_NUMBER).setValue(rejectDescription);
+        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).setCharSequenceValue(rejectDescription);
         return fixMessage;
     }
 
     public static FixMessage toRejectMessage(FixMessage sourceMessage, long rejectReasonCode, char[] rejectDescription) {
         final FixMessage fixMessage = toRejectMessage(sourceMessage, rejectReasonCode);
-        fixMessage.<CharSequenceField>getField(FixConstants.TEXT_FIELD_NUMBER).setValue(rejectDescription);
+        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).setCharSequenceValue(rejectDescription);
         return fixMessage;
     }
 
@@ -50,40 +53,40 @@ public final class FixMessageUtils {
     //TODO move this method out of this class it's supposed to be util
     public static FixMessage toResendRequest(FixMessage fixMessage, long fromInclusive, long toExclusive) {
         fixMessage.resetAllDataFieldsAndReleaseByteSource();
-        fixMessage.<CharSequenceField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(FixConstants.RESEND_REQUEST);
-        fixMessage.<LongField>getField(FixConstants.BEGIN_SEQUENCE_NUMBER_FIELD_NUMBER).setValue(fromInclusive);
-        fixMessage.<LongField>getField(FixConstants.END_SEQUENCE_NUMBER_FIELD_NUMBER).setValue(toExclusive);
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue(FixConstants.RESEND_REQUEST);
+        fixMessage.getField(FixConstants.BEGIN_SEQUENCE_NUMBER_FIELD_NUMBER).setLongValue(fromInclusive);
+        fixMessage.getField(FixConstants.END_SEQUENCE_NUMBER_FIELD_NUMBER).setLongValue(toExclusive);
         return fixMessage;
     }
 
     public static FixMessage toLogoutMessage(FixMessage fixMessage, char[] textMessage) {
         fixMessage.resetAllDataFieldsAndReleaseByteSource();
-        fixMessage.<CharSequenceField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(FixConstants.LOGOUT);
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue(FixConstants.LOGOUT);
         if (textMessage != null) {
-            fixMessage.<CharSequenceField>getField(FixConstants.TEXT_FIELD_NUMBER).setValue(textMessage);
+            fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).setCharSequenceValue(textMessage);
         }
         return fixMessage;
     }
 
-    public static FixMessage toLogonMessage(FixMessage fixMessage, char[] defalutApplicationVersionId) {
-        final long encryptMethod = fixMessage.<LongField>getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).getValue();
-        final long heartbeatInterval = fixMessage.<LongField>getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getValue();
+    public static FixMessage toLogonMessage(FixMessage fixMessage, char[] defaultApplicationVersionId) {
+        final long encryptMethod = fixMessage.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).getLongValue();
+        final long heartbeatInterval = fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getLongValue();
         fixMessage.resetAllDataFieldsAndReleaseByteSource();
-        fixMessage.<LongField>getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).setValue(encryptMethod);
-        fixMessage.<LongField>getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).setValue(heartbeatInterval);
-        fixMessage.<CharSequenceField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(FixConstants.LOGON);
-        fixMessage.<CharSequenceField>getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).setValue(defalutApplicationVersionId);
+        fixMessage.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).setLongValue(encryptMethod);
+        fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).setLongValue(heartbeatInterval);
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue(FixConstants.LOGON);
+        fixMessage.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).setCharSequenceValue(defaultApplicationVersionId);
         return fixMessage;
     }
 
     public static FixMessage toLogonMessage(FixMessage fixMessage, char[] defalutApplicationVersionId, long encryptMethod, long heartbeatInterval, boolean resetMsgSeqFlagSet) {
         fixMessage.resetAllDataFieldsAndReleaseByteSource();
-        fixMessage.<CharSequenceField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(FixConstants.LOGON);
-        fixMessage.<CharSequenceField>getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).setValue(defalutApplicationVersionId);
-        fixMessage.<LongField>getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).setValue(encryptMethod);
-        fixMessage.<LongField>getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).setValue(heartbeatInterval);
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue(FixConstants.LOGON);
+        fixMessage.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).setCharSequenceValue(defalutApplicationVersionId);
+        fixMessage.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).setLongValue(encryptMethod);
+        fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).setLongValue(heartbeatInterval);
         if (resetMsgSeqFlagSet) {
-            fixMessage.<BooleanField>getField(FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER).setValue(true);
+            fixMessage.getField(FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER).setBooleanValue(true);
         }
         return fixMessage;
     }
@@ -91,59 +94,59 @@ public final class FixMessageUtils {
     public static FixMessage toLogonMessage(FixMessage fixMessage, char[] defalutApplicationVersionId, long encryptMethod, long heartbeatInterval, boolean resetMsgSeqFlagSet, SessionID sessionID, boolean flipSeddionIDFields) {
         toLogonMessage(fixMessage, defalutApplicationVersionId, encryptMethod, heartbeatInterval, resetMsgSeqFlagSet);
         if (flipSeddionIDFields) {
-            fixMessage.<CharSequenceField>getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).setValue(sessionID.getTargetCompID());
-            fixMessage.<CharSequenceField>getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).setValue(sessionID.getSenderCompID());
+            fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).setCharSequenceValue(sessionID.getTargetCompID());
+            fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).setCharSequenceValue(sessionID.getSenderCompID());
         } else {
-            fixMessage.<CharSequenceField>getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).setValue(sessionID.getTargetCompID());
-            fixMessage.<CharSequenceField>getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).setValue(sessionID.getSenderCompID());
+            fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).setCharSequenceValue(sessionID.getTargetCompID());
+            fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).setCharSequenceValue(sessionID.getSenderCompID());
         }
         return fixMessage;
     }
 
     public static FixMessage toSequenceReset(FixMessage fixMessage, long sequenceNumber, long newSequenceNumber, boolean gapFill) {
         fixMessage.resetAllDataFieldsAndReleaseByteSource();
-        fixMessage.<CharSequenceField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(FixConstants.SEQUENCE_RESET);
-        fixMessage.<LongField>getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).setValue(sequenceNumber);
-        fixMessage.<LongField>getField(FixConstants.NEW_SEQUENCE_NUMBER_FIELD_NUMBER).setValue(newSequenceNumber);
-        fixMessage.<BooleanField>getField(FixConstants.GAP_FILL_FLAG_FIELD_NUMBER).setValue(gapFill);
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue(FixConstants.SEQUENCE_RESET);
+        fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).setLongValue(sequenceNumber);
+        fixMessage.getField(FixConstants.NEW_SEQUENCE_NUMBER_FIELD_NUMBER).setLongValue(newSequenceNumber);
+        fixMessage.getField(FixConstants.GAP_FILL_FLAG_FIELD_NUMBER).setBooleanValue(gapFill);
         return fixMessage;
     }
 
     public static FixMessage toHeartbeatMessage(FixMessage fixMessage) {
         fixMessage.resetAllDataFieldsAndReleaseByteSource();
-        fixMessage.<CharSequenceField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(FixConstants.HEARTBEAT);
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue(FixConstants.HEARTBEAT);
         return fixMessage;
     }
 
     public static FixMessage toHeartbeatMessage(FixMessage fixMessage, char[] testReqID, int testReqIDLength) {
         final FixMessage heartbeatMessage = toHeartbeatMessage(fixMessage);
-        heartbeatMessage.<CharSequenceField>getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER).setValue(testReqID, testReqIDLength);
+        heartbeatMessage.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER).setCharSequenceValue(testReqID, testReqIDLength);
         return heartbeatMessage;
     }
 
     public static FixMessage toTestRequest(FixMessage fixMessage, char[] testReqID) {
         fixMessage.resetAllDataFieldsAndReleaseByteSource();
-        fixMessage.<CharSequenceField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(FixConstants.TEST_REQUEST);
-        fixMessage.<CharSequenceField>getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER).setValue(testReqID);
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue(FixConstants.TEST_REQUEST);
+        fixMessage.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER).setCharSequenceValue(testReqID);
         return fixMessage;
     }
 
     public static boolean isSequenceReset(FixMessage fixMessage) {
-        return ArrayUtils.equals(FixConstants.SEQUENCE_RESET, fixMessage.<CharSequenceField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getValue());
+        return ArrayUtils.equals(FixConstants.SEQUENCE_RESET, fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getCharSequenceValue());
     }
 
     public static boolean hasBooleanFieldSet(FixMessage fixMessage, int fieldNumber) {
-        final BooleanField field = fixMessage.getField(fieldNumber);
-        return field != null && field.isValueSet() && field.getValue();
+        final Field field = fixMessage.getField(fieldNumber);
+        return field != null && field.isValueSet() && field.getBooleanValue();
     }
 
     public static boolean hasField(FixMessage message, int fieldNumber) {
-        final AbstractField field = message.getField(fieldNumber);
+        final Field field = message.getField(fieldNumber);
         return field != null && field.isValueSet();
     }
 
     public boolean isAdminMessage(FixMessage fixMessage) {
-        final CharSequence messageType = fixMessage.<CharSequenceField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getValue();
+        final CharSequence messageType = fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getCharSequenceValue();
         return messageType.length() == 1 && Arrays.binarySearch(FixConstants.ADMIN_MESSAGE_TYPES, messageType.charAt(0)) >= 0;
     }
 }

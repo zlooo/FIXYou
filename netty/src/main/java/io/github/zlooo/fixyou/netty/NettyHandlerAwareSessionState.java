@@ -6,7 +6,6 @@ import io.github.zlooo.fixyou.fix.commons.session.AbstractMessagePoolingSessionS
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.netty.handler.NettyResettablesNames;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
-import io.github.zlooo.fixyou.parser.model.LongField;
 import io.github.zlooo.fixyou.session.SessionConfig;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.netty.channel.Channel;
@@ -57,7 +56,7 @@ public class NettyHandlerAwareSessionState extends AbstractMessagePoolingSession
         try {
             ((ChannelOutboundHandler) getResettables().get(NettyResettablesNames.SESSION)).write(notMovingForwardOnReadAndWriteCtx, fixMessage, null);
             if (getSessionConfig().isPersistent()) {
-                getSessionConfig().getMessageStore().storeMessage(getSessionId(), fixMessage.<LongField>getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).getValue(), fixMessage);
+                getSessionConfig().getMessageStore().storeMessage(getSessionId(), fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).getLongValue(), fixMessage);
             }
             log.debug("Queueing message {}", fixMessage);
         } finally {

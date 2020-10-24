@@ -2,6 +2,7 @@ package io.github.zlooo.fixyou.fix.commons.session
 
 import io.github.zlooo.fixyou.fix.commons.TestSpec
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils
+import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.LongSubscriber
 import io.github.zlooo.fixyou.session.SessionID
@@ -15,7 +16,7 @@ class MemoryMessageStoreTest extends Specification {
 
     def "should store message"() {
         setup:
-        FixMessage msg = new FixMessage(TestSpec.INSTANCE)
+        FixMessage msg = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
 
         when:
         store.storeMessage(sessionID, 666, msg)
@@ -30,7 +31,7 @@ class MemoryMessageStoreTest extends Specification {
         setup:
         List<FixMessage> msgs = []
         for (i in 0..6) {
-            msgs << new FixMessage(TestSpec.INSTANCE)
+            msgs << new FixMessage(TestSpec.INSTANCE, new FieldCodec())
         }
         store.@sessionToMessagesMap.computeIfAbsent(sessionID, MemoryMessageStore.MESSAGES_MAP_CREATOR).putAll(msgs.indexed().collectEntries { key, value -> [key.toLong(), value] })
         def testSub = new TestLongSubscriber()
@@ -49,7 +50,7 @@ class MemoryMessageStoreTest extends Specification {
         setup:
         List<FixMessage> msgs = []
         for (i in 0..4) {
-            msgs << new FixMessage(TestSpec.INSTANCE)
+            msgs << new FixMessage(TestSpec.INSTANCE, new FieldCodec())
         }
         store.@sessionToMessagesMap.computeIfAbsent(sessionID, MemoryMessageStore.MESSAGES_MAP_CREATOR).putAll(msgs.indexed().collectEntries { key, value -> [key.toLong(), value] })
         def testSub = new TestLongSubscriber()
@@ -68,7 +69,7 @@ class MemoryMessageStoreTest extends Specification {
         setup:
         List<FixMessage> msgs = []
         for (i in 0..6) {
-            msgs << new FixMessage(TestSpec.INSTANCE)
+            msgs << new FixMessage(TestSpec.INSTANCE, new FieldCodec())
         }
         store.@sessionToMessagesMap.computeIfAbsent(sessionID, MemoryMessageStore.MESSAGES_MAP_CREATOR).putAll(msgs.indexed().collectEntries { key, value -> [key.toLong(), value] })
         def testSub = new TestLongSubscriber()
@@ -87,7 +88,7 @@ class MemoryMessageStoreTest extends Specification {
         setup:
         List<FixMessage> msgs = []
         for (i in 0..6) {
-            msgs << new FixMessage(TestSpec.INSTANCE)
+            msgs << new FixMessage(TestSpec.INSTANCE, new FieldCodec())
         }
         store.@sessionToMessagesMap.computeIfAbsent(sessionID, MemoryMessageStore.MESSAGES_MAP_CREATOR).putAll(msgs.indexed().collectEntries { key, value -> [key.toLong(), value] })
         def testSub = new TestLongSubscriber()
@@ -107,10 +108,10 @@ class MemoryMessageStoreTest extends Specification {
 
     def "should release all for given session messages when store is reset"() {
         setup:
-        FixMessage msg = new FixMessage(TestSpec.INSTANCE)
+        FixMessage msg = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
         store.storeMessage(sessionID, 666, msg)
         SessionID sessionID2 = new SessionID(['2'] as char[], 1, [] as char[], 0, [] as char[], 0)
-        FixMessage msg2 = new FixMessage(TestSpec.INSTANCE)
+        FixMessage msg2 = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
         store.storeMessage(sessionID2, 666, msg2)
 
         when:

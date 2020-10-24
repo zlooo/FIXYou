@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.fix.commons.utils
 
 import io.github.zlooo.fixyou.model.ApplicationVersionID
+import io.github.zlooo.fixyou.parser.FakeFixSpec
 import spock.lang.Specification
 
 class FakeFixSpecTest extends Specification {
@@ -10,11 +11,6 @@ class FakeFixSpecTest extends Specification {
     def "should get fields in order"() {
         expect:
         fixSpec.getFieldsOrder().length == 0
-    }
-
-    def "should get field types"() {
-        expect:
-        fixSpec.getTypes().length == 0
     }
 
     def "should get message types"() {
@@ -34,6 +30,6 @@ class FakeFixSpecTest extends Specification {
 
     def "should return repeating groups config"() {
         expect:
-        fixSpec.getChildPairSpec(0).length == 0
+        fixSpec.getRepeatingGroupFieldNumbers(0).length == 0
     }
 }

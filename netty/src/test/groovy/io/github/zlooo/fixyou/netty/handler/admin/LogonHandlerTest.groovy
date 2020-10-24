@@ -13,7 +13,7 @@ import io.github.zlooo.fixyou.netty.handler.SessionAwareChannelInboundHandler
 import io.github.zlooo.fixyou.netty.utils.DelegatingChannelHandlerContext
 import io.github.zlooo.fixyou.netty.utils.FixChannelListeners
 import io.github.zlooo.fixyou.netty.utils.PipelineUtils
-import io.github.zlooo.fixyou.parser.model.CharSequenceField
+import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.*
 import io.netty.channel.*
@@ -46,7 +46,6 @@ class LogonHandlerTest extends Specification {
             resetCalled = true
         }
     }
-    private ChannelHandler messageEncoder = Mock(additionalInterfaces: [Resettable])
     private ChannelHandler messageDecoder = Mock(additionalInterfaces: [Resettable])
     private ChannelHandler genericDecoder = Mock(additionalInterfaces: [Resettable])
     private ChannelHandler adminMessageHandler = Mock(additionalInterfaces: [Resettable])
@@ -113,8 +112,8 @@ class LogonHandlerTest extends Specification {
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
         1 * channelFuture.addListener(FixChannelListeners.LOGOUT_SENT) >> channelFuture
         fixMessage.refCnt() == 1
-        fixMessage.<CharSequenceField> getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getValue().toString() == String.valueOf(FixConstants.LOGOUT)
-        fixMessage.<CharSequenceField> getField(FixConstants.TEXT_FIELD_NUMBER).getValue().toString() == String.valueOf(LogoutTexts.BAD_CREDENTIALS)
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getCharSequenceValue().toString() == String.valueOf(FixConstants.LOGOUT)
+        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).getCharSequenceValue().toString() == String.valueOf(LogoutTexts.BAD_CREDENTIALS)
         sessionState.channel == null
         0 * _
     }
@@ -125,7 +124,7 @@ class LogonHandlerTest extends Specification {
         ChannelPipeline channelPipeline = Mock()
         Attribute sessionAttribute = Mock()
         ChannelFuture channelFuture = Mock()
-        FixMessage logonResponse = new FixMessage(TestSpec.INSTANCE)
+        FixMessage logonResponse = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
         sessionState.logonSent = false
         sessionState.logoutSent = true
 
@@ -147,10 +146,10 @@ class LogonHandlerTest extends Specification {
         1 * channelHandlerContext.writeAndFlush(logonResponse) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
         1 * channelFuture.addListener(FixChannelListeners.LOGON_SENT) >> channelFuture
-        logonResponse.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.LOGON)
-        logonResponse.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value == 0L
-        logonResponse.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value == 15L
-        logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value.toString() == String.valueOf(ApplicationVersionID.FIX50SP2.value)
+        logonResponse.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue.toString() == String.valueOf(FixConstants.LOGON)
+        logonResponse.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).longValue == 0L
+        logonResponse.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).longValue == 15L
+        logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).charSequenceValue.toString() == String.valueOf(ApplicationVersionID.FIX50SP2.value)
         1 * sessionStateListener.logOn(sessionState)
         1 * sessionHandler.getSessionState() >> sessionState
         1 * channelHandlerContext.pipeline() >> channelPipeline
@@ -167,10 +166,10 @@ class LogonHandlerTest extends Specification {
         ChannelPipeline channelPipeline = Mock()
         Attribute sessionAttribute = Mock()
         ChannelFuture channelFuture = Mock()
-        FixMessage logonResponse = new FixMessage(TestSpec.INSTANCE)
+        FixMessage logonResponse = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
         sessionState.logonSent = false
-        fixMessage.getField(FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER).value = true
-        fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 1L
+        fixMessage.getField(FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER).booleanValue = true
+        fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 1L
 
         when:
         logonHandler.handleMessage(fixMessage, channelHandlerContext)
@@ -190,10 +189,10 @@ class LogonHandlerTest extends Specification {
         1 * channelHandlerContext.writeAndFlush(logonResponse) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
         1 * channelFuture.addListener(FixChannelListeners.LOGON_SENT) >> channelFuture
-        logonResponse.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.LOGON)
-        logonResponse.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value == 0L
-        logonResponse.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value == 15L
-        logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value.toString() == String.valueOf(ApplicationVersionID.FIX50SP2.value)
+        logonResponse.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue.toString() == String.valueOf(FixConstants.LOGON)
+        logonResponse.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).longValue == 0L
+        logonResponse.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).longValue == 15L
+        logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).charSequenceValue.toString() == String.valueOf(ApplicationVersionID.FIX50SP2.value)
         1 * sessionStateListener.logOn(sessionState)
         1 * sessionHandler.getSessionState() >> sessionState
         1 * channelHandlerContext.pipeline() >> channelPipeline
@@ -209,11 +208,11 @@ class LogonHandlerTest extends Specification {
         SessionID sessionID = new SessionID("beginString".toCharArray(), 11, "targetCompId".toCharArray(), 12, "senderCompId".toCharArray(), 12)
         ChannelPipeline channelPipeline = Mock()
         Attribute sessionAttribute = Mock()
-        fixMessage.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value = 0L
-        fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value = 15L
-        fixMessage.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value = ApplicationVersionID.FIX50SP2.value
+        fixMessage.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).longValue = 0L
+        fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).longValue = 15L
+        fixMessage.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).charSequenceValue = ApplicationVersionID.FIX50SP2.value
         ChannelFuture channelFuture = Mock()
-        FixMessage logonResponse = new FixMessage(TestSpec.INSTANCE)
+        FixMessage logonResponse = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
         sessionState.logonSent = false
 
         when:
@@ -233,10 +232,10 @@ class LogonHandlerTest extends Specification {
         1 * channelHandlerContext.writeAndFlush(logonResponse) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
         1 * channelFuture.addListener(FixChannelListeners.LOGON_SENT) >> channelFuture
-        logonResponse.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.LOGON)
-        logonResponse.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value == 0L
-        logonResponse.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value == 15L
-        logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value.toString() == String.valueOf(ApplicationVersionID.FIX50SP2.value)
+        logonResponse.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue.toString() == String.valueOf(FixConstants.LOGON)
+        logonResponse.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).longValue == 0L
+        logonResponse.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).longValue == 15L
+        logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).charSequenceValue.toString() == String.valueOf(ApplicationVersionID.FIX50SP2.value)
         1 * sessionStateListener.logOn(sessionState)
         1 * sessionHandler.getSessionState() >> sessionState
         1 * channelHandlerContext.pipeline() >> channelPipeline
@@ -253,9 +252,9 @@ class LogonHandlerTest extends Specification {
         SessionID sessionID = new SessionID("beginString".toCharArray(), 11, "targetCompId".toCharArray(), 12, "senderCompId".toCharArray(), 12)
         ChannelPipeline channelPipeline = Mock()
         Attribute sessionAttribute = Mock()
-        fixMessage.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value = 0L
-        fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value = 15L
-        fixMessage.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value = ApplicationVersionID.FIX50SP2.value
+        fixMessage.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).longValue = 0L
+        fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).longValue = 15L
+        fixMessage.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).charSequenceValue = ApplicationVersionID.FIX50SP2.value
         sessionState.logonSent = true
 
         when:
@@ -285,11 +284,11 @@ class LogonHandlerTest extends Specification {
         setup:
         SessionID sessionID = new SessionID("beginString".toCharArray(), 11, "targetCompId".toCharArray(), 12, "senderCompId".toCharArray(), 12)
         ChannelPipeline channelPipeline = Mock()
-        fixMessage.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value = 0L
-        fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value = 15L
-        fixMessage.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value = ApplicationVersionID.FIX50SP2.value
+        fixMessage.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).longValue = 0L
+        fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).longValue = 15L
+        fixMessage.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).charSequenceValue = ApplicationVersionID.FIX50SP2.value
         ChannelFuture channelFuture = Mock()
-        FixMessage logonResponse = new FixMessage(TestSpec.INSTANCE)
+        FixMessage logonResponse = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
         sessionState.logonSent = false
 
         when:
@@ -306,10 +305,10 @@ class LogonHandlerTest extends Specification {
         1 * channelHandlerContext.writeAndFlush(logonResponse) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
         1 * channelFuture.addListener(FixChannelListeners.LOGON_SENT) >> channelFuture
-        logonResponse.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value.toString() == String.valueOf(FixConstants.LOGON)
-        logonResponse.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value == 0L
-        logonResponse.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value == 15L
-        logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value.toString() == String.valueOf(ApplicationVersionID.FIX50SP2.value)
+        logonResponse.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue.toString() == String.valueOf(FixConstants.LOGON)
+        logonResponse.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).longValue == 0L
+        logonResponse.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).longValue == 15L
+        logonResponse.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).charSequenceValue.toString() == String.valueOf(ApplicationVersionID.FIX50SP2.value)
         1 * sessionStateListener.logOn(sessionState)
         1 * channelHandlerContext.channel() >> channel
         sessionState.channel == channel
@@ -322,7 +321,7 @@ class LogonHandlerTest extends Specification {
         fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).reset()
         ChannelOutboundHandler sessionOutChannelHandler = Mock()
         sessionState.getResettables().put(NettyResettablesNames.SESSION, sessionOutChannelHandler)
-        FixMessage reject = new FixMessage(TestSpec.INSTANCE)
+        FixMessage reject = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
         ChannelFuture rejectMessageFuture = Mock()
         ChannelFuture logoutMessageFuture = Mock()
 
@@ -366,17 +365,17 @@ class LogonHandlerTest extends Specification {
     }
 
     private static FixMessage createValidLogonMessage(SessionID sessionID) {
-        FixMessage logon = new FixMessage(TestSpec.INSTANCE)
-        logon.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).value = sessionID.beginString
-        logon.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value = sessionID.senderCompID
-        logon.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value = sessionID.targetCompID
-        logon.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER).value = 666L
-        logon.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 666L
-        logon.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = FixConstants.LOGON
-        logon.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).value = Instant.now().toEpochMilli()
-        logon.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).value = 0L
-        logon.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).value = 15L
-        logon.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).value = ApplicationVersionID.FIX50SP2.value
+        FixMessage logon = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        logon.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).charSequenceValue = sessionID.beginString
+        logon.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).charSequenceValue = sessionID.senderCompID
+        logon.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).charSequenceValue = sessionID.targetCompID
+        logon.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER).longValue = 666L
+        logon.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 666L
+        logon.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue = FixConstants.LOGON
+        logon.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).timestampValue = Instant.now().toEpochMilli()
+        logon.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).longValue = 0L
+        logon.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).longValue = 15L
+        logon.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).charSequenceValue = ApplicationVersionID.FIX50SP2.value
         return logon
     }
 }

@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.github.zlooo.fixyou.parser.TestSpec
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import io.netty.util.AsciiString
@@ -10,11 +11,11 @@ import java.nio.charset.StandardCharsets
 
 class CharFieldTest extends Specification {
 
-    private CharField field
-    private ByteBuf underlyingBuf =Unpooled.buffer(10, 10)
+    private Field field
+    private ByteBuf underlyingBuf = Unpooled.buffer(10, 10)
 
     void setup() {
-        field = new CharField(1)
+        field = new Field(1, TestSpec.INSTANCE, new FieldCodec())
         def byteBufComposer = new ByteBufComposer(1)
         field.setFieldData(byteBufComposer)
         underlyingBuf.writerIndex(5)
@@ -23,56 +24,56 @@ class CharFieldTest extends Specification {
         field.setIndexes(5, 6)
     }
 
-    def "should get value"() {
+    def "should get char value"() {
         when:
-        def value = field.getValue()
+        def value = field.charValue
 
         then:
         value == 'A' as char
-        field.@value == 'A' as char
+        field.@fieldValue.charValue == 'A' as char
     }
 
-    def "should get default value when value is not set"(){
+    def "should get default value when value is not set"() {
         setup:
         field.reset()
 
         expect:
-        field.value == CharField.DEFAULT_VALUE
+        field.charValue == FieldValue.CHAR_DEFAULT_VALUE
     }
 
     def "should cache value once parsed"() {
         setup:
-        field.getValue()
+        field.charValue
         underlyingBuf.clear().writeCharSequence("B", StandardCharsets.US_ASCII);
-        field.setIndexes(0,1)
+        field.setIndexes(0, 1)
 
         expect:
-        field.getValue() == 'A' as char
+        field.charValue == 'A' as char
     }
 
     def "should reset state"() {
         when:
-        field.resetInnerState()
+        field.reset()
 
         then:
-        field.@value == Character.MIN_VALUE
+        field.@fieldValue.charValue == Character.MIN_VALUE
     }
 
     def "should set value"() {
         when:
-        field.setValue('B' as char)
+        field.charValue = 'B' as char
 
         then:
-        field.@value == 'B' as char
-        field.getValue() == 'B' as char
-        field.valueRaw == AsciiString.c2b('B' as char)
+        field.@fieldValue.charValue == 'B' as char
+        field.charValue == 'B' as char
+        field.@fieldValue.charValueRaw == AsciiString.c2b('B' as char)
         field.valueSet
         underlyingBuf.readerIndex(5).toString(StandardCharsets.US_ASCII) == "A"
     }
 
     def "should append provided byte buf with value"() {
         setup:
-        field.value = 'Z' as char
+        field.charValue = 'Z' as char
         def buf = Unpooled.buffer(1, 1)
 
         when:

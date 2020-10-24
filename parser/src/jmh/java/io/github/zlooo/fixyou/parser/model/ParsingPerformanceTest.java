@@ -11,6 +11,8 @@ import java.nio.charset.StandardCharsets;
 
 public class ParsingPerformanceTest {
 
+    private static final int LONG_FIELD_DATA_LENGTH = 8;
+
     @Benchmark
     @BenchmarkMode(Mode.Throughput)
     public void parsingUtilsParseLong(TestState testState, Blackhole blackhole) {
@@ -43,13 +45,13 @@ public class ParsingPerformanceTest {
         private ByteBufComposer byteBufComposer;
         private int startIndex;
         private int endIndex;
-        private final byte[] rawValue = new byte[LongField.FIELD_DATA_LENGTH];
-        private final char[] unparsedValue = new char[LongField.FIELD_DATA_LENGTH];
+        private final ByteBuf rawValue = Unpooled.buffer(LONG_FIELD_DATA_LENGTH, LONG_FIELD_DATA_LENGTH);
+        private final char[] unparsedValue = new char[LONG_FIELD_DATA_LENGTH];
 
         @Setup
         public void setup() {
             startIndex = 0;
-            final ByteBuf byteBuf = Unpooled.buffer(LongField.FIELD_DATA_LENGTH, LongField.FIELD_DATA_LENGTH);
+            final ByteBuf byteBuf = Unpooled.buffer(LONG_FIELD_DATA_LENGTH, LONG_FIELD_DATA_LENGTH);
             byteBuf.writeCharSequence(valueToParse, StandardCharsets.US_ASCII);
             endIndex = byteBuf.writerIndex();
             byteBuf.writeByte(FixMessage.FIELD_SEPARATOR);

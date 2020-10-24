@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.github.zlooo.fixyou.parser.TestSpec
 import io.github.zlooo.fixyou.parser.TestUtils
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -10,11 +11,11 @@ import java.nio.charset.StandardCharsets
 
 class DoubleFieldTest extends Specification {
     private static final String VALUE_THATS_SUPPOSED_TO_BE_IGNORED = "!"
-    private DoubleField field
+    private Field field
     private ByteBuf underlyingBuf = Unpooled.buffer(20, 20)
 
     void setup() {
-        field = new DoubleField(10)
+        field = new Field(10, TestSpec.INSTANCE, new FieldCodec())
         def byteBufComposer = new ByteBufComposer(1)
         field.setFieldData(byteBufComposer)
         underlyingBuf.writeCharSequence("-123.666", StandardCharsets.US_ASCII)
@@ -22,9 +23,9 @@ class DoubleFieldTest extends Specification {
         field.setIndexes(0, 8)
     }
 
-    def "should return proper values"() {
+    def "should return proper double values"() {
         expect:
-        field.value == -123666L
+        field.doubleUnscaledValue == -123666L
         field.scale == 3 as short
         field.valueSet
     }
@@ -40,9 +41,11 @@ class DoubleFieldTest extends Specification {
         field.setIndexes(0, valueToParse.length())
 
         then:
-        field.value == expectedValue
+        field.doubleUnscaledValue == expectedValue
         field.scale == expectedScale
         field.valueSet
+        field.@fieldValue.longValue == expectedValue
+        field.@fieldValue.scale == expectedScale
 
         where:
         valueToParse        | expectedValue     | expectedScale
@@ -62,22 +65,24 @@ class DoubleFieldTest extends Specification {
         field.reset()
 
         expect:
-        field.value == DoubleField.DEFAULT_VALUE
-        field.scale == 0
+        field.doubleUnscaledValue == FieldValue.LONG_DEFAULT_VALUE
+        field.scale == 0 as short
     }
 
     def "should cache value after first get"() {
         setup:
-        field.value
+        field.doubleUnscaledValue
 
         when:
         underlyingBuf.clear().writeCharSequence(VALUE_THATS_SUPPOSED_TO_BE_IGNORED, StandardCharsets.US_ASCII)
         field.setIndexes(0, 1)
 
         then:
-        field.value == -123666L
+        field.doubleUnscaledValue == -123666L
         field.scale == 3 as short
         field.valueSet
+        field.@fieldValue.longValue == -123666L
+        field.@fieldValue.scale == 3 as short
     }
 
     def "should cache scale after first get"() {
@@ -89,38 +94,40 @@ class DoubleFieldTest extends Specification {
         field.setIndexes(0, 1)
 
         then:
-        field.value == -123666L
+        field.doubleUnscaledValue == -123666L
         field.scale == 3 as short
         field.valueSet
+        field.@fieldValue.longValue == -123666L
+        field.@fieldValue.scale == 3 as short
     }
 
     def "should reset state"() {
         when:
-        field.resetInnerState()
+        field.reset()
 
         then:
-        field.@value == DoubleField.DEFAULT_VALUE
-        field.@scale == 0 as short
-        field.sumOfBytes == 0
-        field.valueLength == 0
+        field.@fieldValue.longValue == FieldValue.LONG_DEFAULT_VALUE
+        field.@fieldValue.scale == 0 as short
+        field.@fieldValue.sumOfBytes == 0
+        field.@fieldValue.length == 0
     }
 
     def "should set value"() {
         when:
-        field.setValue(666777L, 3 as short)
+        field.setDoubleValue(666777L, 3 as short)
 
         then:
-        field.@value == 666777L
-        field.@scale == 3 as short
-        field.valueLength == 7
-        field.rawValue == TestUtils.setBytes("666.777".getBytes(StandardCharsets.US_ASCII), new byte[DoubleField.FIELD_DATA_LENGTH])
-        field.sumOfBytes == TestUtils.sumBytes(field.rawValue)
+        field.@fieldValue.longValue == 666777L
+        field.@fieldValue.scale == 3 as short
+        field.@fieldValue.length == 7
+        field.@fieldValue.rawValue.toString(0, field.@fieldValue.rawValue.writerIndex(), StandardCharsets.US_ASCII) == "666.777"
+        field.@fieldValue.sumOfBytes == TestUtils.sumBytes("666.777".getBytes(StandardCharsets.US_ASCII))
         field.valueSet
     }
 
     def "should append provided byte buf with value"() {
         setup:
-        field.setValue(1472, 3 as short)
+        field.setDoubleValue(1472, 3 as short)
         def buf = Unpooled.buffer(10, 10)
 
         when:

@@ -2,12 +2,10 @@ package io.github.zlooo.fixyou.parser.model;
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject;
-import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
-import io.github.zlooo.fixyou.parser.utils.FieldTypeUtils;
+import io.github.zlooo.fixyou.parser.FakeFixSpec;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.github.zlooo.fixyou.utils.AsciiCodes;
-import io.netty.buffer.ByteBuf;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -20,22 +18,29 @@ public class FixMessage extends AbstractPoolableObject {
     public static final byte FIELD_SEPARATOR = AsciiCodes.SOH;
     public static final byte FIELD_VALUE_SEPARATOR = AsciiCodes.EQUALS;
     private static final int NOT_SET = -1;
-    private static final PlaceholderField PLACEHOLDER = new PlaceholderField();
+    private static final Field PLACEHOLDER = new Field(NOT_SET, FakeFixSpec.INSTANCE, null) {
+        @Override
+        public void close() {
+            //nothing to do we do not want to close placeholder field, EVER
+        }
+    };
 
     private final FixSpec fixSpec;
-    private final AbstractField[] fieldsOrdered;
-    private final AbstractField[] fields;
+    private final FieldCodec fieldCodec;
+    private final Field[] fieldsOrdered;
+    private final Field[] fields;
     private ByteBufComposer messageByteSource;
     @Setter
     private int startIndex = NOT_SET;
     @Setter
     private int endIndex = NOT_SET;
 
-    public FixMessage(@Nonnull FixSpec spec) {
-        fixSpec = spec;
+    public FixMessage(@Nonnull FixSpec spec, @Nonnull FieldCodec fieldCodec) {
+        this.fixSpec = spec;
+        this.fieldCodec = fieldCodec;
         final int[] fieldsOrder = spec.getFieldsOrder();
-        fieldsOrdered = new AbstractField[fieldsOrder.length];
-        fields = new AbstractField[spec.highestFieldNumber() + 1];
+        fieldsOrdered = new Field[fieldsOrder.length];
+        fields = new Field[spec.highestFieldNumber() + 1];
         for (int i = 0; i < fieldsOrder.length; i++) {
             final int fieldNumber = fieldsOrder[i];
             fieldsOrdered[i] = PLACEHOLDER;
@@ -45,18 +50,18 @@ public class FixMessage extends AbstractPoolableObject {
 
     public void setMessageByteSource(ByteBufComposer newMessageByteSource) {
         this.messageByteSource = newMessageByteSource;
-        for (final AbstractField abstractField : fieldsOrdered) {
-            abstractField.setFieldData(newMessageByteSource);
+        for (final Field field : fieldsOrdered) {
+            field.setFieldData(newMessageByteSource);
         }
     }
 
     @Nullable
-    public <T extends AbstractField> T getField(int number) {
-        T field = (T) fields[number];
+    public Field getField(int number) {
+        Field field = fields[number];
         if (field == PLACEHOLDER) {
-            final int fieldIndex = ArrayUtils.indexOf(fixSpec.getFieldsOrder(), number);
-            field = FieldTypeUtils.createField(fixSpec.getTypes()[fieldIndex], number, fixSpec);
+            field = new Field(number, fixSpec, fieldCodec);
             fields[number] = field;
+            final int fieldIndex = ArrayUtils.indexOf(fixSpec.getFieldsOrder(), number);
             fieldsOrdered[fieldIndex] = field;
             field.setFieldData(messageByteSource);
         }
@@ -73,7 +78,7 @@ public class FixMessage extends AbstractPoolableObject {
     }
 
     public void resetAllDataFieldsAndReleaseByteSource() {
-        for (final AbstractField field : fieldsOrdered) {
+        for (final Field field : fieldsOrdered) {
             if (field.isValueSet()) {
                 field.reset();
             }
@@ -97,44 +102,13 @@ public class FixMessage extends AbstractPoolableObject {
 
     @Override
     public void close() {
-        for (final AbstractField field : fieldsOrdered) {
+        for (final Field field : fieldsOrdered) {
             field.close();
         }
     }
 
     @Nonnull
-    public AbstractField[] getFieldsOrdered() {
+    public Field[] getFieldsOrdered() {
         return fieldsOrdered;
-    }
-
-    private static final class PlaceholderField extends AbstractField {
-
-        private PlaceholderField() {
-            super(NOT_SET);
-        }
-
-        @Override
-        public FieldType getFieldType() {
-            return null;
-        }
-
-        @Override
-        protected void resetInnerState() { //nothing to do
-        }
-
-        @Override
-        public int appendByteBufWithValue(ByteBuf out) { //nothing to do
-            return 0;
-        }
-
-        @Override
-        public boolean isValueSet() {
-            return false;
-        }
-
-        @Override
-        public int getLength() {
-            return 0;
-        }
     }
 }

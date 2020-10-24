@@ -4,7 +4,6 @@ import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.commons.utils.Comparators;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.netty.handler.admin.AdministrativeMessageHandler;
-import io.github.zlooo.fixyou.parser.model.CharSequenceField;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.netty.channel.ChannelHandler;
@@ -37,7 +36,7 @@ class AdminMessagesHandler extends SimpleChannelInboundHandler<FixMessage> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, FixMessage fixMessage) throws Exception {
-        final CharSequence messageType = fixMessage.<CharSequenceField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getValue();
+        final CharSequence messageType = fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getCharSequenceValue();
         if (isSessionIsEstablished(channelHandlerContext) || ArrayUtils.equals(FixConstants.LOGON, messageType)) {
             final AdministrativeMessageHandler messageHandler = handlerMap.get(messageType);
             if (messageHandler != null) {

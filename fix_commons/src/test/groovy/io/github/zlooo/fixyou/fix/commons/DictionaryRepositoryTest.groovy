@@ -5,12 +5,13 @@ import io.github.zlooo.fixyou.FIXYouConfiguration
 import io.github.zlooo.fixyou.FIXYouException
 import io.github.zlooo.fixyou.commons.pool.ArrayBackedObjectPool
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
+import io.github.zlooo.fixyou.parser.model.FieldCodec
 import org.assertj.core.api.Assertions
 import spock.lang.Specification
 
 class DictionaryRepositoryTest extends Specification {
 
-    private DictionaryRepository dictionaryRepository = new DictionaryRepository(new FIXYouConfiguration.FIXYouConfigurationBuilder().build())
+    private DictionaryRepository dictionaryRepository = new DictionaryRepository(new FIXYouConfiguration.FIXYouConfigurationBuilder().build(), new FieldCodec())
     private DictionaryRepository.Dictionary testDictionary1
 
     void setup() {
@@ -44,7 +45,7 @@ class DictionaryRepositoryTest extends Specification {
     def "should register dictionary when io and app threads are not separated"() {
         setup:
         def dictionary2 = new DictionaryRepository.Dictionary(TestSpec.INSTANCE, Mock(DefaultObjectPool), Mock(DefaultObjectPool))
-        dictionaryRepository = new DictionaryRepository(new FIXYouConfiguration.FIXYouConfigurationBuilder().separateIoFromAppThread(false).build())
+        dictionaryRepository = new DictionaryRepository(new FIXYouConfiguration.FIXYouConfigurationBuilder().separateIoFromAppThread(false).build(), new FieldCodec())
 
         when:
         dictionaryRepository.registerDictionary("testDictionary2", TestSpec.INSTANCE, 1, 1)

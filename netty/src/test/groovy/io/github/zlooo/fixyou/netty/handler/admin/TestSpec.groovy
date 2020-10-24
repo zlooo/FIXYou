@@ -2,9 +2,7 @@ package io.github.zlooo.fixyou.netty.handler.admin
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.model.ApplicationVersionID
-import io.github.zlooo.fixyou.model.FieldType
 import io.github.zlooo.fixyou.model.FixSpec
-import io.github.zlooo.fixyou.parser.FixFieldsTypes
 
 class TestSpec implements FixSpec {
 
@@ -22,23 +20,8 @@ class TestSpec implements FixSpec {
     }
 
     @Override
-    FieldType[] getTypes() {
-        return [FixFieldsTypes.BEGIN_STRING, FixFieldsTypes.BODY_LENGTH, FixFieldsTypes.MESSAGE_TYPE, FixFieldsTypes.MESSAGE_SEQUENCE_NUMBER, FixFieldsTypes.POSS_DUP_FLAG, FixFieldsTypes.SENDER_COMP_ID, FixFieldsTypes.TARGET_COMP_ID,
-                FixFieldsTypes.SENDING_TIME, FieldType.CHAR_ARRAY, FieldType.TIMESTAMP, FixFieldsTypes.BEGIN_SEQUENCE_NUMBER, FixFieldsTypes.END_SEQUENCE_NUMBER, FixFieldsTypes.NEW_SEQUENCE_NUMBER, FixFieldsTypes.
-                REFERENCED_SEQUENCE_NUMBER, FixFieldsTypes.ENCRYPT_METHOD, FixFieldsTypes.HEARTBEAT_INTERVAL, FixFieldsTypes.GAP_FILL_FLAG, FixFieldsTypes.TEXT, FixFieldsTypes.RESET_SEQ_NUMBER_FLAG, FixFieldsTypes.REFERENCED_TAG_ID,
-                FixFieldsTypes.SESSION_REJECT_REASON, FieldType.GROUP, FixFieldsTypes.DEFAULT_APP_VERSION, FieldType.DOUBLE, FieldType.CHAR, FixFieldsTypes.CHECK_SUM]
-    }
-
-    @Override
     char[][] getMessageTypes() {
         return [FixConstants.LOGON, ['D'] as char[]]
-    }
-
-    @Override
-    int highestFieldNumber() {
-        final int[] fieldsOrder = getFieldsOrder()
-        Arrays.sort(fieldsOrder)
-        return fieldsOrder[fieldsOrder.length - 1]
     }
 
     @Override
@@ -47,11 +30,11 @@ class TestSpec implements FixSpec {
     }
 
     @Override
-    FieldNumberTypePair[] getChildPairSpec(int groupNumber) {
+    int[] getRepeatingGroupFieldNumbers(int groupNumber) {
         if (groupNumber == 453) {
-            [new FieldNumberTypePair(FieldType.CHAR_ARRAY, 448)] as FieldNumberTypePair[]
+            [448] as int[]
         } else {
-            return null;
+            return [] as int[];
         }
     }
 }

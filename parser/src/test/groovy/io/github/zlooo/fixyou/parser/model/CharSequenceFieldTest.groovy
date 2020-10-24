@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.github.zlooo.fixyou.parser.TestSpec
 import io.github.zlooo.fixyou.parser.TestUtils
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -10,11 +11,11 @@ import java.nio.charset.StandardCharsets
 
 class CharSequenceFieldTest extends Specification {
 
-    private CharSequenceField field
+    private Field field
     private ByteBuf underlyingBuf = Unpooled.buffer(30, 30)
 
     void setup() {
-        field = new CharSequenceField(1);
+        field = new Field(1, TestSpec.INSTANCE, new FieldCodec());
         def byteBufComposer = new ByteBufComposer(1)
         field.setFieldData(byteBufComposer)
         underlyingBuf.writerIndex(1)
@@ -23,9 +24,9 @@ class CharSequenceFieldTest extends Specification {
         field.setIndexes(1, 5)
     }
 
-    def "should get value"() {
+    def "should get char sequence value"() {
         expect:
-        field.getValue().toString() == "test"
+        field.charSequenceValue.toString() == "test"
     }
 
     def "should get default value when value is not set"() {
@@ -33,72 +34,73 @@ class CharSequenceFieldTest extends Specification {
         field.reset()
 
         expect:
-        field.value != null
-        field.value.length == 0
+        field.charSequenceValue != null
+        field.charSequenceValue.length() == 0
     }
 
     def "should cache value once parsed"() {
         setup:
-        field.getValue()
+        field.charSequenceValue
         underlyingBuf.clear().writeCharSequence("valueThatShouldBeIgnored", StandardCharsets.US_ASCII)
 
         expect:
-        field.getValue().toString() == "test"
+        field.charSequenceValue.toString() == "test"
     }
 
     def "should reset state"() {
         when:
-        field.resetInnerState()
+        field.reset()
 
         then:
-        field.@length == 0
-        field.@returnValue.length() == 0
-        field.sumOfBytes == 0
+        field.@fieldValue.length == 0
+        field.@fieldValue.charSequenceValue.length() == 0
+        field.@fieldValue.sumOfBytes == 0
     }
 
     def "should set value from char array"() {
         when:
-        field.setValue("someVeryLongValue".toCharArray())
+        field.setCharSequenceValue("someVeryLongValue".toCharArray())
 
         then:
-        field.@value.toString() == "someVeryLongValue"
-        field.length == "someVeryLongValue".length()
+        field.@fieldValue.charSequenceValue.toString() == "someVeryLongValue"
+        field.@fieldValue.length == "someVeryLongValue".length()
         field.valueSet
-        field.rawValue == TestUtils.setBytes("someVeryLongValue".getBytes(StandardCharsets.US_ASCII), new byte[field.rawValue.length])
-        field.sumOfBytes == TestUtils.sumBytes(field.rawValue)
+        field.@fieldValue.rawValue.toString(0, field.@fieldValue.rawValue.writerIndex(), StandardCharsets.US_ASCII) == "someVeryLongValue"
+        field.@fieldValue.sumOfBytes == TestUtils.sumBytes("someVeryLongValue".getBytes(StandardCharsets.US_ASCII))
     }
 
     def "should set value from char sequence"() {
         setup:
-        CharSequenceField field2 = new CharSequenceField(2)
-        field2.setValue("someVeryLongValue".toCharArray(), "someVeryLongValue".length())
+        Field field2 = new Field(2, TestSpec.INSTANCE, new FieldCodec())
+        field2.setCharSequenceValue("someVeryLongValue".toCharArray(), "someVeryLongValue".length())
 
         when:
-        field.setValue(field2)
+        field.setCharSequenceValue(field2)
 
         then:
-        field.@value.toString() == "someVeryLongValue"
-        field.length == "someVeryLongValue".length()
+        field.@fieldValue.charSequenceValue.toString() == "someVeryLongValue"
+        field.@fieldValue.charSequenceValue.length() == "someVeryLongValue".length()
+        field.@fieldValue.length == "someVeryLongValue".length()
         field.valueSet
-        field.rawValue == TestUtils.setBytes("someVeryLongValue".getBytes(StandardCharsets.US_ASCII), new byte[field.rawValue.length])
-        field.sumOfBytes == TestUtils.sumBytes(field.rawValue)
+        field.@fieldValue.rawValue.toString(0, field.@fieldValue.rawValue.writerIndex(), StandardCharsets.US_ASCII) == "someVeryLongValue"
+        field.@fieldValue.sumOfBytes == TestUtils.sumBytes("someVeryLongValue".getBytes(StandardCharsets.US_ASCII))
     }
 
     def "should set value from char array with limited length"() {
         when:
-        field.setValue("someVeryLongValue".toCharArray(), 4)
+        field.setCharSequenceValue("someVeryLongValue".toCharArray(), 4)
 
         then:
-        field.@value.toString() == "some"
-        field.length == 4
+        field.@fieldValue.charSequenceValue.toString() == "some"
+        field.@fieldValue.charSequenceValue.length() == 4
         field.valueSet
-        field.rawValue == TestUtils.setBytes("some".getBytes(StandardCharsets.US_ASCII), new byte[field.rawValue.length])
-        field.sumOfBytes == TestUtils.sumBytes(field.rawValue)
+        field.@fieldValue.rawValue.toString(0, field.@fieldValue.rawValue.writerIndex(), StandardCharsets.US_ASCII) == "some"
+        field.@fieldValue.sumOfBytes == TestUtils.sumBytes("some".getBytes(StandardCharsets.US_ASCII))
     }
 
     def "should append provided byte buf with value"() {
         setup:
-        field.value = "textToWrite".toCharArray()
+        field.charSequenceValue = "textToWrite".toCharArray()
         def buf = Unpooled.buffer(20, 20)
 
         when:

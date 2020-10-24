@@ -1,9 +1,9 @@
 package io.github.zlooo.fixyou.commons.utils;
 
+import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.netty.util.internal.PlatformDependent;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
-import sun.misc.Unsafe;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -42,7 +42,7 @@ public class ArrayDataGetPerformanceTest {
     @BenchmarkMode(Mode.Throughput)
     public void unsafeReferenceGet(TestState state, Blackhole blackhole) {
         for (final int index : state.indexesToGet) {
-            blackhole.consume(UnsafeAccessor.UNSAFE.getObject(state.objectData, UnsafeAccessor.ARRAY_OBJECT_BASE_OFFSET + (Unsafe.ARRAY_OBJECT_INDEX_SCALE * index)));
+            blackhole.consume(ArrayUtils.getElementAt(state.objectData, index));
         }
     }
 

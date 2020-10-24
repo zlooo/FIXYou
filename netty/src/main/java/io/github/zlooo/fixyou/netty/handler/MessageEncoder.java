@@ -4,9 +4,8 @@ import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.commons.utils.FieldUtils;
 import io.github.zlooo.fixyou.commons.utils.NumberConstants;
-import io.github.zlooo.fixyou.parser.model.AbstractField;
+import io.github.zlooo.fixyou.parser.model.Field;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
-import io.github.zlooo.fixyou.parser.model.LongField;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -23,7 +22,7 @@ import java.nio.charset.StandardCharsets;
 class MessageEncoder extends MessageToByteEncoder<FixMessage> {
 
     private static final int CHECKSUM_VALUE_LENGTH = 3;
-    private static final int MAX_BODY_LENGTH_FIELD_LENGTH = LongField.FIELD_DATA_LENGTH; //on one hand we should -1 it because it can only be positive value but on the other we have to terminate this field with SOH so it evens out
+    private static final int MAX_BODY_LENGTH_FIELD_LENGTH = 8; //on one hand we should -1 it because it can only be positive value but on the other we have to terminate this field with SOH so it evens out
 
     @Inject
     MessageEncoder() {
@@ -31,14 +30,14 @@ class MessageEncoder extends MessageToByteEncoder<FixMessage> {
 
     @Override
     protected void encode(ChannelHandlerContext ctx, FixMessage msg, ByteBuf out) {
-        final AbstractField beginString = msg.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER);
-        final LongField bodyLength = msg.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER);
+        final Field beginString = msg.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER);
+        final Field bodyLength = msg.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER);
         final int afterBodyLengthIndex = beginString.getEncodedFieldNumberLength() + beginString.getLength() + bodyLength.getEncodedFieldNumberLength() + MAX_BODY_LENGTH_FIELD_LENGTH + 2;
         out.writerIndex(afterBodyLengthIndex);
-        final AbstractField[] fieldsOrdered = msg.getFieldsOrdered();
+        final Field[] fieldsOrdered = msg.getFieldsOrdered();
         int sumOfBytes = 0;
         for (int i = 2; i < fieldsOrdered.length - 1; i++) {
-            final AbstractField field = fieldsOrdered[i];
+            final Field field = fieldsOrdered[i];
             if (field.isValueSet()) {
                 sumOfBytes += field.appendFieldNumber(out);
                 sumOfBytes += field.appendByteBufWithValue(out) + FixMessage.FIELD_SEPARATOR;
@@ -57,7 +56,7 @@ class MessageEncoder extends MessageToByteEncoder<FixMessage> {
         return ctx.alloc().ioBuffer(DefaultConfiguration.DEFAULT_OUT_MESSAGE_BUF_INIT_CAPACITY);
     }
 
-    private int prependTwoFirstFields(ByteBuf out, int afterBodyLengthIndex, AbstractField beginString, LongField bodyLength) {
+    private int prependTwoFirstFields(ByteBuf out, int afterBodyLengthIndex, Field beginString, Field bodyLength) {
         final int bodyLengthValue = out.writerIndex() - afterBodyLengthIndex;
         int powerOfTenIndex = 0;
         for (; powerOfTenIndex < NumberConstants.POWERS_OF_TEN.length; powerOfTenIndex++) {
@@ -72,13 +71,13 @@ class MessageEncoder extends MessageToByteEncoder<FixMessage> {
         sumOfBytes += beginString.appendByteBufWithValue(out) + FixMessage.FIELD_SEPARATOR;
         out.writeByte(FixMessage.FIELD_SEPARATOR);
         sumOfBytes += bodyLength.appendFieldNumber(out);
-        bodyLength.setValue(bodyLengthValue);
+        bodyLength.setLongValue(bodyLengthValue);
         sumOfBytes += bodyLength.appendByteBufWithValue(out) + FixMessage.FIELD_SEPARATOR;
         out.writeByte(FixMessage.FIELD_SEPARATOR).resetWriterIndex();
         return sumOfBytes;
     }
 
-    private static void appendWithChecksum(ByteBuf out, AbstractField checksumField, int sumOfBytes) {
+    private static void appendWithChecksum(ByteBuf out, Field checksumField, int sumOfBytes) {
         checksumField.appendFieldNumber(out);
         final int checksum = sumOfBytes & FixConstants.CHECK_SUM_MODULO_MASK;
         FieldUtils.writeEncoded(checksum, out, CHECKSUM_VALUE_LENGTH);

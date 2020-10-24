@@ -2,6 +2,7 @@ package io.github.zlooo.fixyou.netty.handler
 
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
+import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.netty.buffer.Unpooled
 import io.netty.channel.Channel
@@ -13,11 +14,11 @@ import java.nio.charset.StandardCharsets
 
 class ReadTaskTest extends Specification {
     private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
-    private MessageDecoder messageDecoder = new MessageDecoder(fixMessageObjectPool)
+    private MessageDecoder messageDecoder = new MessageDecoder(fixMessageObjectPool, TestSpec.INSTANCE)
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
     private EventLoop eventLoop = Mock()
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
+    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
 
     void setup() {
         messageDecoder.handlerAdded(channelHandlerContext)

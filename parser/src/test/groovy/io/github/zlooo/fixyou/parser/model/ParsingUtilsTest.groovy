@@ -18,14 +18,14 @@ class ParsingUtilsTest extends Specification {
         byteBuff.readerIndex(4)
         def composer = new ByteBufComposer(1)
         composer.addByteBuf(byteBuff)
-        def tempBuf = new byte[4]
+        def tempBuf = Unpooled.buffer(4, 4)
         def chars = new char[4]
 
         when:
         ParsingUtils.readChars(composer, 0, 4, tempBuf, chars)
 
         then:
-        tempBuf == [116, 101, 115, 116] as byte[]
+        tempBuf.array() == [116, 101, 115, 116] as byte[]
         chars == ['t', 'e', 's', 't'] as char[]
         byteBuff.readerIndex() == 4
         byteBuff.writerIndex() == 9

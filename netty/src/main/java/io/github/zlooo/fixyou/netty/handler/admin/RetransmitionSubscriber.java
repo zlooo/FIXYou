@@ -4,7 +4,8 @@ import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
-import io.github.zlooo.fixyou.parser.model.*;
+import io.github.zlooo.fixyou.parser.model.Field;
+import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.session.LongSubscriber;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -44,17 +45,17 @@ class RetransmitionSubscriber extends AbstractPoolableObject implements LongSubs
         } else {
             if (!FixMessageUtils.isAdminMessage(fixMessage)) {
                 sendGapFillIfNecessary();
-                fixMessage.<BooleanField>getField(FixConstants.POSSIBLE_DUPLICATE_FLAG_FIELD_NUMBER).setValue(true);
-                final TimestampField origSendingTimeField = fixMessage.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER);
+                fixMessage.getField(FixConstants.POSSIBLE_DUPLICATE_FLAG_FIELD_NUMBER).setBooleanValue(true);
+                final Field origSendingTimeField = fixMessage.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER);
                 origSendingTimeField.reset();
-                final TimestampField sendingTimeField = fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER);
+                final Field sendingTimeField = fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER);
                 if (sendingTimeField.isValueSet()) {
-                    origSendingTimeField.setValue(sendingTimeField.getValue());
+                    origSendingTimeField.setTimestampValue(sendingTimeField.getTimestampValue());
                 }
                 channelHandlerContext.write(fixMessage).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
             } else {
                 //let's not spam other party with single sequence gap fills but check if we can send one which will fill multiple sequence numbers
-                final long sequenceValue = fixMessage.<LongField>getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).getValue();
+                final long sequenceValue = fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).getLongValue();
                 storeSequenceNumberForGapFill(sequenceValue);
                 fixMessage.release();
             }

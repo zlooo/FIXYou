@@ -16,7 +16,6 @@ import io.github.zlooo.fixyou.netty.utils.DelegatingChannelHandlerContext;
 import io.github.zlooo.fixyou.netty.utils.FixChannelListeners;
 import io.github.zlooo.fixyou.netty.utils.PipelineUtils;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
-import io.github.zlooo.fixyou.parser.model.LongField;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.github.zlooo.fixyou.session.SessionRegistry;
 import io.netty.channel.ChannelFutureListener;
@@ -84,13 +83,13 @@ class LogonHandler implements AdministrativeMessageHandler {
                         log.info("Reset sequence number flag set, resetting session {}", sessionState.getSessionId());
                         sessionState.reset();
                     }
-                    final SessionAwareChannelInboundHandler sessionHandler = addRequiredHandlersToPipelineIfNeeded(ctx, sessionState, fixMessage.<LongField>getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getValue());
+                    final SessionAwareChannelInboundHandler sessionHandler = addRequiredHandlersToPipelineIfNeeded(ctx, sessionState, fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getLongValue());
                     if (!sessionState.isLogonSent()) {
                         ctx.writeAndFlush(
                                 FixMessageUtils.toLogonMessage(sessionState.getFixMessageWritePool().getAndRetain(),
                                                                sessionState.getFixSpec().applicationVersionId().getValue(),
-                                                               fixMessage.<LongField>getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).getValue(),
-                                                               fixMessage.<LongField>getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getValue(),
+                                                               fixMessage.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).getLongValue(),
+                                                               fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getLongValue(),
                                                                resetSequenceFlagSet))
                            .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE).addListener(FixChannelListeners.LOGON_SENT);
                     } else {

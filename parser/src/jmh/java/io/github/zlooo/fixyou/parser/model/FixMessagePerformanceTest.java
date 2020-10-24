@@ -9,7 +9,7 @@ public class FixMessagePerformanceTest {
     @Benchmark
     @BenchmarkMode(Mode.Throughput)
     public void fieldsIteration(TestState state, Blackhole blackhole) throws Exception {
-        for (final AbstractField field : state.fixMessage.getFields()) {
+        for (final Field field : state.fixMessage.getFields()) {
             blackhole.consume(field);
         }
     }
@@ -17,13 +17,13 @@ public class FixMessagePerformanceTest {
     @Benchmark
     @BenchmarkMode(Mode.Throughput)
     public void fieldsOrderedIteration(TestState state, Blackhole blackhole) throws Exception {
-        for (final AbstractField field : state.fixMessage.getFieldsOrdered()) {
+        for (final Field field : state.fixMessage.getFieldsOrdered()) {
             blackhole.consume(field);
         }
     }
 
     @State(Scope.Benchmark)
     public static class TestState {
-        private FixMessage fixMessage = new FixMessage(new FixSpec50SP2());
+        private FixMessage fixMessage = new FixMessage(new FixSpec50SP2(), new FieldCodec());
     }
 }

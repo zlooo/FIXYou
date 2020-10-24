@@ -4,6 +4,7 @@ import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
+import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -19,9 +20,9 @@ import java.nio.charset.StandardCharsets
 class MessageDecoderTest extends Specification {
 
     private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
-    private MessageDecoder messageDecoder = new MessageDecoder(fixMessageObjectPool)
+    private MessageDecoder messageDecoder = new MessageDecoder(fixMessageObjectPool, TestSpec.INSTANCE)
     private ChannelHandlerContext channelHandlerContext = Mock()
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
+    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
 
     def "should decode not fragmented message"() {
         setup:
@@ -95,7 +96,7 @@ class MessageDecoderTest extends Specification {
                   .containsOnly(expectedComponent1, expectedComponent2, new ByteBufComposer.Component())
         1 * channelHandlerContext.fireChannelRead(fixMessage)
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
-        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).value.toString() == "test"
+        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).charSequenceValue.toString() == "test"
         0 * _
     }
 
@@ -130,7 +131,7 @@ class MessageDecoderTest extends Specification {
                   .contains(expectedComponent1, Index.atIndex(0))
                   .contains(expectedComponent2, Index.atIndex(1))
                   .containsOnly(expectedComponent1, expectedComponent2, new ByteBufComposer.Component())
-        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).value.toString() == "test"
+        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).charSequenceValue.toString() == "test"
 
         fixMessage.resetAllDataFieldsAndReleaseByteSource()
 
@@ -156,7 +157,7 @@ class MessageDecoderTest extends Specification {
                   .contains(expectedComponent3, Index.atIndex(0))
                   .contains(expectedComponent4, Index.atIndex(1))
                   .containsOnly(expectedComponent3, expectedComponent4, new ByteBufComposer.Component())
-        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).value.toString() == "test2"
+        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).charSequenceValue.toString() == "test2"
         0 * _
     }
 
@@ -206,7 +207,7 @@ class MessageDecoderTest extends Specification {
         setup:
         ByteBuf encodedMessage = Unpooled.
                 wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u00018=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test2\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
-        FixMessage fixMessage2 = new FixMessage(TestSpec.INSTANCE)
+        FixMessage fixMessage2 = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
 
         when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessage)
@@ -215,8 +216,8 @@ class MessageDecoderTest extends Specification {
         2 * fixMessageObjectPool.tryGetAndRetain() >> fixMessage >> fixMessage2
         1 * channelHandlerContext.fireChannelRead(fixMessage) >> channelHandlerContext
         1 * channelHandlerContext.fireChannelRead(fixMessage2) >> channelHandlerContext
-        fixMessage.getField(58).value.toString() == "test"
-        fixMessage2.getField(58).value.toString() == "test2"
+        fixMessage.getField(58).charSequenceValue.toString() == "test"
+        fixMessage2.getField(58).charSequenceValue.toString() == "test2"
         fixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
         fixMessage2.messageByteSource.is(messageDecoder.byteBufComposer)
         encodedMessage.refCnt() == 1
@@ -234,7 +235,7 @@ class MessageDecoderTest extends Specification {
         ByteBuf encodedMessagePart1 = Unpooled.
                 wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u00018=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=tes".getBytes(StandardCharsets.US_ASCII))
         ByteBuf encodedMessagePart2 = Unpooled.wrappedBuffer("t2\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
-        FixMessage fixMessage2 = new FixMessage(TestSpec.INSTANCE)
+        FixMessage fixMessage2 = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
 
         when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessagePart1)
@@ -244,8 +245,8 @@ class MessageDecoderTest extends Specification {
         2 * fixMessageObjectPool.tryGetAndRetain() >> fixMessage >> fixMessage2
         1 * channelHandlerContext.fireChannelRead(fixMessage) >> channelHandlerContext
         1 * channelHandlerContext.fireChannelRead(fixMessage2) >> channelHandlerContext
-        fixMessage.getField(58).value.toString() == "test"
-        fixMessage2.getField(58).value.toString() == "test2"
+        fixMessage.getField(58).charSequenceValue.toString() == "test"
+        fixMessage2.getField(58).charSequenceValue.toString() == "test2"
         fixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
         fixMessage2.messageByteSource.is(messageDecoder.byteBufComposer)
         encodedMessagePart1.refCnt() == 1
@@ -268,7 +269,7 @@ class MessageDecoderTest extends Specification {
         ByteBuf encodedMessagePart1 = Unpooled.
                 wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u00018=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=tes".getBytes(StandardCharsets.US_ASCII))
         ByteBuf encodedMessagePart2 = Unpooled.wrappedBuffer("t2\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
-        FixMessage fixMessage2 = new FixMessage(TestSpec.INSTANCE)
+        FixMessage fixMessage2 = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
         fixMessage.retain()
         fixMessage2.retain()
 

@@ -6,8 +6,8 @@ import spock.lang.Specification
 
 class NotPoolableFixMessageTest extends Specification {
 
-    private NotPoolableFixMessage fixMessage = new NotPoolableFixMessage(TestSpec.INSTANCE)
-    private AbstractField field = Mock()
+    private NotPoolableFixMessage fixMessage = new NotPoolableFixMessage(TestSpec.INSTANCE, new FieldCodec())
+    private Field field = Mock()
 
     void setup() {
         def fieldsOrdered = fixMessage.fieldsOrdered

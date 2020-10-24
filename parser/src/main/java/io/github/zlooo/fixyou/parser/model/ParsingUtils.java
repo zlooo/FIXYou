@@ -1,20 +1,25 @@
 package io.github.zlooo.fixyou.parser.model;
 
+import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.utils.AsciiCodes;
+import io.netty.buffer.ByteBuf;
 import io.netty.util.AsciiString;
-import io.netty.util.internal.PlatformDependent;
 import lombok.experimental.UtilityClass;
+
+import java.time.format.DateTimeFormatter;
 
 @UtilityClass
 public class ParsingUtils {
 
     public static final int RADIX = 10;
+    public static final char FRACTION_SEPARATOR = '.';
 
-    static void readChars(ByteBufComposer source, int srcIndex, int length, byte[] tempBuf, char[] destination) {
+    static void readChars(ByteBufComposer source, int srcIndex, int length, ByteBuf tempBuf, char[] destination) {
+        tempBuf.clear();
         source.getBytes(srcIndex, length, tempBuf);
         for (int i = 0; i < length; i++) {
-            destination[i] = AsciiString.b2c(PlatformDependent.getByte(tempBuf, i)); //TODO just out of curiosity JMH this and see if it's faster than ordinary for loop
+            destination[i] = AsciiString.b2c(tempBuf.getByte(i));
         }
     }
 
@@ -53,5 +58,13 @@ public class ParsingUtils {
             }
         }
         return negative ? -num : num;
+    }
+
+    static DateTimeFormatter chooseFormatter(int length) {
+        if (FixConstants.UTC_TIMESTAMP_PATTERN.length() == length) {
+            return FixConstants.UTC_TIMESTAMP_FORMATTER;
+        } else {
+            return FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER;
+        }
     }
 }

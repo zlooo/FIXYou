@@ -1,23 +1,18 @@
-package io.github.zlooo.fixyou.fix.commons.utils;
+package io.github.zlooo.fixyou.parser;
 
 import io.github.zlooo.fixyou.model.ApplicationVersionID;
-import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
+import io.github.zlooo.fixyou.utils.ArrayUtils;
 
 import javax.annotation.Nonnull;
 
 public class FakeFixSpec implements FixSpec {
 
-    private static final FieldNumberTypePair[] EMPTY_CHILD_PAIR_SPEC = new FieldNumberTypePair[]{};
+    public static final FakeFixSpec INSTANCE = new FakeFixSpec();
 
     @Override
     public int[] getFieldsOrder() {
         return new int[0];
-    }
-
-    @Override
-    public FieldType[] getTypes() {
-        return new FieldType[0];
     }
 
     @Nonnull
@@ -37,7 +32,7 @@ public class FakeFixSpec implements FixSpec {
     }
 
     @Override
-    public FieldNumberTypePair[] getChildPairSpec(int groupNumber) {
-        return EMPTY_CHILD_PAIR_SPEC;
+    public int[] getRepeatingGroupFieldNumbers(int groupNumber) {
+        return ArrayUtils.EMPTY_INT_ARRAY;
     }
 }

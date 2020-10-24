@@ -6,6 +6,7 @@ import io.github.zlooo.fixyou.commons.pool.ArrayBackedObjectPool;
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.model.FixSpec;
+import io.github.zlooo.fixyou.parser.model.FieldCodec;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import lombok.Value;
 
@@ -19,11 +20,13 @@ import java.util.Map;
 public class DictionaryRepository {
 
     private final FIXYouConfiguration fixYouConfiguration;
+    private final FieldCodec fieldCodec;
     private Map<String, Dictionary> dictionaries = new HashMap<>();
 
     @Inject
-    DictionaryRepository(FIXYouConfiguration fixYouConfiguration) {
+    DictionaryRepository(FIXYouConfiguration fixYouConfiguration, FieldCodec fieldCodec) {
         this.fixYouConfiguration = fixYouConfiguration;
+        this.fieldCodec = fieldCodec;
     }
 
     public @Nullable
@@ -38,8 +41,8 @@ public class DictionaryRepository {
     }
 
     private ObjectPool<FixMessage> createPool(FixSpec fixSpec, int poolSize) {
-        return fixYouConfiguration.isSeparateIoFromAppThread() ? new ArrayBackedObjectPool<>(poolSize, () -> new FixMessage(fixSpec), FixMessage.class, poolSize) :
-                new DefaultObjectPool<>(poolSize, () -> new FixMessage(fixSpec), FixMessage.class, poolSize);
+        return fixYouConfiguration.isSeparateIoFromAppThread() ? new ArrayBackedObjectPool<>(poolSize, () -> new FixMessage(fixSpec, fieldCodec), FixMessage.class, poolSize) :
+                new DefaultObjectPool<>(poolSize, () -> new FixMessage(fixSpec, fieldCodec), FixMessage.class, poolSize);
     }
 
     @Value
