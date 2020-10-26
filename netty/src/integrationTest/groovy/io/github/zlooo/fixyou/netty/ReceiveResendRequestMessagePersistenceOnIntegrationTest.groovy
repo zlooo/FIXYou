@@ -3,7 +3,6 @@ package io.github.zlooo.fixyou.netty
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.fix.commons.session.MemoryMessageStore
 import io.github.zlooo.fixyou.netty.test.framework.FixMessages
-import io.github.zlooo.fixyou.netty.test.framework.TestSpec
 import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.MessageStore
@@ -30,23 +29,23 @@ class ReceiveResendRequestMessagePersistenceOnIntegrationTest extends AbstractFi
     @Override
     protected SessionConfig createConfig() {
         fakeMessageStore = new MemoryMessageStore()
-        def newOrderSingle1 = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        def newOrderSingle1 = new FixMessage(new FieldCodec())
         FixMessages.createFIXYouNewOrderSingle(clordid1).accept(newOrderSingle1)
         newOrderSingle1.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 2L
         fakeMessageStore.storeMessage(fixYouSessionId, 2L, newOrderSingle1)
-        def newOrderSingle2 = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        def newOrderSingle2 = new FixMessage(new FieldCodec())
         FixMessages.createFIXYouNewOrderSingle(clordid2).accept(newOrderSingle2)
         newOrderSingle2.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 3L
         fakeMessageStore.storeMessage(fixYouSessionId, 3L, newOrderSingle2)
-        def heartbeat1 = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        def heartbeat1 = new FixMessage(new FieldCodec())
         FixMessages.createFIXYouHeartbeat().accept(heartbeat1)
         heartbeat1.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 4L
         fakeMessageStore.storeMessage(fixYouSessionId, 4L, heartbeat1)
-        def heartbeat2 = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        def heartbeat2 = new FixMessage(new FieldCodec())
         FixMessages.createFIXYouHeartbeat().accept(heartbeat2)
         heartbeat2.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 5L
         fakeMessageStore.storeMessage(fixYouSessionId, 5L, heartbeat2)
-        def newOrderSingle3 = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        def newOrderSingle3 = new FixMessage(new FieldCodec())
         FixMessages.createFIXYouNewOrderSingle(clordid3).accept(newOrderSingle3)
         newOrderSingle3.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 6L
         fakeMessageStore.storeMessage(fixYouSessionId, 6L, newOrderSingle3)

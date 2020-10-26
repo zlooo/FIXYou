@@ -1,6 +1,6 @@
 package io.github.zlooo.fixyou.netty.handler.validation
 
-import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
+
 import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import spock.lang.Specification
@@ -10,7 +10,7 @@ class UnconditionalValidatorTest extends Specification {
     private UnconditionalValidator unconditionalValidator = new UnconditionalValidator() {}
     private SingleArgValidator<FixMessage> validator1 = Mock()
     private SingleArgValidator<FixMessage> validator2 = Mock()
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
 
     def "should return null validation failure action when validation passes"() {
         when:

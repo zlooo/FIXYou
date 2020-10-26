@@ -3,7 +3,6 @@ package io.github.zlooo.fixyou.netty.handler
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.admin.AdministrativeMessageHandler
-import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
 import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.netty.channel.Channel
@@ -24,7 +23,7 @@ class AdminMessagesHandlerTest extends Specification {
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
     private NettyHandlerAwareSessionState sessionState = Mock()
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
 
     void setup() {
         fixMessage.retain()

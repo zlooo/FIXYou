@@ -47,7 +47,7 @@ class RetransmitionSubscriberTest extends Specification {
 
     def "should retransmit non-admin message"() {
         setup:
-        FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage fixMessage = new FixMessage(new FieldCodec())
         fixMessage.retain()
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue("D".toCharArray())
         def sendingTime = Instant.now().toEpochMilli()
@@ -67,9 +67,9 @@ class RetransmitionSubscriberTest extends Specification {
 
     def "should retransmit non-admin message proceeded by gap fill"() {
         setup:
-        FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage fixMessage = new FixMessage(new FieldCodec())
         fixMessage.retain()
-        FixMessage gapFill = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage gapFill = new FixMessage(new FieldCodec())
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue("D".toCharArray())
         def sendingTime = Instant.now().toEpochMilli()
         fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).timestampValue = sendingTime
@@ -94,7 +94,7 @@ class RetransmitionSubscriberTest extends Specification {
 
     def "should not retransmit admin message and store sequence number when state is blank"() {
         setup:
-        FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage fixMessage = new FixMessage(new FieldCodec())
         fixMessage.retain()
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue("0".toCharArray())
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).setLongValue(666)
@@ -111,7 +111,7 @@ class RetransmitionSubscriberTest extends Specification {
 
     def "should not retransmit admin message and store sequence number when previous sequence is stored"() {
         setup:
-        FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage fixMessage = new FixMessage(new FieldCodec())
         fixMessage.retain()
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue("0".toCharArray())
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).setLongValue(666)
@@ -130,7 +130,7 @@ class RetransmitionSubscriberTest extends Specification {
 
     def "should store sequence number for gap fill if message is corrupt"() {
         setup:
-        FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage fixMessage = new FixMessage(new FieldCodec())
         fixMessage.retain()
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue("0".toCharArray())
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).setLongValue(666)
@@ -160,7 +160,7 @@ class RetransmitionSubscriberTest extends Specification {
         fixMessageSubscriber.retain()
         fixMessageSubscriber.@fromValue = 666L
         fixMessageSubscriber.@toValue = 777L
-        FixMessage gapFill = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage gapFill = new FixMessage(new FieldCodec())
         gapFill.retain()
 
         when:
@@ -182,7 +182,7 @@ class RetransmitionSubscriberTest extends Specification {
         fixMessageSubscriber.retain()
         fixMessageSubscriber.@fromValue = 666L
         fixMessageSubscriber.@toValue = 777L
-        FixMessage gapFill = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage gapFill = new FixMessage(new FieldCodec())
         gapFill.retain()
 
         when:

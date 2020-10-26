@@ -1,9 +1,8 @@
 package io.github.zlooo.fixyou.parser.model;
 
+import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject;
-import io.github.zlooo.fixyou.model.FixSpec;
-import io.github.zlooo.fixyou.parser.FakeFixSpec;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.github.zlooo.fixyou.utils.AsciiCodes;
 import lombok.Getter;
@@ -11,6 +10,7 @@ import lombok.Setter;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Arrays;
 
 @Getter
 public class FixMessage extends AbstractPoolableObject {
@@ -18,54 +18,66 @@ public class FixMessage extends AbstractPoolableObject {
     public static final byte FIELD_SEPARATOR = AsciiCodes.SOH;
     public static final byte FIELD_VALUE_SEPARATOR = AsciiCodes.EQUALS;
     private static final int NOT_SET = -1;
-    private static final Field PLACEHOLDER = new Field(NOT_SET, FakeFixSpec.INSTANCE, null) {
-        @Override
-        public void close() {
-            //nothing to do we do not want to close placeholder field, EVER
-        }
-    };
+    private static final Field PLACEHOLDER = new PlaceholderField();
+    private static final double LOAD_FACTOR = 1.2;
 
-    private final FixSpec fixSpec;
     private final FieldCodec fieldCodec;
-    private final Field[] fieldsOrdered;
-    private final Field[] fields;
+    private Field[] allFields;
+    private Field[] actualFields;
+    private int actualFieldsLength;
     private ByteBufComposer messageByteSource;
     @Setter
     private int startIndex = NOT_SET;
     @Setter
     private int endIndex = NOT_SET;
 
-    public FixMessage(@Nonnull FixSpec spec, @Nonnull FieldCodec fieldCodec) {
-        this.fixSpec = spec;
+    public FixMessage(@Nonnull FieldCodec fieldCodec) {
         this.fieldCodec = fieldCodec;
-        final int[] fieldsOrder = spec.getFieldsOrder();
-        fieldsOrdered = new Field[fieldsOrder.length];
-        fields = new Field[spec.highestFieldNumber() + 1];
-        for (int i = 0; i < fieldsOrder.length; i++) {
-            final int fieldNumber = fieldsOrder[i];
-            fieldsOrdered[i] = PLACEHOLDER;
-            fields[fieldNumber] = PLACEHOLDER;
-        }
+        allFields = new Field[DefaultConfiguration.DEFAULT_MAX_FIELD_NUMBER + 1];
+        actualFields = new Field[DefaultConfiguration.DEFAULT_MAX_FIELD_NUMBER];
+        Arrays.fill(allFields, PLACEHOLDER);
     }
 
     public void setMessageByteSource(ByteBufComposer newMessageByteSource) {
         this.messageByteSource = newMessageByteSource;
-        for (final Field field : fieldsOrdered) {
-            field.setFieldData(newMessageByteSource);
+        for (int i = 0; i < actualFieldsLength; i++) {
+            ArrayUtils.getElementAt(actualFields, i).setFieldData(newMessageByteSource);
         }
     }
 
     @Nullable
     public Field getField(int number) {
-        Field field = fields[number];
+        ensureArraysLengthIsSufficient(number);
+        Field field = allFields[number];
         if (field == PLACEHOLDER) {
-            field = new Field(number, fixSpec, fieldCodec);
-            fields[number] = field;
-            final int fieldIndex = ArrayUtils.indexOf(fixSpec.getFieldsOrder(), number);
-            fieldsOrdered[fieldIndex] = field;
+            field = new Field(number, fieldCodec);
+            allFields[number] = field;
+            actualFields[actualFieldsLength++] = field;
             field.setFieldData(messageByteSource);
         }
         return field;
+    }
+
+    public Field getFieldOrPlaceholder(int index) {
+        if (allFields.length - 1 < index) {
+            return PLACEHOLDER;
+        } else {
+            return ArrayUtils.getElementAt(allFields, index);
+        }
+    }
+
+    private void ensureArraysLengthIsSufficient(int index) {
+        if (allFields.length - 1 < index) {
+            final Field[] newAllFieldsArray = new Field[(int) (Math.max(allFields.length * LOAD_FACTOR, index + 1))];
+            final Field[] newActualFieldsArray = new Field[newAllFieldsArray.length];
+            System.arraycopy(allFields, 0, newAllFieldsArray, 0, allFields.length);
+            for (int i = allFields.length; i < newAllFieldsArray.length; i++) {
+                newAllFieldsArray[i] = PLACEHOLDER;
+            }
+            System.arraycopy(actualFields, 0, newActualFieldsArray, 0, actualFieldsLength);
+            allFields = newAllFieldsArray;
+            actualFields = newActualFieldsArray;
+        }
     }
 
     @Override
@@ -78,7 +90,8 @@ public class FixMessage extends AbstractPoolableObject {
     }
 
     public void resetAllDataFieldsAndReleaseByteSource() {
-        for (final Field field : fieldsOrdered) {
+        for (int i = 0; i < actualFieldsLength; i++) {
+            final Field field = ArrayUtils.getElementAt(actualFields, i);
             if (field.isValueSet()) {
                 field.reset();
             }
@@ -102,13 +115,30 @@ public class FixMessage extends AbstractPoolableObject {
 
     @Override
     public void close() {
-        for (final Field field : fieldsOrdered) {
-            field.close();
+        for (int i = 0; i < actualFieldsLength; i++) {
+            ArrayUtils.getElementAt(actualFields, i).close();
         }
     }
 
-    @Nonnull
-    public Field[] getFieldsOrdered() {
-        return fieldsOrdered;
+    private static final class PlaceholderField extends Field {
+
+        public PlaceholderField() {
+            super(NOT_SET, null);
+        }
+
+        @Override
+        public boolean isValueSet() {
+            return false;
+        }
+
+        @Override
+        protected FieldValue createFieldValue() {
+            return null; //we do nto want to create any value for this field
+        }
+
+        @Override
+        public void close() {
+            //nothing to do we do not want to close placeholder field, EVER
+        }
     }
 }

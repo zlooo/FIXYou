@@ -17,7 +17,7 @@ import java.time.ZoneOffset
 class FixMessageParserTest extends Specification {
 
     private static final FixSpec50SP2 fixSpec50SP2 = new FixSpec50SP2()
-    private FixMessage fixMessage = new FixMessage(fixSpec50SP2, new FieldCodec())
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
     private ByteBufComposer byteBufComposer = new ByteBufComposer(10)
     private FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer, fixSpec50SP2)
 
@@ -343,7 +343,7 @@ class FixMessageParserTest extends Specification {
         fixMessageParser.@fixMessage = fixMessage
         fixMessageParser.@storedEndIndexOfLastUnfinishedMessage = 666
         fixMessageParser.@parsingRepeatingGroup = true
-        fixMessageParser.@groupFieldsStack.add(new Field(TestSpec.USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER, fixSpec50SP2, new FieldCodec()))
+        fixMessageParser.@groupFieldsStack.add(new Field(TestSpec.USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER, new FieldCodec()))
 
         when:
         fixMessageParser.reset()

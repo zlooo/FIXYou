@@ -2,7 +2,6 @@ package io.github.zlooo.fixyou.netty.handler.validation
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.model.ApplicationVersionID
-import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
 import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import spock.lang.Specification
@@ -53,7 +52,7 @@ class ValidationOperationsTest extends Specification {
     }
 
     private static FixMessage createFixMessage(LocalDateTime origSendingTime, LocalDateTime sendingTime) {
-        def fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        def fixMessage = new FixMessage(new FieldCodec())
         if (origSendingTime != null) {
             fixMessage.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).setTimestampValue(origSendingTime.toInstant(ZoneOffset.UTC).toEpochMilli())
         }
@@ -64,7 +63,7 @@ class ValidationOperationsTest extends Specification {
     }
 
     private static FixMessage logon(int fieldToReset = -1) {
-        FixMessage logon = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage logon = new FixMessage(new FieldCodec())
         logon.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).charSequenceValue = "beginString".toCharArray()
         logon.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).charSequenceValue = "senderCompID".toCharArray()
         logon.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).charSequenceValue = "targetCompID".toCharArray()

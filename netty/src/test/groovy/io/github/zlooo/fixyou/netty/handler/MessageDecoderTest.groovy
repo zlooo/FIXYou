@@ -22,7 +22,7 @@ class MessageDecoderTest extends Specification {
     private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
     private MessageDecoder messageDecoder = new MessageDecoder(fixMessageObjectPool, TestSpec.INSTANCE)
     private ChannelHandlerContext channelHandlerContext = Mock()
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
 
     def "should decode not fragmented message"() {
         setup:
@@ -207,7 +207,7 @@ class MessageDecoderTest extends Specification {
         setup:
         ByteBuf encodedMessage = Unpooled.
                 wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u00018=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test2\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
-        FixMessage fixMessage2 = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage fixMessage2 = new FixMessage(new FieldCodec())
 
         when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessage)
@@ -235,7 +235,7 @@ class MessageDecoderTest extends Specification {
         ByteBuf encodedMessagePart1 = Unpooled.
                 wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u00018=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=tes".getBytes(StandardCharsets.US_ASCII))
         ByteBuf encodedMessagePart2 = Unpooled.wrappedBuffer("t2\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
-        FixMessage fixMessage2 = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage fixMessage2 = new FixMessage(new FieldCodec())
 
         when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessagePart1)
@@ -269,7 +269,7 @@ class MessageDecoderTest extends Specification {
         ByteBuf encodedMessagePart1 = Unpooled.
                 wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u00018=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=tes".getBytes(StandardCharsets.US_ASCII))
         ByteBuf encodedMessagePart2 = Unpooled.wrappedBuffer("t2\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
-        FixMessage fixMessage2 = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage fixMessage2 = new FixMessage(new FieldCodec())
         fixMessage.retain()
         fixMessage2.retain()
 

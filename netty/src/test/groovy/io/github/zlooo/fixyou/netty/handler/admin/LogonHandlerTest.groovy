@@ -124,7 +124,7 @@ class LogonHandlerTest extends Specification {
         ChannelPipeline channelPipeline = Mock()
         Attribute sessionAttribute = Mock()
         ChannelFuture channelFuture = Mock()
-        FixMessage logonResponse = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage logonResponse = new FixMessage(new FieldCodec())
         sessionState.logonSent = false
         sessionState.logoutSent = true
 
@@ -166,7 +166,7 @@ class LogonHandlerTest extends Specification {
         ChannelPipeline channelPipeline = Mock()
         Attribute sessionAttribute = Mock()
         ChannelFuture channelFuture = Mock()
-        FixMessage logonResponse = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage logonResponse = new FixMessage(new FieldCodec())
         sessionState.logonSent = false
         fixMessage.getField(FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER).booleanValue = true
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 1L
@@ -212,7 +212,7 @@ class LogonHandlerTest extends Specification {
         fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).longValue = 15L
         fixMessage.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).charSequenceValue = ApplicationVersionID.FIX50SP2.value
         ChannelFuture channelFuture = Mock()
-        FixMessage logonResponse = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage logonResponse = new FixMessage(new FieldCodec())
         sessionState.logonSent = false
 
         when:
@@ -288,7 +288,7 @@ class LogonHandlerTest extends Specification {
         fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).longValue = 15L
         fixMessage.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).charSequenceValue = ApplicationVersionID.FIX50SP2.value
         ChannelFuture channelFuture = Mock()
-        FixMessage logonResponse = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage logonResponse = new FixMessage(new FieldCodec())
         sessionState.logonSent = false
 
         when:
@@ -321,7 +321,7 @@ class LogonHandlerTest extends Specification {
         fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).reset()
         ChannelOutboundHandler sessionOutChannelHandler = Mock()
         sessionState.getResettables().put(NettyResettablesNames.SESSION, sessionOutChannelHandler)
-        FixMessage reject = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage reject = new FixMessage(new FieldCodec())
         ChannelFuture rejectMessageFuture = Mock()
         ChannelFuture logoutMessageFuture = Mock()
 
@@ -365,7 +365,7 @@ class LogonHandlerTest extends Specification {
     }
 
     private static FixMessage createValidLogonMessage(SessionID sessionID) {
-        FixMessage logon = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage logon = new FixMessage(new FieldCodec())
         logon.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).charSequenceValue = sessionID.beginString
         logon.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).charSequenceValue = sessionID.senderCompID
         logon.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).charSequenceValue = sessionID.targetCompID

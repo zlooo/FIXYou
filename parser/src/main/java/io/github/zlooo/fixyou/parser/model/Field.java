@@ -9,8 +9,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.util.AsciiString;
 import io.netty.util.internal.PlatformDependent;
 import lombok.*;
-import org.agrona.collections.Hashing;
-import org.agrona.collections.Int2ObjectHashMap;
 
 @EqualsAndHashCode
 @ToString(exclude = {"encodedFieldNumber", "fieldData", "fieldCodec"})
@@ -35,31 +33,16 @@ public class Field implements Closeable {
     private final FieldValue fieldValue;
     private final FieldCodec fieldCodec;
 
-    public Field(int number, FixSpec fixSpec, FieldCodec fieldCodec) {
+    public Field(int number, FieldCodec fieldCodec) {
         this.number = number;
         this.fieldCodec = fieldCodec;
-        this.fieldValue = new FieldValue(() -> {
-            final int[] childFieldNumbers = fixSpec.getRepeatingGroupFieldNumbers(number);
-            final int numberOfChildFields = childFieldNumbers.length;
-            final Int2ObjectHashMap<Field> idToFieldMap = new Int2ObjectHashMap<>(numberOfChildFields, Hashing.DEFAULT_LOAD_FACTOR);
-            final Field[] fieldsOrdered = new Field[numberOfChildFields];
-            for (int i = 0; i < numberOfChildFields; i++) {
-                final int fieldNumber = ArrayUtils.getElementAt(childFieldNumbers, i);
-                final Field field = new Field(fieldNumber, fixSpec, fieldCodec);
-                idToFieldMap.put(fieldNumber, field);
-                fieldsOrdered[i] = field;
-                if (fieldData != null) {
-                    field.setFieldData(fieldData);
-                }
-            }
-            return new FieldValue.Repetition(fieldsOrdered, idToFieldMap);
-        });
+        this.fieldValue = createFieldValue();
         final char[] fieldNumberAsCharArray = Integer.toString(number).toCharArray(); //we're doing it just on startup so we can afford it
         final int encodedFieldNumberCapacity = fieldNumberAsCharArray.length + 1;
         encodedFieldNumber = new byte[encodedFieldNumberCapacity];
         int tempSumOfBytes = 0;
         for (int i = 0; i < fieldNumberAsCharArray.length; i++) {
-            final byte encodedChar = AsciiString.c2b(fieldNumberAsCharArray[i]);
+            final byte encodedChar = AsciiString.c2b(ArrayUtils.getElementAt(fieldNumberAsCharArray, i));
             tempSumOfBytes += encodedChar;
             PlatformDependent.putByte(encodedFieldNumber, i, encodedChar);
         }
@@ -68,6 +51,10 @@ public class Field implements Closeable {
         encodedFieldNumberSumOfBytes = tempSumOfBytes;
         encodedFieldNumberLength = encodedFieldNumber.length;
 
+    }
+
+    protected FieldValue createFieldValue() {
+        return new FieldValue();
     }
 
     public void setIndexes(int newStartIndex, int newEndIndexIndex) {
@@ -171,16 +158,18 @@ public class Field implements Closeable {
         this.fieldCodec.setTimestampValue(newValue, fieldValue);
     }
 
-    public int appendByteBufWithValue(ByteBuf out) {
-        return fieldCodec.appendByteBufWithValue(out, fieldValue, this);
+    public int appendByteBufWithValue(ByteBuf out, FixSpec fixSpec) {
+        return fieldCodec.appendByteBufWithValue(out, fieldValue, this, fixSpec);
     }
 
     public Field getFieldForCurrentRepetition(int fieldNum) {
-        return fieldValue.getCurrentRepetition().getIdToField().get(fieldNum);
+        final Field groupField = fieldValue.getCurrentRepetition().getExistingOrNewGroupField(fieldNum, fieldCodec);
+        groupField.setFieldData(fieldData);
+        return groupField;
     }
 
     public Field getFieldForGivenRepetition(int repetitionIndex, int fieldNum) {
-        return ArrayUtils.getElementAt(fieldValue.getRepetitions(), repetitionIndex).getIdToField().get(fieldNum);
+        return ArrayUtils.getElementAt(fieldValue.getRepetitions(), repetitionIndex).getExistingOrNewGroupField(fieldNum, fieldCodec);
     }
 
     public Field endCurrentRepetition() {

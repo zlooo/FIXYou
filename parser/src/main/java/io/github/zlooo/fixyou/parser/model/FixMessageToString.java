@@ -15,25 +15,19 @@ class FixMessageToString {
 
     static String toString(FixMessage message, boolean wholeMessage) {
         final StringBuilder builder = new StringBuilder("FixMessage -> ");
-        final Field[] fieldsOrdered = message.getFieldsOrdered();
-        final boolean longMessage = fieldsOrdered.length > LONG_MESSAGE_FIELD_NUMBER_THRESHOLD;
+        final Field[] fields = message.getActualFields();
+        final boolean longMessage = message.getActualFieldsLength() > LONG_MESSAGE_FIELD_NUMBER_THRESHOLD;
         final boolean shortenOutput = longMessage && !wholeMessage;
-        if (shortenOutput) {
-            for (int i = 0; i < LONG_MESSAGE_FIELD_NUMBER_THRESHOLD; i++) {
-                final Field field = fieldsOrdered[i];
-                appendFieldToBuilderIfValueIsSet(builder, field);
-            }
-        } else {
-            for (final Field field : fieldsOrdered) {
-                appendFieldToBuilderIfValueIsSet(builder, field);
-            }
+        final int fieldsLimit = shortenOutput ? LONG_MESSAGE_FIELD_NUMBER_THRESHOLD : message.getActualFieldsLength();
+        for (int i = 0; i < fieldsLimit; i++) {
+            appendFieldToBuilderIfValueIsSet(builder, fields[i]);
         }
         builder.deleteCharAt(builder.length() - 1).append(shortenOutput ? "..." : "").append(", refCnt=").append(message.refCnt());
         return builder.toString();
     }
 
     private static void appendFieldToBuilderIfValueIsSet(StringBuilder builder, Field field) {
-        if (field.isValueSet()) {
+        if (field != null && field.isValueSet()) {
             builder.append(field.getNumber()).append((char) FixMessage.FIELD_VALUE_SEPARATOR).append(fieldDataValue(field)).append(FIELD_DELIMITER);
         }
     }

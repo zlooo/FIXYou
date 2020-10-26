@@ -13,26 +13,25 @@ import java.nio.charset.StandardCharsets
 
 class GroupFieldTest extends Specification {
 
-    private Field groupField = new Field(TestSpec.USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER, TestSpec.INSTANCE, new FieldCodec())
+    private Field groupField = new Field(TestSpec.USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER, new FieldCodec())
 
     def "should create a group field"() {
         setup:
-        def expectedLongfield = new Field(TestSpec.LONG_FIELD_NUMBER, TestSpec.INSTANCE, new FieldCodec())
-        def expectedBooleanField = new Field(TestSpec.BOOLEAN_FIELD_NUMBER, TestSpec.INSTANCE, new FieldCodec())
+        def expectedLongField = new Field(TestSpec.LONG_FIELD_NUMBER, new FieldCodec())
+        def expectedBooleanField = new Field(TestSpec.BOOLEAN_FIELD_NUMBER, new FieldCodec())
 
         when:
-        Field groupField = new Field(TestSpec.USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER, TestSpec.INSTANCE, new FieldCodec())
+        Field groupField = new Field(TestSpec.USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER, new FieldCodec())
 
         then:
         groupField.@fieldValue.repetitionCounter == 0
         Assertions.assertThat(groupField.@fieldValue.repetitions).hasSize(DefaultConfiguration.NUMBER_OF_REPETITIONS_IN_GROUP).doesNotContainNull()
         if (DefaultConfiguration.NUMBER_OF_REPETITIONS_IN_GROUP > 0) {
-            Assertions.assertThat(groupField.@fieldValue.repetitions[0].fieldsOrdered).containsOnly(expectedLongfield, expectedBooleanField)
+            Assertions.assertThat(groupField.@fieldValue.repetitions[0].idToField).containsOnly(expectedLongField, expectedBooleanField)
             Assertions.assertThat(groupField.@fieldValue.repetitions[0].idToField).hasSize(2)
-            Assertions.assertThat(groupField.@fieldValue.repetitions[0].idToField[TestSpec.LONG_FIELD_NUMBER]).isEqualTo(expectedLongfield)
+            Assertions.assertThat(groupField.@fieldValue.repetitions[0].idToField[TestSpec.LONG_FIELD_NUMBER]).isEqualTo(expectedLongField)
             Assertions.assertThat(groupField.@fieldValue.repetitions[0].idToField[TestSpec.BOOLEAN_FIELD_NUMBER]).isEqualTo(expectedBooleanField)
         }
-        groupField.@fieldValue.repetitionSupplier != null
     }
 
     def "should set message byte source on all child fields"() {
@@ -57,7 +56,7 @@ class GroupFieldTest extends Specification {
         groupField.reset()
 
         then:
-        groupField.@fieldValue.repetitions.collect { it.fieldsOrdered }.flatten().every { !it.isValueSet() }
+        groupField.@fieldValue.repetitions.collect { it.idToField.values() }.flatten().every { !it.isValueSet() }
         groupField.@fieldValue.repetitionCounter == 0
         groupField.@fieldValue.longValue == FieldValue.LONG_DEFAULT_VALUE
     }
@@ -168,7 +167,7 @@ class GroupFieldTest extends Specification {
         def buffer = Unpooled.buffer(100, 100)
 
         when:
-        def result = groupField.appendByteBufWithValue(buffer)
+        def result = groupField.appendByteBufWithValue(buffer, TestSpec.INSTANCE)
 
         then:
         buffer.toString(StandardCharsets.US_ASCII) == "1\u00011=666\u00012=Y"
@@ -187,7 +186,7 @@ class GroupFieldTest extends Specification {
         def buffer = Unpooled.buffer(300, 300)
 
         when:
-        def result = groupField.appendByteBufWithValue(buffer)
+        def result = groupField.appendByteBufWithValue(buffer, TestSpec.INSTANCE)
 
         then:
         buffer.toString(StandardCharsets.US_ASCII) == "3\u00011=666\u00012=Y\u00011=666\u00011=666"
@@ -201,10 +200,10 @@ class GroupFieldTest extends Specification {
         groupField.@fieldValue.ensureRepetitionsArrayCapacity()
         def repetitions = groupField.@fieldValue.repetitions
         def fieldCounter = 0
-        (0..repetitions.length - 1).forEach {
-            def fieldsOrdered = repetitions[it].fieldsOrdered
-            (0..fieldsOrdered.length - 1).forEach {
-                fieldsOrdered[it] = field
+        (0..repetitions.length - 1).forEach { rep ->
+            (0..9).forEach {
+                repetitions[rep].getExistingOrNewGroupField(it, new FieldCodec())
+                repetitions[rep].@idToField.put(it, field)
                 fieldCounter++
             }
         }
@@ -218,7 +217,7 @@ class GroupFieldTest extends Specification {
     }
 
     private static <T extends Field> T fieldWithValue(FieldType fieldType, int number, Object value = null) {
-        def field = new Field(number, TestSpec.INSTANCE, new FieldCodec())
+        def field = new Field(number, new FieldCodec())
         if (value != null) {
             switch (fieldType) {
                 case FieldType.BOOLEAN: field.booleanValue = value; break

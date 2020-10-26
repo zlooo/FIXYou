@@ -23,7 +23,7 @@ class LogoutHandlerTest extends Specification {
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
     private Channel channel = Mock()
     private ChannelHandlerContext channelHandlerContext = Mock()
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
     private ChannelFuture channelFuture = Mock()
 
     def "should send logout message if none was sent"() {

@@ -25,9 +25,9 @@ import javax.inject.Singleton;
 @ChannelHandler.Sharable
 class SimplifiedMessageDecoder extends ChannelInboundHandlerAdapter {
 
-    private static final SimplifiedSpec SIMPLIFIED_SPEC = new SimplifiedSpec();
+    private static final LogonOnlySpec LOGON_ONLY_SPEC = new LogonOnlySpec();
     private final ByteBufComposer byteBufComposer = new ByteBufComposer(1);
-    private final FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer, SIMPLIFIED_SPEC);
+    private final FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer, LOGON_ONLY_SPEC);
     private final FieldCodec fieldCodec;
 
     @Inject
@@ -46,7 +46,7 @@ class SimplifiedMessageDecoder extends ChannelInboundHandlerAdapter {
                  * from
                  * pipeline by {@link io.github.zlooo.fixyou.netty.handler.admin.LogonHandler#addRequiredChannelsToPipeline(ChannelHandlerContext, NettyHandlerAwareSessionState)}
                  */
-                final FixMessage fixMessage = new NotPoolableFixMessage(SIMPLIFIED_SPEC, fieldCodec);
+                final FixMessage fixMessage = new NotPoolableFixMessage(fieldCodec);
                 fixMessageParser.setFixMessage(fixMessage);
                 fixMessageParser.parseFixMsgBytes();
                 if (fixMessageParser.isDone()) {
@@ -76,30 +76,32 @@ class SimplifiedMessageDecoder extends ChannelInboundHandlerAdapter {
      * All we need are fields that are relevant for {@link io.github.zlooo.fixyou.netty.handler.admin.LogonHandler}. The basic idea is that this spec is just for logon, then once
      * logged in a proper spec is used that is bound to session itself
      */
-    private static final class SimplifiedSpec implements FixSpec {
+    private static final class LogonOnlySpec implements FixSpec {
 
-        private final int highestFieldNumber = ArrayUtils.max(getFieldsOrder());
+        private static final int[] FIELDS_ORDER = {FixConstants.BEGIN_STRING_FIELD_NUMBER, FixConstants.BODY_LENGTH_FIELD_NUMBER, FixConstants.MESSAGE_TYPE_FIELD_NUMBER,
+                FixConstants.APPL_VERSION_ID_FIELD_NUMBER,
+                FixConstants.SENDER_COMP_ID_FIELD_NUMBER, FixConstants.TARGET_COMP_ID_FIELD_NUMBER, FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER,
+                FixConstants.SENDING_TIME_FIELD_NUMBER, FixConstants.ENCRYPT_METHOD_FIELD_NUMBER, FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER,
+                FixConstants.BEGIN_SEQUENCE_NUMBER_FIELD_NUMBER, FixConstants.END_SEQUENCE_NUMBER_FIELD_NUMBER, FixConstants.TEXT_FIELD_NUMBER, FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER,
+                FixConstants.USERNAME_FIELD_NUMBER, FixConstants.PASSWORD_FIELD_NUMBER, FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER,
+                FixConstants.CHECK_SUM_FIELD_NUMBER};
+        private static final char[][] MESSAGE_TYPES = {FixConstants.LOGON};
+        private static final int HIGHEST_FIELD_NUMBER = ArrayUtils.max(FIELDS_ORDER);
 
         @Override
         public int[] getFieldsOrder() {
-            return new int[]{FixConstants.BEGIN_STRING_FIELD_NUMBER, FixConstants.BODY_LENGTH_FIELD_NUMBER, FixConstants.MESSAGE_TYPE_FIELD_NUMBER,
-                    FixConstants.APPL_VERSION_ID_FIELD_NUMBER,
-                    FixConstants.SENDER_COMP_ID_FIELD_NUMBER, FixConstants.TARGET_COMP_ID_FIELD_NUMBER, FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER,
-                    FixConstants.SENDING_TIME_FIELD_NUMBER, FixConstants.ENCRYPT_METHOD_FIELD_NUMBER, FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER,
-                    FixConstants.BEGIN_SEQUENCE_NUMBER_FIELD_NUMBER, FixConstants.END_SEQUENCE_NUMBER_FIELD_NUMBER, FixConstants.TEXT_FIELD_NUMBER, FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER,
-                    FixConstants.USERNAME_FIELD_NUMBER, FixConstants.PASSWORD_FIELD_NUMBER, FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER,
-                    FixConstants.CHECK_SUM_FIELD_NUMBER};
+            return FIELDS_ORDER;
         }
 
         @Nonnull
         @Override
         public char[][] getMessageTypes() {
-            return new char[][]{FixConstants.LOGON};
+            return MESSAGE_TYPES;
         }
 
         @Override
         public int highestFieldNumber() {
-            return highestFieldNumber;
+            return HIGHEST_FIELD_NUMBER;
         }
 
         @Nonnull

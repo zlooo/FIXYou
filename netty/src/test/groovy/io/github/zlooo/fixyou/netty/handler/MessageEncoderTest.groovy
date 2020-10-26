@@ -1,12 +1,18 @@
 package io.github.zlooo.fixyou.netty.handler
 
 import io.github.zlooo.fixyou.FixConstants
+import io.github.zlooo.fixyou.commons.pool.ObjectPool
+import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
 import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.session.SessionConfig
+import io.github.zlooo.fixyou.session.SessionID
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
+import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
+import io.netty.util.Attribute
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
@@ -15,8 +21,12 @@ class MessageEncoderTest extends Specification {
 
     private static final int CHECK_SUM_MODULO = 256
     private MessageEncoder messageEncoder = new MessageEncoder()
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
     private ChannelHandlerContext channelHandlerContext = Mock()
+    private Channel channel = Mock()
+    private Attribute<NettyHandlerAwareSessionState> sessionAttribute = Mock()
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), new SessionID("testBeginString".toCharArray(), 15, "testSender".toCharArray(), 10, "testTarget".toCharArray(), 10),
+                                                                                           Mock(ObjectPool), Mock(ObjectPool), TestSpec.INSTANCE)
 
     def "should encode simple message"() {
         setup:
@@ -35,6 +45,9 @@ class MessageEncoderTest extends Specification {
         messageEncoder.encode(channelHandlerContext, fixMessage, buf)
 
         then:
+        1 * channelHandlerContext.channel() >> channel
+        1 * channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY) >> sessionAttribute
+        1 * sessionAttribute.get() >> sessionState
         buf.toString(StandardCharsets.US_ASCII) == expectedBuffer("49=sender\u000156=target\u000152=20200916-07:25:44.694\u000145=666\u0001123=Y\u000158=test\u00015001=1.23\u00015002=1\u0001").toString(StandardCharsets.US_ASCII)
     }
 
@@ -53,6 +66,9 @@ class MessageEncoderTest extends Specification {
         messageEncoder.encode(channelHandlerContext, fixMessage, buf)
 
         then:
+        1 * channelHandlerContext.channel() >> channel
+        1 * channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY) >> sessionAttribute
+        1 * sessionAttribute.get() >> sessionState
         buf.toString(StandardCharsets.US_ASCII) == expectedBuffer("49=sender\u000156=target\u000158=test\u0001453=1\u0001448=partyID\u0001").toString(StandardCharsets.US_ASCII)
     }
 

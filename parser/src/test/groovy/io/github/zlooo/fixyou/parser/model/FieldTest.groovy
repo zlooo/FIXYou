@@ -1,14 +1,13 @@
 package io.github.zlooo.fixyou.parser.model
 
 
-import io.github.zlooo.fixyou.parser.TestSpec
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
 
 class FieldTest extends Specification {
 
-    private Field field = new Field(1, TestSpec.INSTANCE, new FieldCodec())
+    private Field field = new Field(1, new FieldCodec())
 
     def "should encode field number on creation"() {
         expect:

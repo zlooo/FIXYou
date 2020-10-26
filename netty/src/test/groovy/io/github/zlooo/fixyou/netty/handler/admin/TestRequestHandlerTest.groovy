@@ -15,7 +15,7 @@ class TestRequestHandlerTest extends Specification {
 
     def "should send heartbeat request as response for test request"() {
         setup:
-        FixMessage testRequest = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage testRequest = new FixMessage(new FieldCodec())
         testRequest.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER).charSequenceValue = "testRequestID".toCharArray()
         ChannelFuture channelFuture = Mock()
 

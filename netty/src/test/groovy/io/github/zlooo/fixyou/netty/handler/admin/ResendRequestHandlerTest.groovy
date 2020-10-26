@@ -20,7 +20,7 @@ class ResendRequestHandlerTest extends Specification {
     private DefaultObjectPool<RetransmitionSubscriber> fixMessageSubscriberPool = Mock()
     private ResendRequestHandler resendRequestHandler = new ResendRequestHandler(fixMessageSubscriberPool)
     private ChannelHandlerContext channelHandlerContext = Mock()
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
     private DefaultObjectPool<FixMessage> fixMessageObjectReadPool = Mock()

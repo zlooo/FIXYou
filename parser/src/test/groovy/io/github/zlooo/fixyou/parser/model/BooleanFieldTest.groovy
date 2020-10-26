@@ -15,7 +15,7 @@ class BooleanFieldTest extends Specification {
     private ByteBuf underlyingBuf = Unpooled.buffer(10, 10)
 
     void setup() {
-        field = new Field(1, TestSpec.INSTANCE, new FieldCodec())
+        field = new Field(1, new FieldCodec())
         field.fieldData = new ByteBufComposer(1)
         underlyingBuf.writerIndex(5)
         underlyingBuf.writeCharSequence("Y", StandardCharsets.US_ASCII)
@@ -25,7 +25,7 @@ class BooleanFieldTest extends Specification {
 
     def "should get boolean value"() {
         setup:
-        field = new Field(1, TestSpec.INSTANCE, new FieldCodec())
+        field = new Field(1, new FieldCodec())
         field.fieldData = new ByteBufComposer(1)
         underlyingBuf.writerIndex(5)
         underlyingBuf.writeCharSequence(rawValue, StandardCharsets.US_ASCII)
@@ -55,7 +55,7 @@ class BooleanFieldTest extends Specification {
 
     def "should throw exception when trying to parse unexpected value"() {
         setup:
-        field = new Field(1, TestSpec.INSTANCE, new FieldCodec())
+        field = new Field(1, new FieldCodec())
         underlyingBuf.writeCharSequence("Z", StandardCharsets.US_ASCII)
         field.fieldData = new ByteBufComposer(1)
         field.fieldData.addByteBuf(underlyingBuf)
@@ -101,7 +101,7 @@ class BooleanFieldTest extends Specification {
         def buf = Unpooled.buffer(1, 1)
 
         when:
-        def result = field.appendByteBufWithValue(buf)
+        def result = field.appendByteBufWithValue(buf, TestSpec.INSTANCE)
 
         then:
         buf.toString(StandardCharsets.US_ASCII) == expectedValue

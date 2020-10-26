@@ -2,7 +2,6 @@ package io.github.zlooo.fixyou.netty.handler
 
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
-import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
 import io.github.zlooo.fixyou.netty.handler.validation.PredicateWithValidator
 import io.github.zlooo.fixyou.netty.handler.validation.SingleArgValidator
 import io.github.zlooo.fixyou.netty.handler.validation.TwoArgsValidator
@@ -33,7 +32,7 @@ class MessageValidatorHandlerTest extends Specification {
     private ValidationConfig validationConfig = new ValidationConfig()
     private SessionConfig sessionConfig = new SessionConfig().setValidationConfig(validationConfig)
     private DefaultObjectPool<FixMessage> fixMessagePool = Mock()
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
     private ValidationFailureAction validationFailureAction = Mock()
 
     def "should perform after validation failure action when unconditional validation fails"() {

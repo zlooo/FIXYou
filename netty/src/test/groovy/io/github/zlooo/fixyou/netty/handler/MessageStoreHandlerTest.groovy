@@ -27,7 +27,7 @@ class MessageStoreHandlerTest extends Specification {
     def "should store message if session is persistent"() {
         setup:
         sessionState.getSessionConfig().setPersistent(true)
-        FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage fixMessage = new FixMessage(new FieldCodec())
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 666L
 
         when:
@@ -45,7 +45,7 @@ class MessageStoreHandlerTest extends Specification {
     def "should pass message if session is not established"() {
         setup:
         sessionState.getSessionConfig().setPersistent(false)
-        FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage fixMessage = new FixMessage(new FieldCodec())
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 666L
 
         when:

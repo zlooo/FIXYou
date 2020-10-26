@@ -15,7 +15,7 @@ import spock.lang.Specification
 
 class NettyHandlerAwareSessionStateTest extends Specification {
 
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
     private ChannelHandlerContext notMovingForwardOnReadAndWriteCtx = Mock()
     private ChannelOutboundHandler sessionHandler = Mock()
 

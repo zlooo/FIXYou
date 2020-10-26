@@ -1,8 +1,6 @@
 package io.github.zlooo.fixyou.fix.commons.utils;
 
 import io.github.zlooo.fixyou.FixConstants;
-import io.github.zlooo.fixyou.model.FixSpec;
-import io.github.zlooo.fixyou.parser.FakeFixSpec;
 import io.github.zlooo.fixyou.parser.model.Field;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage;
@@ -19,13 +17,14 @@ public final class FixMessageUtils {
         Arrays.sort(FixConstants.ADMIN_MESSAGE_TYPES);
     }
 
-    public static final FixSpec FAKE_SPEC = new FakeFixSpec();
-    public static final FixMessage EMPTY_FAKE_MESSAGE = new NotPoolableFixMessage(FixMessageUtils.FAKE_SPEC, null);
+    public static final FixMessage EMPTY_FAKE_MESSAGE = new NotPoolableFixMessage(null);
 
     public static FixMessage toRejectMessage(FixMessage sourceMessage, long rejectReasonCode) {
         final long sourceMessageSequenceNumber = sourceMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).getLongValue();
         sourceMessage.resetAllDataFieldsAndReleaseByteSource();
-        sourceMessage.getField(FixConstants.REFERENCED_SEQUENCE_NUMBER_FIELD_NUMBER).setLongValue(sourceMessageSequenceNumber);
+        if (sourceMessageSequenceNumber > 0) {
+            sourceMessage.getField(FixConstants.REFERENCED_SEQUENCE_NUMBER_FIELD_NUMBER).setLongValue(sourceMessageSequenceNumber);
+        }
         sourceMessage.getField(FixConstants.SESSION_REJECT_REASON_FIELD_NUMBER).setLongValue(rejectReasonCode);
         sourceMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue(FixConstants.REJECT);
         return sourceMessage;

@@ -1,7 +1,6 @@
 package io.github.zlooo.fixyou.fix.commons.utils
 
 import io.github.zlooo.fixyou.FixConstants
-import io.github.zlooo.fixyou.fix.commons.TestSpec
 import io.github.zlooo.fixyou.model.ApplicationVersionID
 import io.github.zlooo.fixyou.parser.model.Field
 import io.github.zlooo.fixyou.parser.model.FieldCodec
@@ -236,7 +235,7 @@ class FixMessageUtilsTest extends Specification {
 
     def "should check if message is administrative"() {
         setup:
-        FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage fixMessage = new FixMessage(new FieldCodec())
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue = msgType
 
         expect:
@@ -257,7 +256,7 @@ class FixMessageUtilsTest extends Specification {
     }
 
     FixMessage createFixMessage() {
-        FixMessage message = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage message = new FixMessage(new FieldCodec())
         message.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).charSequenceValue = "FIXT1.1".toCharArray()
         message.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).charSequenceValue = "senderCompId".toCharArray()
         message.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).charSequenceValue = "targetCompId".toCharArray()
@@ -267,7 +266,7 @@ class FixMessageUtilsTest extends Specification {
 
     void allFieldsDoNotHaveValueSetExcept(FixMessage message, int ... fieldNumbersWithValue) {
         def valueSetFields = fieldNumbersWithValue.toSet()
-        for (Field field : message.fields) {
+        for (Field field : message.allFields) {
             if (field != null) {
                 if (valueSetFields.contains(field.number)) {
                     assert field.isValueSet()

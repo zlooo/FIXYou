@@ -3,7 +3,6 @@ package io.github.zlooo.fixyou.parser.model;
 import io.github.zlooo.fixyou.Closeable;
 import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.Resettable;
-import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -13,20 +12,19 @@ import lombok.extern.slf4j.Slf4j;
 import org.agrona.collections.Hashing;
 import org.agrona.collections.Int2ObjectHashMap;
 
-import java.util.function.Supplier;
+import javax.annotation.Nullable;
 
 @Data
 @Getter(AccessLevel.PACKAGE)
 @Setter(AccessLevel.PACKAGE)
 @Slf4j
-@ToString(exclude = {"repetitionSupplier"})
+@ToString
 class FieldValue implements Resettable, Closeable {
     static final char CHAR_DEFAULT_VALUE = Character.MIN_VALUE;
     static final long LONG_DEFAULT_VALUE = Long.MIN_VALUE;
     static final int FIELD_DATA_STARTING_LENGTH = 21; //driven by timestamp field - yyyyMMdd-HH:mm:ss.SSS
 
     private final MutableCharSequence charSequenceValue = new MutableCharSequence();
-    private final Supplier<Repetition> repetitionSupplier;
     @Setter(AccessLevel.NONE)
     private Repetition[] repetitions;
     private int repetitionCounter;
@@ -43,12 +41,11 @@ class FieldValue implements Resettable, Closeable {
     private int sumOfBytes;
     private FieldType valueTypeSet;
 
-    FieldValue(Supplier<Repetition> repetitionSupplier) {
+    FieldValue() {
         charSequenceValue.setState(charArrayValue);
-        this.repetitionSupplier = repetitionSupplier;
         this.repetitions = new Repetition[DefaultConfiguration.NUMBER_OF_REPETITIONS_IN_GROUP];
         for (int i = 0; i < repetitions.length; i++) {
-            repetitions[i] = repetitionSupplier.get();
+            repetitions[i] = new Repetition();
 
         }
     }
@@ -75,7 +72,7 @@ class FieldValue implements Resettable, Closeable {
         valueTypeSet = null;
         repetitionCounter = 0;
         for (final Repetition repetition : repetitions) {
-            for (final Field field : repetition.getFieldsOrdered()) {
+            for (final Field field : repetition.idToField.values()) {
                 field.reset();
             }
         }
@@ -85,7 +82,7 @@ class FieldValue implements Resettable, Closeable {
     public void close() {
         rawValue.release();
         for (final Repetition repetition : repetitions) {
-            for (final Field field : repetition.getFieldsOrdered()) {
+            for (final Field field : repetition.idToField.values()) {
                 field.close();
             }
         }
@@ -102,21 +99,8 @@ class FieldValue implements Resettable, Closeable {
             log.warn("Repetitions array resize in field {}, from {} to {}. Consider making default larger", longValue != LONG_DEFAULT_VALUE ? longValue : "N/A", repetitions.length, newLength);
             final Repetition[] newArray = new Repetition[newLength];
             System.arraycopy(repetitions, 0, newArray, 0, repetitions.length);
-            final ByteBufComposer fieldData;
-            if (repetitions.length > 0) {
-                fieldData = repetitions[0].fieldsOrdered[0].getFieldData();
-            } else {
-                fieldData = null;
-            }
             for (int i = repetitions.length; i < newLength; i++) {
-                final Repetition repetition = repetitionSupplier.get();
-                if (fieldData != null) {
-                    for (final Field field : repetition.fieldsOrdered) {
-                        field.setFieldData(fieldData);
-                    }
-
-                }
-                newArray[i] = repetition;
+                newArray[i] = new Repetition();
             }
             repetitions = newArray;
         }
@@ -127,9 +111,21 @@ class FieldValue implements Resettable, Closeable {
         ensureRepetitionsArrayCapacity();
     }
 
-    @Value
     static final class Repetition {
-        private final Field[] fieldsOrdered;
-        private final Int2ObjectHashMap<? extends Field> idToField;
+        private final Int2ObjectHashMap<Field> idToField = new Int2ObjectHashMap<>();
+
+        public Field getExistingOrNewGroupField(int fieldNum, FieldCodec fieldCodec) {
+            return idToField.computeIfAbsent(fieldNum, key -> new Field(key, fieldCodec));
+        }
+
+        @Nullable
+        public Field getExistingGroupFieldOrNull(int fieldNumber) {
+            final Field field = idToField.get(fieldNumber);
+            if (field != null) {
+                return field;
+            } else {
+                return null;
+            }
+        }
     }
 }

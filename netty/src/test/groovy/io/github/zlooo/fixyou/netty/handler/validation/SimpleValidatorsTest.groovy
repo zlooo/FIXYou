@@ -2,7 +2,6 @@ package io.github.zlooo.fixyou.netty.handler.validation
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.fix.commons.RejectReasons
-import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
 import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.netty.channel.ChannelFuture
@@ -60,7 +59,7 @@ class SimpleValidatorsTest extends Specification {
     }
 
     private static FixMessage createFixMessage(LocalDateTime origSendingTime, Boolean possDupFlag) {
-        def fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        def fixMessage = new FixMessage(new FieldCodec())
         if (origSendingTime != null) {
             fixMessage.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).setTimestampValue(origSendingTime.toInstant(ZoneOffset.UTC).toEpochMilli())
         }

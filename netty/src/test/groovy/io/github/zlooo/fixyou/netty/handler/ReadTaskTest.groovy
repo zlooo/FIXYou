@@ -18,7 +18,7 @@ class ReadTaskTest extends Specification {
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
     private EventLoop eventLoop = Mock()
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
 
     void setup() {
         messageDecoder.handlerAdded(channelHandlerContext)

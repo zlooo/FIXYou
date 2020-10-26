@@ -21,7 +21,7 @@ class TestFixMessageListener implements FixMessageListener {
     @Override
     void onFixMessage(SessionID sessionID, FixMessage fixMessage) {
         assert fixMessage.refCnt() >= 1
-        FixMessage msg = new FixMessage(TestSpec.INSTANCE, FIELD_CODEC)
+        FixMessage msg = new FixMessage(FIELD_CODEC)
         copyTo(fixMessage, msg)
         messagesReceived << msg
         LOGGER.info("Session with id {} received a message {}", sessionID, msg)
@@ -30,7 +30,7 @@ class TestFixMessageListener implements FixMessageListener {
     private static void copyTo(FixMessage from, FixMessage to) {
         to.resetAllDataFieldsAndReleaseByteSource()
         to.messageByteSource = copy(from.messageByteSource)
-        for (final Field field : from.fields) {
+        for (final Field field : from.allFields) {
             if (field != null && field.isValueSet()) {
                 to.getField(field.number).setIndexes(field.getStartIndex(), field.getEndIndex())
             }

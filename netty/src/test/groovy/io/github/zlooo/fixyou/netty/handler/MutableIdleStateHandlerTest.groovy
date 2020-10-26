@@ -49,7 +49,7 @@ class MutableIdleStateHandlerTest extends Specification {
 
     def "should send heartbeat when write timeout occurs"() {
         setup:
-        FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage fixMessage = new FixMessage(new FieldCodec())
 
         when:
         idleStateHandler.channelIdle(channelHandlerContext, IdleStateEvent.WRITER_IDLE_STATE_EVENT)
@@ -65,7 +65,7 @@ class MutableIdleStateHandlerTest extends Specification {
 
     def "should send test request when first read timeout occurs"() {
         setup:
-        FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage fixMessage = new FixMessage(new FieldCodec())
 
         when:
         idleStateHandler.channelIdle(channelHandlerContext, IdleStateEvent.FIRST_READER_IDLE_STATE_EVENT)

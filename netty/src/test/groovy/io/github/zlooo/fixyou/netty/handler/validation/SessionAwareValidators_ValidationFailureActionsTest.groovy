@@ -26,7 +26,7 @@ import java.time.ZoneOffset
 class SessionAwareValidators_ValidationFailureActionsTest extends Specification {
 
     private static SessionID sessionID = new SessionID('beginString'.toCharArray(), 11, 'senderCompId'.toCharArray(), 12, 'targetCompId'.toCharArray(), 12)
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
     private SessionConfig sessionConfig = new SessionConfig()
     private DefaultObjectPool<FixMessage> fixMessageObjectReadPool = Mock()
     private DefaultObjectPool<FixMessage> fixMessageObjectWritePool = Mock()
@@ -40,7 +40,7 @@ class SessionAwareValidators_ValidationFailureActionsTest extends Specification 
         LocalDateTime now = LocalDateTime.now()
         fixMessage.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).timestampValue = now.plusMinutes(1).toInstant(ZoneOffset.UTC).toEpochMilli()
         fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).timestampValue = now.minusMinutes(1).toInstant(ZoneOffset.UTC).toEpochMilli()
-        FixMessage logoutMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage logoutMessage = new FixMessage(new FieldCodec())
 
         when:
         SessionAwareValidators.ORIG_SENDING_TIME_VALIDATOR.validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectWritePool)
@@ -65,7 +65,7 @@ class SessionAwareValidators_ValidationFailureActionsTest extends Specification 
         fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).charSequenceValue = sessionID.beginString
         fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).charSequenceValue = senderCompId
         fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).charSequenceValue = targetCompId
-        FixMessage logout = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage logout = new FixMessage(new FieldCodec())
 
         when:
         SessionAwareValidators.COMP_ID_VALIDATOR.validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectWritePool)
@@ -141,7 +141,7 @@ class SessionAwareValidators_ValidationFailureActionsTest extends Specification 
         setup:
         LocalDateTime now = LocalDateTime.now()
         fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).timestampValue = now.minusMinutes(1).toInstant(ZoneOffset.UTC).toEpochMilli()
-        FixMessage logoutMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage logoutMessage = new FixMessage(new FieldCodec())
 
         when:
         SessionAwareValidators.createSendingTimeValidator(Clock.fixed(now.toInstant(ZoneOffset.UTC), ZoneOffset.UTC)).validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectWritePool)

@@ -15,7 +15,7 @@ class DoubleFieldTest extends Specification {
     private ByteBuf underlyingBuf = Unpooled.buffer(20, 20)
 
     void setup() {
-        field = new Field(10, TestSpec.INSTANCE, new FieldCodec())
+        field = new Field(10, new FieldCodec())
         def byteBufComposer = new ByteBufComposer(1)
         field.setFieldData(byteBufComposer)
         underlyingBuf.writeCharSequence("-123.666", StandardCharsets.US_ASCII)
@@ -131,7 +131,7 @@ class DoubleFieldTest extends Specification {
         def buf = Unpooled.buffer(10, 10)
 
         when:
-        def result = field.appendByteBufWithValue(buf)
+        def result = field.appendByteBufWithValue(buf, TestSpec.INSTANCE)
 
         then:
         buf.toString(StandardCharsets.US_ASCII) == "1.472"

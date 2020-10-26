@@ -7,7 +7,7 @@ import spock.lang.Specification
 
 class FixMessageTest extends Specification {
 
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
 
     def "should set new message byte source"() {
         setup:
@@ -51,14 +51,30 @@ class FixMessageTest extends Specification {
 
     def "should close fields when message is closed"() {
         def field = Mock(Field)
-        def fieldsOrdered = fixMessage.fieldsOrdered
-        (0..fieldsOrdered.length - 1).forEach { fieldsOrdered[it] = field }
+        (0..9).forEach {
+            fixMessage.getField(it + 1)
+            fixMessage.actualFields[it] = field
+        }
 
         when:
         fixMessage.close()
 
         then:
-        fieldsOrdered.length * field.close()
+        fixMessage.@actualFieldsLength * field.close()
         0 * _
+    }
+
+    def "should extend fields arrays when necessary"() {
+        when:
+        def result = fixMessage.getField(5000)
+
+        then:
+        result != null
+        !result.is(FixMessage.PLACEHOLDER)
+        result instanceof Field
+        result.number == 5000
+        !result.valueSet
+        fixMessage.allFields.length >= 5001
+        fixMessage.actualFields.length >= 5001
     }
 }

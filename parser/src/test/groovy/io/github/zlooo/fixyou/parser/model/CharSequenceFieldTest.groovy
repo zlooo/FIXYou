@@ -15,7 +15,7 @@ class CharSequenceFieldTest extends Specification {
     private ByteBuf underlyingBuf = Unpooled.buffer(30, 30)
 
     void setup() {
-        field = new Field(1, TestSpec.INSTANCE, new FieldCodec());
+        field = new Field(1, new FieldCodec());
         def byteBufComposer = new ByteBufComposer(1)
         field.setFieldData(byteBufComposer)
         underlyingBuf.writerIndex(1)
@@ -71,7 +71,7 @@ class CharSequenceFieldTest extends Specification {
 
     def "should set value from char sequence"() {
         setup:
-        Field field2 = new Field(2, TestSpec.INSTANCE, new FieldCodec())
+        Field field2 = new Field(2, new FieldCodec())
         field2.setCharSequenceValue("someVeryLongValue".toCharArray(), "someVeryLongValue".length())
 
         when:
@@ -104,7 +104,7 @@ class CharSequenceFieldTest extends Specification {
         def buf = Unpooled.buffer(20, 20)
 
         when:
-        def result = field.appendByteBufWithValue(buf)
+        def result = field.appendByteBufWithValue(buf, TestSpec.INSTANCE)
 
         then:
         buf.toString(StandardCharsets.US_ASCII) == "textToWrite"

@@ -1,7 +1,6 @@
 package io.github.zlooo.fixyou.fix.commons.session
 
 import io.github.zlooo.fixyou.FixConstants
-import io.github.zlooo.fixyou.fix.commons.TestSpec
 import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.SessionID
@@ -14,7 +13,7 @@ class SessionIDUtilsTest extends Specification {
 
     def "should set all session id fields"() {
         setup:
-        def fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        def fixMessage = new FixMessage(new FieldCodec())
 
         when:
         SessionIDUtils.setSessionIdFields(fixMessage, sessionID)
@@ -28,7 +27,7 @@ class SessionIDUtilsTest extends Specification {
 
     def "should build session id from fix message"() {
         setup:
-        def fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        def fixMessage = new FixMessage(new FieldCodec())
         fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).charSequenceValue = sessionID.beginString
         fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).charSequenceValue = sessionID.senderCompID
         fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).charSequenceValue = sessionID.targetCompID
@@ -39,7 +38,7 @@ class SessionIDUtilsTest extends Specification {
 
     def "should build session id from fix message with comp ids flipped"() {
         setup:
-        def fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        def fixMessage = new FixMessage(new FieldCodec())
         fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).charSequenceValue = sessionID.beginString
         fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).charSequenceValue = sessionID.senderCompID
         fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).charSequenceValue = sessionID.targetCompID
@@ -50,7 +49,7 @@ class SessionIDUtilsTest extends Specification {
 
     def "should check if comp ids are equal"() {
         setup:
-        def fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        def fixMessage = new FixMessage(new FieldCodec())
         fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).charSequenceValue = senderCompID
         fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).charSequenceValue = targetCompID
 

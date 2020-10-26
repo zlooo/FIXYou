@@ -17,7 +17,7 @@ class TimestampFieldTest extends Specification {
     private ByteBuf underlyingBuf = Unpooled.buffer(30, 30)
 
     void setup() {
-        field = new Field(1, TestSpec.INSTANCE, new FieldCodec())
+        field = new Field(1, new FieldCodec())
         def byteBufComposer = new ByteBufComposer(1)
         field.setFieldData(byteBufComposer)
         underlyingBuf.clear().writeCharSequence("20200608-22:45:16.666", StandardCharsets.US_ASCII)
@@ -78,7 +78,7 @@ class TimestampFieldTest extends Specification {
         def buf = Unpooled.buffer(30, 30)
 
         when:
-        def result = field.appendByteBufWithValue(buf)
+        def result = field.appendByteBufWithValue(buf, TestSpec.INSTANCE)
 
         then:
         buf.toString(StandardCharsets.US_ASCII) == "20260606-22:45:16.666"

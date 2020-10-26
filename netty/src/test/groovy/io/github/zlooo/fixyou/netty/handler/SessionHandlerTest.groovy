@@ -24,7 +24,7 @@ class SessionHandlerTest extends Specification {
     private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), new SessionID("testBeginString".toCharArray(), 15, "testSender".toCharArray(), 10, "testTarget".toCharArray(), 10),
                                                                                            fixMessageObjectReadPool, fixMessageObjectWritePool, TestSpec.INSTANCE)
     private SessionHandler sessionHandler = new SessionHandler(sessionState)
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
     private ChannelHandlerContext channelHandlerContext = Mock()
     private ChannelFuture channelFuture = Mock()
 
@@ -196,7 +196,7 @@ class SessionHandlerTest extends Specification {
     def "should send resend request when gap is detected"() {
         setup:
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 10L
-        FixMessage resendRequest = new FixMessage(sessionHandler.sessionState.fixSpec, new FieldCodec())
+        FixMessage resendRequest = new FixMessage(new FieldCodec())
 
         when:
         sessionHandler.channelRead(channelHandlerContext, fixMessage)
@@ -228,7 +228,7 @@ class SessionHandlerTest extends Specification {
     def "should send resend request when single message gap is detected"() {
         setup:
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 2L
-        FixMessage resendRequest = new FixMessage(sessionHandler.sessionState.fixSpec, new FieldCodec())
+        FixMessage resendRequest = new FixMessage(new FieldCodec())
 
         when:
         sessionHandler.channelRead(channelHandlerContext, fixMessage)
@@ -251,7 +251,7 @@ class SessionHandlerTest extends Specification {
 
     def "should push message for processing when response to resend request arrives"() {
         setup:
-        FixMessage queuedFixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage queuedFixMessage = new FixMessage(new FieldCodec())
         queuedFixMessage.retain()
         sessionHandler.@sequenceNumberToQueuedFixMessages.putAll([(1L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (2L): queuedFixMessage, (3L): FixMessageUtils.EMPTY_FAKE_MESSAGE])
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 1L
@@ -273,9 +273,9 @@ class SessionHandlerTest extends Specification {
     def "should send resend request cut down to what has not been yet requested"() {
         setup:
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 10L
-        def queuedFixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        def queuedFixMessage = new FixMessage(new FieldCodec())
         sessionHandler.@sequenceNumberToQueuedFixMessages.putAll([(1L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (2L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (3L): queuedFixMessage])
-        FixMessage resendRequest = new FixMessage(sessionHandler.sessionState.fixSpec, new FieldCodec())
+        FixMessage resendRequest = new FixMessage(new FieldCodec())
 
         when:
         sessionHandler.channelRead(channelHandlerContext, fixMessage)
@@ -307,7 +307,7 @@ class SessionHandlerTest extends Specification {
     def "should not send resend request for sequence that has already been requested"() {
         setup:
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 2L
-        def queuedFixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        def queuedFixMessage = new FixMessage(new FieldCodec())
         sessionHandler.@sequenceNumberToQueuedFixMessages.putAll([(1L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (2L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (3L): queuedFixMessage])
 
         when:
@@ -383,7 +383,7 @@ class SessionHandlerTest extends Specification {
 
     def "should reprocess queued message if it is sequence reset"() {
         setup:
-        FixMessage sequenceReset = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage sequenceReset = new FixMessage(new FieldCodec())
         sequenceReset.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue = FixConstants.SEQUENCE_RESET
         sequenceReset.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 2L
         sequenceReset.getField(FixConstants.NEW_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 10L
@@ -413,7 +413,7 @@ class SessionHandlerTest extends Specification {
 
     def "should push message for processing when sequence reset - gap fill arrives"() {
         setup:
-        FixMessage someFixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage someFixMessage = new FixMessage(new FieldCodec())
         sessionHandler.@sequenceNumberToQueuedFixMessages.putAll([(1L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (2L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (3L): someFixMessage])
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 1L
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue = FixConstants.SEQUENCE_RESET
@@ -441,7 +441,7 @@ class SessionHandlerTest extends Specification {
 
     def "should push message for processing when sequence reset - reset arrives"() {
         setup:
-        FixMessage someFixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage someFixMessage = new FixMessage(new FieldCodec())
         sessionHandler.@sequenceNumberToQueuedFixMessages.putAll([(1L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (2L): FixMessageUtils.EMPTY_FAKE_MESSAGE, (3L): someFixMessage])
         fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue = FixConstants.SEQUENCE_RESET
         fixMessage.getField(FixConstants.NEW_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 3
@@ -467,7 +467,7 @@ class SessionHandlerTest extends Specification {
 
     def "should ignore queued admin messages other than sequence reset"() {
         setup:
-        FixMessage someFixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+        FixMessage someFixMessage = new FixMessage(new FieldCodec())
         someFixMessage.retain()
         someFixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue = FixConstants.HEARTBEAT
         def beginStringField = someFixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER)

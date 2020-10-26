@@ -22,7 +22,7 @@ class SessionAwareValidators_ValidatorsTest extends Specification {
 
     private static OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC)
     private static SessionID sessionID = new SessionID('beginString'.toCharArray(), 11, 'senderCompId'.toCharArray(), 12, 'targetCompId'.toCharArray(), 12)
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE, new FieldCodec())
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
     private SessionConfig sessionConfig = new SessionConfig()
     private DefaultObjectPool<FixMessage> fixMessageObjectReadPool = Mock()
     private DefaultObjectPool<FixMessage> fixMessageObjectWritePool = Mock()

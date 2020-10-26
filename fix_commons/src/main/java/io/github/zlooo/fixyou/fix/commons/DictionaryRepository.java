@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Singleton
-public class DictionaryRepository {
+public class DictionaryRepository { //TODO this class will not be needed any more one I make fix message spec agnostic, there will be just 1 pool
 
     private final FIXYouConfiguration fixYouConfiguration;
     private final FieldCodec fieldCodec;
@@ -41,8 +41,8 @@ public class DictionaryRepository {
     }
 
     private ObjectPool<FixMessage> createPool(FixSpec fixSpec, int poolSize) {
-        return fixYouConfiguration.isSeparateIoFromAppThread() ? new ArrayBackedObjectPool<>(poolSize, () -> new FixMessage(fixSpec, fieldCodec), FixMessage.class, poolSize) :
-                new DefaultObjectPool<>(poolSize, () -> new FixMessage(fixSpec, fieldCodec), FixMessage.class, poolSize);
+        return fixYouConfiguration.isSeparateIoFromAppThread() ? new ArrayBackedObjectPool<>(poolSize, () -> new FixMessage(fieldCodec), FixMessage.class, poolSize) :
+                new DefaultObjectPool<>(poolSize, () -> new FixMessage(fieldCodec), FixMessage.class, poolSize);
     }
 
     @Value
