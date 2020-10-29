@@ -29,9 +29,8 @@ class TestRequestHandler implements AdministrativeMessageHandler {
         if (log.isDebugEnabled()) {
             log.debug("Test request received for session " + NettyHandlerAwareSessionState.getForChannelContext(ctx).getSessionId() + ", responding with heartbeat");
         }
-        fixMessage.retain();
         final Field testReqID = fixMessage.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER);
-        ctx.writeAndFlush(FixMessageUtils.toHeartbeatMessage(fixMessage, testReqID.getCharArrayValue(), testReqID.getLength())).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+        ctx.writeAndFlush(FixMessageUtils.toHeartbeatMessage(fixMessage, testReqID.getCharArrayValue(), testReqID.getLength()).retain()).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
     }
 
     @Override

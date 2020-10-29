@@ -1,5 +1,6 @@
 package io.github.zlooo.fixyou.netty.handler;
 
+import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.netty.handler.validation.*;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
@@ -17,12 +18,15 @@ class MessageValidationHandler extends SimpleChannelInboundHandler<FixMessage>
 
     private final List<SingleArgValidator<FixMessage>> unconditionalValidators;
     private final List<PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>>> predicateWithValidators;
+    private final ObjectPool<FixMessage> fixMessageObjectPool;
 
     MessageValidationHandler(List<SingleArgValidator<FixMessage>> unconditionalValidators,
-                             List<PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>>> predicateWithValidators) {
+                             List<PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>>> predicateWithValidators,
+                             ObjectPool<FixMessage> fixMessageObjectPool) {
         super(false);
         this.unconditionalValidators = unconditionalValidators;
         this.predicateWithValidators = predicateWithValidators;
+        this.fixMessageObjectPool = fixMessageObjectPool;
     }
 
     @Override
@@ -31,7 +35,7 @@ class MessageValidationHandler extends SimpleChannelInboundHandler<FixMessage>
         final ValidationFailureAction validationFailureAction = checkFixMessage(msg, sessionState);
         if (validationFailureAction != null) {
             log.warn("Message validation failed, performing {}", validationFailureAction);
-            validationFailureAction.perform(ctx, msg, sessionState.getFixMessageWritePool());
+            validationFailureAction.perform(ctx, msg, fixMessageObjectPool);
         } else {
             ctx.fireChannelRead(msg);
         }

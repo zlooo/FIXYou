@@ -12,7 +12,7 @@ import lombok.*;
 
 @EqualsAndHashCode
 @ToString(exclude = {"encodedFieldNumber", "fieldData", "fieldCodec"})
-public class Field implements Closeable {
+public class Field implements Closeable, BooleanField, CharField, CharSequenceField, DoubleField, LongField, TimestampField, GroupField {
 
     @Getter
     private final int number;
@@ -94,66 +94,82 @@ public class Field implements Closeable {
         return encodedFieldNumberSumOfBytes;
     }
 
+    @Override
     public boolean getBooleanValue() {
         return fieldCodec.getBooleanValue(fieldValue, this);
     }
 
+    @Override
     public void setBooleanValue(boolean newValue) {
         fieldCodec.setBooleanValue(newValue, fieldValue);
     }
 
+    @Override
     public char getCharValue() {
         return fieldCodec.getCharValue(fieldValue, this);
     }
 
+    @Override
     public void setCharValue(char newValue) {
         fieldCodec.setCharValue(newValue, fieldValue);
     }
 
+    @Override
     public CharSequence getCharSequenceValue() {
         return fieldCodec.getCharSequenceValue(fieldValue, this);
     }
 
+    @Override
     public char[] getCharArrayValue() {
         return fieldCodec.getCharSequenceValue(fieldValue, this).getState();
     }
 
+    @Override
     public void setCharSequenceValue(char[] newValue) {
         setCharSequenceValue(newValue, newValue.length);
     }
 
+    @Override
     public void setCharSequenceValue(Field sourceField) {
         setCharSequenceValue(sourceField.fieldValue.getCharArrayValue(), sourceField.getLength());
     }
 
+    @Override
     public void setCharSequenceValue(char[] newValue, int newValueLength) {
         this.fieldCodec.setCharSequenceValue(newValue, newValueLength, fieldValue);
     }
 
+    @Override
     public long getDoubleUnscaledValue() {
         return fieldCodec.getDoubleUnscaledValue(fieldValue, this);
     }
 
+    @Override
     public short getScale() {
         return fieldCodec.getScale(fieldValue, this);
     }
 
+    @Override
     public void setDoubleValue(long newValue, short newScale) {
         this.fieldCodec.setDoubleValue(newValue, newScale, fieldValue);
     }
 
+    @Override
     public long getLongValue() {
         return fieldCodec.getLongValue(fieldValue, this);
     }
 
+    @Override
     public void setLongValue(long newValue) {
         this.fieldCodec.setLongValue(newValue, fieldValue);
     }
 
+    @Override
     public long getTimestampValue() {
         return fieldCodec.getTimestampValue(fieldValue, this);
     }
 
+    @Override
     public void setTimestampValue(long newValue) {
         this.fieldCodec.setTimestampValue(newValue, fieldValue);
     }
@@ -162,19 +178,34 @@ public class Field implements Closeable {
         return fieldCodec.appendByteBufWithValue(out, fieldValue, this, fixSpec);
     }
 
+    @Override
     public Field getFieldForCurrentRepetition(int fieldNum) {
         final Field groupField = fieldValue.getCurrentRepetition().getExistingOrNewGroupField(fieldNum, fieldCodec);
         groupField.setFieldData(fieldData);
         return groupField;
     }
 
+    @Override
     public Field getFieldForGivenRepetition(int repetitionIndex, int fieldNum) {
-        return ArrayUtils.getElementAt(fieldValue.getRepetitions(), repetitionIndex).getExistingOrNewGroupField(fieldNum, fieldCodec);
+        final Field groupField = ArrayUtils.getElementAt(fieldValue.getRepetitions(), repetitionIndex).getExistingOrNewGroupField(fieldNum, fieldCodec);
+        groupField.setFieldData(fieldData);
+        return groupField;
     }
 
+    @Override
     public Field endCurrentRepetition() {
         fieldValue.setValueTypeSet(FieldType.GROUP);
         fieldValue.incrementRepetitionsCounter();
         return this;
+    }
+
+    protected void copyDataFrom(Field field) {
+        fieldData = field.fieldData;
+        if (field.indicesSet) {
+            indicesSet = true;
+            startIndex = field.startIndex;
+            endIndex = field.endIndex;
+        }
+        fieldValue.copyDataFrom(field.fieldValue, fieldCodec);
     }
 }

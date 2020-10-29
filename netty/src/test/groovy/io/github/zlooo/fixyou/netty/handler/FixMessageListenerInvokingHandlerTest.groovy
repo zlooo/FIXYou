@@ -28,8 +28,7 @@ class FixMessageListenerInvokingHandlerTest extends Specification {
 
     def "should invoke fix message listener directly"() {
         setup:
-        fixMessage.retain()
-        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener, fixYouConfiguration)
+        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener, fixYouConfiguration, new FieldCodec())
 
         when:
         handler.channelRead(channelHandlerContext, fixMessage)
@@ -47,9 +46,10 @@ class FixMessageListenerInvokingHandlerTest extends Specification {
 
     def "should invoke fix message listener via disruptor"() {
         setup:
-        fixMessage.retain()
         def fixMessageListener = new TestFixMessageListener()
-        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener, new FIXYouConfiguration.FIXYouConfigurationBuilder().separateIoFromAppThread(true).build())
+        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener,
+                                                                                          new FIXYouConfiguration.FIXYouConfigurationBuilder().separateIoFromAppThread(true).fixMessageListenerInvokerDisruptorSize(4).build(),
+                                                                                          new FieldCodec())
         PollingConditions pollingConditions = new PollingConditions()
 
         when:
@@ -77,7 +77,7 @@ class FixMessageListenerInvokingHandlerTest extends Specification {
     def "should set channel is listener is instance of AbstractNettyAwareFixMessageListener"() {
         setup:
         TestFixMessageListener fixMessageListener = new TestFixMessageListener()
-        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener, fixYouConfiguration)
+        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener, fixYouConfiguration, new FieldCodec())
 
         when:
         handler.channelActive(channelHandlerContext)

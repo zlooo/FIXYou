@@ -10,7 +10,6 @@ import io.github.zlooo.fixyou.utils.AsciiCodes;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.AsciiString;
 import io.netty.util.ReferenceCountUtil;
-import org.agrona.collections.Hashing;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -39,6 +38,7 @@ public class FieldCodec {
         fieldValue.setBooleanValue(newValue);
         fieldValue.setParsed(true);
         fieldValue.setValueTypeSet(FieldType.BOOLEAN);
+        fieldValue.setLength(1);
     }
 
     char getCharValue(FieldValue fieldValue, Field field) {
@@ -51,31 +51,22 @@ public class FieldCodec {
     void setCharValue(char newValue, FieldValue fieldValue) {
         fieldValue.setCharValue(newValue);
         fieldValue.setValueTypeSet(FieldType.CHAR);
+        fieldValue.setLength(1);
     }
 
     MutableCharSequence getCharSequenceValue(FieldValue fieldValue, Field field) {
         if (fieldValue.getLength() == 0 && field.isIndicesSet()) {
             fieldValue.setLength(field.getLength());
-            ensureSufficientTablesLength(fieldValue, fieldValue.getLength());
+            fieldValue.ensureCharArraysCapacity(fieldValue.getLength());
             ParsingUtils.readChars(field.getFieldData(), field.getStartIndex(), fieldValue.getLength(), fieldValue.getRawValue(), fieldValue.getCharArrayValue());
         }
         return fieldValue.getCharSequenceValue();
     }
 
-    private void ensureSufficientTablesLength(FieldValue fieldValue, int length) {
-        if (fieldValue.getCharArrayValue().length < length) {
-            final int newTableLength = (int) ((length + 1) * (1.0 + Hashing.DEFAULT_LOAD_FACTOR));
-            fieldValue.getRawValue().ensureWritable(newTableLength);
-            final char[] charArrayValue = new char[newTableLength];
-            fieldValue.setCharArrayValue(charArrayValue);
-            fieldValue.getCharSequenceValue().setState(charArrayValue);
-        }
-    }
-
     void setCharSequenceValue(char[] newValue, int newValueLength, FieldValue fieldValue) {
         fieldValue.setLength(newValueLength);
         final ByteBuf rawValue = fieldValue.getRawValue().clear();
-        ensureSufficientTablesLength(fieldValue, newValueLength);
+        fieldValue.ensureCharArraysCapacity(newValueLength);
         final char[] charArrayValue = fieldValue.getCharArrayValue();
         System.arraycopy(newValue, 0, charArrayValue, 0, newValueLength);
         int sumOfBytes = 0;

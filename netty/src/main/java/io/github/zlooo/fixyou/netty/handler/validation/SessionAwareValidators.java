@@ -31,7 +31,7 @@ public class SessionAwareValidators {
                     log.warn("Original sending time is greater than sending time in session {}. Logging out session, message will be logged on debug level", sessionState.getSessionId());
                     log.debug("Message with wrong OrigSendingTime {}", fixMsg);
                     return (ctx, message, fixMessageObjectPool) -> {
-                        ctx.write(FixMessageUtils.toRejectMessage(message, RejectReasons.SENDING_TIME_ACCURACY_PROBLEM)).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+                        ctx.write(FixMessageUtils.toRejectMessage(message, RejectReasons.SENDING_TIME_ACCURACY_PROBLEM).retain()).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
                         ctx.writeAndFlush(FixMessageUtils.toLogoutMessage(fixMessageObjectPool.getAndRetain(), LogoutTexts.INACCURATE_SENDING_TIME))
                            .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
                            .addListener(FixChannelListeners.LOGOUT_SENT)
@@ -72,7 +72,7 @@ public class SessionAwareValidators {
                 if (log.isWarnEnabled()) {
                     log.warn("Invalid message type received, expected one of " + Arrays.deepToString(sessionState.getFixSpec().getMessageTypes()) + ", got " + messageType);
                 }
-                return (ctx, message, fixMessageObjectPool) -> ctx.writeAndFlush(FixMessageUtils.toRejectMessage(message, RejectReasons.INVALID_MESSAGE_TYPE, FixConstants.MESSAGE_TYPE_FIELD_NUMBER))
+                return (ctx, message, fixMessageObjectPool) -> ctx.writeAndFlush(FixMessageUtils.toRejectMessage(message, RejectReasons.INVALID_MESSAGE_TYPE, FixConstants.MESSAGE_TYPE_FIELD_NUMBER).retain())
                                                                   .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
             });
 
@@ -87,7 +87,7 @@ public class SessionAwareValidators {
                          FixConstants.SENDING_TIME_ACCURACY_MILLIS, sessionState.getSessionId());
                 log.debug("Message with sending time inaccuracy {}", fixMessage);
                 return (ctx, message, fixMessageObjectPool) -> {
-                    ctx.write(FixMessageUtils.toRejectMessage(message, RejectReasons.SENDING_TIME_ACCURACY_PROBLEM)).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+                    ctx.write(FixMessageUtils.toRejectMessage(message, RejectReasons.SENDING_TIME_ACCURACY_PROBLEM).retain()).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
                     ctx.writeAndFlush(FixMessageUtils.toLogoutMessage(fixMessageObjectPool.getAndRetain(), LogoutTexts.INACCURATE_SENDING_TIME))
                        .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
                        .addListener(FixChannelListeners.LOGOUT_SENT)
@@ -107,7 +107,7 @@ public class SessionAwareValidators {
                 if (log.isWarnEnabled()) {
                     log.warn("Unexpected begin string received, expecting " + Arrays.toString(sessionId.getBeginString()) + BUT_GOT_LOG_FRAGMENT + beginString + LOGGING_OUT_SESSION_LOG_FRAGMENT + sessionId);
                 }
-                return (ctx, message, fixMessageObjectPool) -> ctx.writeAndFlush(FixMessageUtils.toLogoutMessage(message, LogoutTexts.INCORRECT_BEGIN_STRING))
+                return (ctx, message, fixMessageObjectPool) -> ctx.writeAndFlush(FixMessageUtils.toLogoutMessage(message, LogoutTexts.INCORRECT_BEGIN_STRING).retain())
                                                                   .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
                                                                   .addListener(FixChannelListeners.LOGOUT_SENT)
                                                                   .addListener(ChannelFutureListener.CLOSE);
@@ -123,7 +123,7 @@ public class SessionAwareValidators {
             if (!SessionIDUtils.checkCompIDs(fixMsg, sessionId, true)) {
                 log.warn("Session id fields in message {} do not match connected session {}", fixMsg, sessionId);
                 return (ctx, message, fixMessageObjectPool) -> {
-                    ctx.write(FixMessageUtils.toRejectMessage(message, RejectReasons.COMP_ID_PROBLEM)).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+                    ctx.write(FixMessageUtils.toRejectMessage(message, RejectReasons.COMP_ID_PROBLEM).retain()).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
                     ctx.writeAndFlush(FixMessageUtils.toLogoutMessage(fixMessageObjectPool.getAndRetain(), LogoutTexts.INCORRECT_SENDER_OR_TARGET_COMP_ID))
                        .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
                        .addListener(FixChannelListeners.LOGOUT_SENT)

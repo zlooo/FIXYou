@@ -26,4 +26,13 @@ public abstract class AbstractSessionState implements Resettable, Closeable {
     public void reset() {
         resettables.forEach((key, value) -> value.reset());
     }
+
+    @Override
+    public void close() {
+        for (final Resettable resettable : getResettables().values()) {
+            if (resettable instanceof Closeable) {
+                ((Closeable) resettable).close();
+            }
+        }
+    }
 }

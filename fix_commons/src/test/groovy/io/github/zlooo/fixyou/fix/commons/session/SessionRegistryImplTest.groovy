@@ -2,9 +2,8 @@ package io.github.zlooo.fixyou.fix.commons.session
 
 import io.github.zlooo.fixyou.FIXYouException
 import io.github.zlooo.fixyou.Resettable
-import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.model.FixSpec
-import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.session.AbstractSessionState
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID
 import org.assertj.core.api.Assertions
@@ -16,7 +15,7 @@ class SessionRegistryImplTest extends Specification {
 
     private SessionID existingSessionId = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
     private SessionRegistryImpl sessionRegistry = new SessionRegistryImpl()
-    private TestSessionState existingSessionState = new TestSessionState(new SessionConfig(), existingSessionId, Mock(DefaultObjectPool), Mock(DefaultObjectPool), Mock(FixSpec))
+    private TestSessionState existingSessionState = new TestSessionState(new SessionConfig(), existingSessionId, Mock(FixSpec))
 
     void setup() {
         sessionRegistry.@sessions.put(existingSessionId, existingSessionState)
@@ -74,9 +73,9 @@ class SessionRegistryImplTest extends Specification {
         Assertions.assertThat(sessionRegistry.@sessions).containsOnly(Assertions.entry(existingSessionId, existingSessionState))
     }
 
-    private static final class TestSessionState extends AbstractMessagePoolingSessionState {
-        TestSessionState(SessionConfig sessionConfig, SessionID sessionID, DefaultObjectPool<FixMessage> fixMessageObjectReadPool, DefaultObjectPool<FixMessage> fixMessageObjectWritePool, FixSpec fixSpec) {
-            super(sessionConfig, sessionID, fixMessageObjectReadPool, fixMessageObjectWritePool, fixSpec)
+    private static final class TestSessionState extends AbstractSessionState {
+        TestSessionState(SessionConfig sessionConfig, SessionID sessionID, FixSpec fixSpec) {
+            super(sessionConfig, sessionID, fixSpec)
         }
     }
 }

@@ -24,14 +24,14 @@ class MessageValidatorHandlerTest extends Specification {
     private Predicate<ValidationConfig> predicate2 = Mock()
     private TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState> validator2 = Mock()
     private PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>> predicateWithValidator1 = new PredicateWithValidator<>(predicate2, validator2)
-    private MessageValidationHandler validatorHandler = new MessageValidationHandler([validator1], [predicateWithValidator1])
+    private DefaultObjectPool<FixMessage> fixMessagePool = Mock()
+    private MessageValidationHandler validatorHandler = new MessageValidationHandler([validator1], [predicateWithValidator1], fixMessagePool)
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionAttribute = Mock()
     private NettyHandlerAwareSessionState sessionState = Mock()
     private ValidationConfig validationConfig = new ValidationConfig()
     private SessionConfig sessionConfig = new SessionConfig().setValidationConfig(validationConfig)
-    private DefaultObjectPool<FixMessage> fixMessagePool = Mock()
     private FixMessage fixMessage = new FixMessage(new FieldCodec())
     private ValidationFailureAction validationFailureAction = Mock()
 
@@ -44,7 +44,6 @@ class MessageValidatorHandlerTest extends Specification {
         1 * channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY) >> sessionAttribute
         1 * sessionAttribute.get() >> sessionState
         1 * validator1.apply(fixMessage) >> validationFailureAction
-        1 * sessionState.getFixMessageWritePool() >> fixMessagePool
         1 * validationFailureAction.perform(channelHandlerContext, fixMessage, fixMessagePool)
         0 * _
     }
@@ -61,7 +60,6 @@ class MessageValidatorHandlerTest extends Specification {
         1 * sessionState.getSessionConfig() >> sessionConfig
         1 * predicate2.test(validationConfig) >> true
         1 * validator2.apply(fixMessage, sessionState) >> validationFailureAction
-        1 * sessionState.getFixMessageWritePool() >> fixMessagePool
         1 * validationFailureAction.perform(channelHandlerContext, fixMessage, fixMessagePool)
         0 * _
     }

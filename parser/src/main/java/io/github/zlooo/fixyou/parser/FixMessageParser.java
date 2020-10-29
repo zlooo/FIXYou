@@ -24,13 +24,14 @@ public class FixMessageParser implements Resettable {
     private final ByteBufComposer bytesToParse;
     private final Int2ObjectHashMap<IntHashSet> groupFieldsConstituents = new Int2ObjectHashMap<>();
     @Getter
-    private FixMessage fixMessage;
+    private final FixMessage fixMessage;
     private boolean parsingRepeatingGroup;
     private final Deque<Field> groupFieldsStack = new ArrayDeque<>(DefaultConfiguration.NESTED_REPEATING_GROUPS);
     private int storedEndIndexOfLastUnfinishedMessage;
 
-    public FixMessageParser(ByteBufComposer bytesToParse, FixSpec fixSpec) {
+    public FixMessageParser(ByteBufComposer bytesToParse, FixSpec fixSpec, FixMessage fixMessage) {
         this.bytesToParse = bytesToParse;
+        this.fixMessage = fixMessage;
         final int[] fieldsOrder = fixSpec.getFieldsOrder();
         for (final int fieldNumber : fieldsOrder) {
             final int[] groupFieldNumbers = fixSpec.getRepeatingGroupFieldNumbers(fieldNumber);
@@ -46,21 +47,14 @@ public class FixMessageParser implements Resettable {
 
     @Override
     public void reset() {
-        if (fixMessage != null) {
-            fixMessage.release();
-            fixMessage = null;
-        }
+        fixMessage.resetAllDataFieldsAndReleaseByteSource();
         parsingRepeatingGroup = false;
         groupFieldsStack.clear();
         storedEndIndexOfLastUnfinishedMessage = 0;
     }
 
-    public void setFixMessage(FixMessage fixMessage) {
-        this.fixMessage = fixMessage;
-        if (fixMessage != null) {
-            this.fixMessage.setMessageByteSource(bytesToParse);
-            this.fixMessage.setStartIndex(bytesToParse.readerIndex());
-        }
+    public void startParsing() {
+        this.fixMessage.setStartIndex(bytesToParse.readerIndex());
         storedEndIndexOfLastUnfinishedMessage = 0;
     }
 
@@ -96,7 +90,7 @@ public class FixMessageParser implements Resettable {
             }
             if (fieldNum == FixConstants.CHECK_SUM_FIELD_NUMBER) {
                 storedEndIndexOfLastUnfinishedMessage = 0;
-                fixMessage.setEndIndex(closestFieldTerminatorIndex);
+                fixMessage.setEndIndex(closestFieldTerminatorIndex + 1); //including last SOH
                 return;
             }
         }

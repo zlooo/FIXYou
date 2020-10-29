@@ -84,4 +84,42 @@ class TimestampFieldTest extends Specification {
         buf.toString(StandardCharsets.US_ASCII) == "20260606-22:45:16.666"
         result == TestUtils.sumBytes("20260606-22:45:16.666".getBytes(StandardCharsets.US_ASCII))
     }
+
+    def "should copy unparsed value from other field"() {
+        setup:
+        Field newField = new Field(5, new FieldCodec())
+
+        when:
+        newField.copyDataFrom(field)
+
+        then:
+        newField.@fieldValue.longValue == FieldValue.LONG_DEFAULT_VALUE
+        newField.timestampValue == millis
+        newField.startIndex == 0
+        newField.endIndex == 21
+        newField.indicesSet
+        newField.valueSet
+        newField.fieldData.is(field.fieldData)
+    }
+
+    def "should copy previously set value"() {
+        setup:
+        Field existingField = new Field(10, new FieldCodec())
+        existingField.timestampValue = millis
+        Field newField = new Field(11, new FieldCodec())
+
+        when:
+        newField.copyDataFrom(existingField)
+
+        then:
+        newField.@fieldValue.longValue == millis
+        newField.@fieldValue.length == 21
+        newField.@fieldValue.rawValue.toString(0, 21, StandardCharsets.US_ASCII) == "20200608-22:45:16.666"
+        newField.timestampValue == millis
+        newField.startIndex == 0
+        newField.endIndex == 0
+        !newField.indicesSet
+        newField.valueSet
+        newField.fieldData == null
+    }
 }

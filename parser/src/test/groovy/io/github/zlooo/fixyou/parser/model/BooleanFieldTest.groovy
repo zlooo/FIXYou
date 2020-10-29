@@ -112,4 +112,43 @@ class BooleanFieldTest extends Specification {
         true       | "Y"           | AsciiString.c2b('Y' as char)
         false      | "N"           | AsciiString.c2b('N' as char)
     }
+
+    def "should copy unparsed value from other field"() {
+        setup:
+        Field newField = new Field(5, new FieldCodec())
+
+        when:
+        newField.copyDataFrom(field)
+
+        then:
+        !newField.@fieldValue.parsed
+        !newField.@fieldValue.booleanValue
+        newField.booleanValue
+        newField.startIndex == 5
+        newField.endIndex == 6
+        newField.indicesSet
+        newField.valueSet
+        newField.fieldData.is(field.fieldData)
+    }
+
+    def "should copy previously set value"() {
+        setup:
+        Field existingField = new Field(10, new FieldCodec())
+        existingField.booleanValue = true
+        Field newField = new Field(11, new FieldCodec())
+
+        when:
+        newField.copyDataFrom(existingField)
+
+        then:
+        newField.@fieldValue.parsed
+        newField.@fieldValue.booleanValue
+        newField.@fieldValue.length == 1
+        newField.booleanValue
+        newField.startIndex == 0
+        newField.endIndex == 0
+        !newField.indicesSet
+        newField.valueSet
+        newField.fieldData == null
+    }
 }

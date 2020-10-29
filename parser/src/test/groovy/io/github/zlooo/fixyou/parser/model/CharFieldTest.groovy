@@ -83,4 +83,42 @@ class CharFieldTest extends Specification {
         buf.toString(StandardCharsets.US_ASCII) == "Z"
         result == AsciiString.c2b('Z' as char)
     }
+
+    def "should copy unparsed value from other field"() {
+        setup:
+        Field newField = new Field(5, new FieldCodec())
+
+        when:
+        newField.copyDataFrom(field)
+
+        then:
+        newField.@fieldValue.charValue == FieldValue.CHAR_DEFAULT_VALUE
+        newField.@fieldValue.charValueRaw == FieldValue.CHAR_DEFAULT_VALUE
+        newField.charValue == 'A' as char
+        newField.startIndex == 5
+        newField.endIndex == 6
+        newField.indicesSet
+        newField.valueSet
+        newField.fieldData.is(field.fieldData)
+    }
+
+    def "should copy previously set value"() {
+        setup:
+        Field existingField = new Field(10, new FieldCodec())
+        existingField.charValue = 'Z'
+        Field newField = new Field(11, new FieldCodec())
+
+        when:
+        newField.copyDataFrom(existingField)
+
+        then:
+        newField.@fieldValue.charValue == 'Z' as char
+        newField.@fieldValue.charValueRaw == AsciiString.c2b('Z' as char)
+        newField.@fieldValue.length == 1
+        newField.startIndex == 0
+        newField.endIndex == 0
+        !newField.indicesSet
+        newField.valueSet
+        newField.fieldData == null
+    }
 }

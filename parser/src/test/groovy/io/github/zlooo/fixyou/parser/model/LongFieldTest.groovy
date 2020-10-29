@@ -63,7 +63,7 @@ class LongFieldTest extends Specification {
 
     def "should set value"() {
         when:
-        field.longValue=666
+        field.longValue = 666
 
         then:
         field.@fieldValue.longValue == 666
@@ -85,5 +85,43 @@ class LongFieldTest extends Specification {
         then:
         buf.toString(StandardCharsets.US_ASCII) == "14666"
         result == TestUtils.sumBytes("14666".getBytes(StandardCharsets.US_ASCII))
+    }
+
+    def "should copy unparsed value from other field"() {
+        setup:
+        Field newField = new Field(5, new FieldCodec())
+
+        when:
+        newField.copyDataFrom(field)
+
+        then:
+        newField.@fieldValue.longValue == FieldValue.LONG_DEFAULT_VALUE
+        newField.longValue == 123456
+        newField.startIndex == 0
+        newField.endIndex == 7
+        newField.indicesSet
+        newField.valueSet
+        newField.fieldData.is(field.fieldData)
+    }
+
+    def "should copy previously set value"() {
+        setup:
+        Field existingField = new Field(10, new FieldCodec())
+        existingField.longValue = 666
+        Field newField = new Field(11, new FieldCodec())
+
+        when:
+        newField.copyDataFrom(existingField)
+
+        then:
+        newField.@fieldValue.longValue == 666
+        newField.@fieldValue.length == 3
+        newField.@fieldValue.rawValue.toString(0, 3, StandardCharsets.US_ASCII) == "666"
+        newField.longValue == 666
+        newField.startIndex == 0
+        newField.endIndex == 0
+        !newField.indicesSet
+        newField.valueSet
+        newField.fieldData == null
     }
 }

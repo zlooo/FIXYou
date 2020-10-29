@@ -4,6 +4,7 @@ import io.github.zlooo.fixyou.Closeable;
 import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.Resettable;
 import io.github.zlooo.fixyou.model.FieldType;
+import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.AsciiString;
@@ -96,7 +97,7 @@ class FieldValue implements Resettable, Closeable {
     private void ensureRepetitionsArrayCapacity() {
         if (repetitions.length <= repetitionCounter) {
             final int newLength = (int) ((repetitionCounter + 1) * (1.0 + Hashing.DEFAULT_LOAD_FACTOR));
-            log.warn("Repetitions array resize in field {}, from {} to {}. Consider making default larger", longValue != LONG_DEFAULT_VALUE ? longValue : "N/A", repetitions.length, newLength);
+            log.warn("Repetitions array resize from {} to {}. Consider making default larger", repetitions.length, newLength);
             final Repetition[] newArray = new Repetition[newLength];
             System.arraycopy(repetitions, 0, newArray, 0, repetitions.length);
             for (int i = repetitions.length; i < newLength; i++) {
@@ -106,9 +107,46 @@ class FieldValue implements Resettable, Closeable {
         }
     }
 
+    void ensureCharArraysCapacity(int newLength) {
+        if (charArrayValue.length < newLength) {
+            final int newTableLength = (int) ((newLength + 1) * (1.0 + Hashing.DEFAULT_LOAD_FACTOR));
+            rawValue.ensureWritable(newTableLength);
+            final char[] newCharArrayValue = new char[newTableLength];
+            charArrayValue = newCharArrayValue;
+            charSequenceValue.setState(newCharArrayValue);
+        }
+    }
+
     void incrementRepetitionsCounter() {
         repetitionCounter = repetitionCounter + 1;
         ensureRepetitionsArrayCapacity();
+    }
+
+    void copyDataFrom(FieldValue fieldValue, FieldCodec fieldCodec) {
+        repetitionCounter = fieldValue.repetitionCounter;
+        ensureRepetitionsArrayCapacity();
+        for (int i = 0; i < fieldValue.repetitions.length; i++) {
+            final Repetition currentRepetition = ArrayUtils.getElementAt(repetitions, i);
+            for (final Field groupField : ArrayUtils.getElementAt(fieldValue.repetitions, i).idToField.values()) {
+                currentRepetition.getExistingOrNewGroupField(groupField.getNumber(), fieldCodec).copyDataFrom(groupField);
+            }
+
+        }
+        parsed = fieldValue.parsed;
+        booleanValue = fieldValue.booleanValue;
+        charValue = fieldValue.charValue;
+        charValueRaw = fieldValue.charValueRaw;
+        length = fieldValue.length;
+        charSequenceValue.setLength(length);
+        rawValue.clear().writeBytes(fieldValue.rawValue, 0, length);
+        final char[] sourceCharArray = fieldValue.charArrayValue;
+        final int sourceCharArrayLength = sourceCharArray.length;
+        ensureCharArraysCapacity(sourceCharArrayLength);
+        System.arraycopy(sourceCharArray, 0, this.charArrayValue, 0, sourceCharArrayLength);
+        longValue = fieldValue.longValue;
+        scale = fieldValue.scale;
+        sumOfBytes = fieldValue.sumOfBytes;
+        valueTypeSet = fieldValue.valueTypeSet;
     }
 
     static final class Repetition {

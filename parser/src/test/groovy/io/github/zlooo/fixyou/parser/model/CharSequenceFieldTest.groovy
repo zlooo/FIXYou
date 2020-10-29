@@ -110,4 +110,53 @@ class CharSequenceFieldTest extends Specification {
         buf.toString(StandardCharsets.US_ASCII) == "textToWrite"
         result == TestUtils.sumBytes("textToWrite".getBytes(StandardCharsets.US_ASCII))
     }
+
+    def "should copy unparsed value from other field"() {
+        setup:
+        Field newField = new Field(5, new FieldCodec())
+
+        when:
+        newField.copyDataFrom(field)
+
+        then:
+        newField.@fieldValue.charArrayValue.every { it == 0 }
+        newField.@fieldValue.length == 0
+        newField.@fieldValue.rawValue.writerIndex() == 0
+        newField.@fieldValue.rawValue.readerIndex() == 0
+        newField.charSequenceValue.toString() == "test"
+        newField.startIndex == 1
+        newField.endIndex == 5
+        newField.indicesSet
+        newField.valueSet
+        newField.fieldData.is(field.fieldData)
+    }
+
+    def "should copy previously set value"() {
+        setup:
+        Field existingField = new Field(10, new FieldCodec())
+        def value = "some veeeeery long value that will require internal array resize"
+        existingField.charSequenceValue = value.chars
+        Field newField = new Field(11, new FieldCodec())
+
+        when:
+        newField.copyDataFrom(existingField)
+
+        then:
+        newField.@fieldValue.charSequenceValue.toString() == value
+        newField.@fieldValue.charArrayValue == resize(value.chars, newField.@fieldValue.charArrayValue.length)
+        newField.@fieldValue.length == value.length()
+        newField.@fieldValue.rawValue.toString(0, value.length(), StandardCharsets.US_ASCII) == value
+        newField.charSequenceValue.toString() == value
+        newField.startIndex == 0
+        newField.endIndex == 0
+        !newField.indicesSet
+        newField.valueSet
+        newField.fieldData == null
+    }
+
+    private char[] resize(char[] source, length) {
+        char[] array = new char[length]
+        System.arraycopy(source, 0, array, 0, source.length)
+        return array
+    }
 }

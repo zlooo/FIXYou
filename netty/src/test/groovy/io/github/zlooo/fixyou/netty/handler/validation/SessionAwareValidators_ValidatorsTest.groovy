@@ -24,9 +24,7 @@ class SessionAwareValidators_ValidatorsTest extends Specification {
     private static SessionID sessionID = new SessionID('beginString'.toCharArray(), 11, 'senderCompId'.toCharArray(), 12, 'targetCompId'.toCharArray(), 12)
     private FixMessage fixMessage = new FixMessage(new FieldCodec())
     private SessionConfig sessionConfig = new SessionConfig()
-    private DefaultObjectPool<FixMessage> fixMessageObjectReadPool = Mock()
-    private DefaultObjectPool<FixMessage> fixMessageObjectWritePool = Mock()
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(sessionConfig, sessionID, fixMessageObjectReadPool, fixMessageObjectWritePool, TestSpec.INSTANCE)
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(sessionConfig, sessionID, TestSpec.INSTANCE)
 
     def "should validate session id"() {
         setup:

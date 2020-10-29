@@ -26,7 +26,7 @@ class FixMessageTest extends Specification {
     def "should reset all data fields and release message byte source"() {
         setup:
         def longField = fixMessage.getField(TestSpec.LONG_FIELD_NUMBER)
-        longField.booleanValue = 666L
+        longField.longValue = 666L
         longField.startIndex = 7
         longField.endIndex = 10
         def booleanField = fixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER)
@@ -76,5 +76,41 @@ class FixMessageTest extends Specification {
         !result.valueSet
         fixMessage.allFields.length >= 5001
         fixMessage.actualFields.length >= 5001
+    }
+
+    def "should copy values to other message"() {
+        setup:
+        def longField = fixMessage.getField(TestSpec.LONG_FIELD_NUMBER)
+        longField.longValue = 666L
+        longField.startIndex = 7
+        longField.endIndex = 10
+        def booleanField = fixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER)
+        booleanField.booleanValue = true
+        booleanField.startIndex = 12
+        booleanField.endIndex = 13
+        def messageByteSource = Mock(ByteBufComposer)
+        fixMessage.@messageByteSource = messageByteSource
+        fixMessage.startIndex = 1
+        fixMessage.endIndex = 2
+        def newFixMessage = new FixMessage(new FieldCodec())
+
+        when:
+        newFixMessage.copyDataFrom(fixMessage, unsetIndices)
+
+        then:
+        newFixMessage.getField(TestSpec.LONG_FIELD_NUMBER).longValue == 666
+        newFixMessage.getField(TestSpec.LONG_FIELD_NUMBER).valueSet
+        newFixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER).booleanValue
+        newFixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER).valueSet
+        newFixMessage.messageByteSource.is(messageByteSource)
+        newFixMessage.startIndex == 1
+        newFixMessage.endIndex == 2
+        fixMessage.startIndex == expectedSrcStartIndex
+        fixMessage.endIndex == expectedSrcEndIndex
+
+        where:
+        unsetIndices | expectedSrcStartIndex | expectedSrcEndIndex
+        false        | 1                  | 2
+        true         | FixMessage.NOT_SET | FixMessage.NOT_SET
     }
 }

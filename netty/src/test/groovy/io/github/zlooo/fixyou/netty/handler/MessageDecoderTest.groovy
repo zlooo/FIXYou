@@ -2,15 +2,12 @@ package io.github.zlooo.fixyou.netty.handler
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.commons.ByteBufComposer
-import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
 import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
-import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
-import io.netty.channel.EventLoop
 import org.assertj.core.api.Assertions
 import org.assertj.core.data.Index
 import spock.lang.Specification
@@ -19,10 +16,10 @@ import java.nio.charset.StandardCharsets
 
 class MessageDecoderTest extends Specification {
 
-    private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
-    private MessageDecoder messageDecoder = new MessageDecoder(fixMessageObjectPool, TestSpec.INSTANCE)
+    private FieldCodec fieldCodec = new FieldCodec()
+    private MessageDecoder messageDecoder = new MessageDecoder(TestSpec.INSTANCE, fieldCodec)
+    private FixMessage fixMessage = messageDecoder.@fixMessage
     private ChannelHandlerContext channelHandlerContext = Mock()
-    private FixMessage fixMessage = new FixMessage(new FieldCodec())
 
     def "should decode not fragmented message"() {
         setup:
@@ -32,18 +29,20 @@ class MessageDecoderTest extends Specification {
         messageDecoder.channelRead(channelHandlerContext, encodedMessage)
 
         then:
-        encodedMessage.refCnt() == 1 //should be increased when buffer is added to composer
-        1 * fixMessageObjectPool.tryGetAndRetain() >> this.fixMessage
-        1 * channelHandlerContext.fireChannelRead(this.fixMessage)
+        encodedMessage.refCnt() == 0
+        1 * channelHandlerContext.fireChannelRead({
+            verifyAll(it, FixMessage) { decodedFixMessage ->
+                decodedFixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
+                decodedFixMessage.is(fixMessage)
+                decodedFixMessage.startIndex == 0
+                decodedFixMessage.endIndex == encodedMessage.writerIndex()
+            }
+        })
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
-        this.fixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
-        messageDecoder.byteBufComposer.storedStartIndex == 0
-        messageDecoder.byteBufComposer.storedEndIndex == encodedMessage.writerIndex() - 1
-        def expectedComponent = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessage.writerIndex() - 1, buffer: encodedMessage)
-        Assertions.assertThat(messageDecoder.byteBufComposer.components)
-                  .containsOnlyOnce(expectedComponent)
-                  .contains(expectedComponent, Index.atIndex(0))
-                  .containsOnly(expectedComponent, new ByteBufComposer.Component())
+        fixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
+        messageDecoder.byteBufComposer.storedStartIndex == ByteBufComposer.INITIAL_VALUE
+        messageDecoder.byteBufComposer.storedEndIndex == ByteBufComposer.INITIAL_VALUE
+        Assertions.assertThat(messageDecoder.byteBufComposer.components).containsOnly(new ByteBufComposer.Component())
         0 * _
     }
 
@@ -56,9 +55,10 @@ class MessageDecoderTest extends Specification {
 
         then:
         encodedMessage.refCnt() == 1
-        1 * fixMessageObjectPool.tryGetAndRetain() >> this.fixMessage
         messageDecoder.@state == MessageDecoder.State.DECODING
-        this.fixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
+        fixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
+        fixMessage.startIndex == 0
+        fixMessage.endIndex == FixMessage.NOT_SET
         messageDecoder.byteBufComposer.storedStartIndex == 0
         messageDecoder.byteBufComposer.storedEndIndex == encodedMessage.writerIndex() - 1
         def expectedComponent = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessage.writerIndex() - 1, buffer: encodedMessage)
@@ -72,7 +72,6 @@ class MessageDecoderTest extends Specification {
     def "should finish off decoding fragmented message"() {
         setup:
         ByteBuf encodedMessagePart1 = Unpooled.wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158".getBytes(StandardCharsets.US_ASCII))
-        fixMessageObjectPool.tryGetAndRetain() >> fixMessage
         messageDecoder.channelRead(channelHandlerContext, encodedMessagePart1)
         ByteBuf encodedMessagePart2 = Unpooled.wrappedBuffer("=test\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
 
@@ -80,23 +79,22 @@ class MessageDecoderTest extends Specification {
         messageDecoder.channelRead(channelHandlerContext, encodedMessagePart2)
 
         then:
-        encodedMessagePart1.refCnt() == 1
-        encodedMessagePart2.refCnt() == 1
-        this.fixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
-        messageDecoder.byteBufComposer.storedStartIndex == 0
-        messageDecoder.byteBufComposer.storedEndIndex == encodedMessagePart1.writerIndex() + encodedMessagePart2.writerIndex() - 1
-        def expectedComponent1 = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessagePart1.writerIndex() - 1, buffer: encodedMessagePart1, offset: 0)
-        def expectedComponent2 = new ByteBufComposer.Component(startIndex: expectedComponent1.endIndex + 1, endIndex: expectedComponent1.endIndex + 1 + encodedMessagePart2.writerIndex() - 1, buffer: encodedMessagePart2,
-                                                               offset: expectedComponent1.endIndex + 1)
-        Assertions.assertThat(messageDecoder.byteBufComposer.components)
-                  .containsOnlyOnce(expectedComponent1)
-                  .containsOnlyOnce(expectedComponent2)
-                  .contains(expectedComponent1, Index.atIndex(0))
-                  .contains(expectedComponent2, Index.atIndex(1))
-                  .containsOnly(expectedComponent1, expectedComponent2, new ByteBufComposer.Component())
-        1 * channelHandlerContext.fireChannelRead(fixMessage)
+        encodedMessagePart1.refCnt() == 0
+        encodedMessagePart2.refCnt() == 0
+        fixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
+        1 * channelHandlerContext.fireChannelRead({
+            verifyAll(it, FixMessage) { decodedFixMessage ->
+                decodedFixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
+                decodedFixMessage.is(fixMessage)
+                decodedFixMessage.startIndex == 0
+                decodedFixMessage.endIndex == encodedMessagePart1.writerIndex() + encodedMessagePart2.writerIndex()
+                decodedFixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).charSequenceValue.toString() == "test"
+            }
+        })
+        messageDecoder.byteBufComposer.storedStartIndex == ByteBufComposer.INITIAL_VALUE
+        messageDecoder.byteBufComposer.storedEndIndex == ByteBufComposer.INITIAL_VALUE
+        Assertions.assertThat(messageDecoder.byteBufComposer.components).containsOnly(new ByteBufComposer.Component())
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
-        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).charSequenceValue.toString() == "test"
         0 * _
     }
 
@@ -106,7 +104,7 @@ class MessageDecoderTest extends Specification {
         setup:
         ByteBuf encodedMessage1Part1 = Unpooled.wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=te".getBytes(StandardCharsets.US_ASCII))
         ByteBuf encodedMessage1Part2 = Unpooled.wrappedBuffer("st\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
-        ByteBuf encodedMessage2Part1 = Unpooled.wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=te".getBytes(StandardCharsets.US_ASCII))
+        ByteBuf encodedMessage2Part1 = Unpooled.wrappedBuffer("8=FIXT.1.1\u00019=128\u000149=sender\u000156=target\u000158=te".getBytes(StandardCharsets.US_ASCII))
         ByteBuf encodedMessage2Part2 = Unpooled.wrappedBuffer("st2\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
 
         when:
@@ -114,26 +112,24 @@ class MessageDecoderTest extends Specification {
         messageDecoder.channelRead(channelHandlerContext, encodedMessage1Part2)
 
         then:
-        1 * fixMessageObjectPool.tryGetAndRetain() >> fixMessage
-        1 * channelHandlerContext.fireChannelRead(fixMessage)
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
         fixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
-        encodedMessage1Part1.refCnt() == 1
-        encodedMessage1Part2.refCnt() == 1
-        messageDecoder.byteBufComposer.storedStartIndex == 0
-        messageDecoder.byteBufComposer.storedEndIndex == encodedMessage1Part1.writerIndex() + encodedMessage1Part2.writerIndex() - 1
-        def expectedComponent1 = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessage1Part1.writerIndex() - 1, buffer: encodedMessage1Part1, offset: 0)
-        def expectedComponent2 = new ByteBufComposer.Component(startIndex: expectedComponent1.endIndex + 1, endIndex: expectedComponent1.endIndex + 1 + encodedMessage1Part2.writerIndex() - 1, buffer: encodedMessage1Part2,
-                                                               offset: expectedComponent1.endIndex + 1)
-        Assertions.assertThat(messageDecoder.byteBufComposer.components)
-                  .containsOnlyOnce(expectedComponent1)
-                  .containsOnlyOnce(expectedComponent2)
-                  .contains(expectedComponent1, Index.atIndex(0))
-                  .contains(expectedComponent2, Index.atIndex(1))
-                  .containsOnly(expectedComponent1, expectedComponent2, new ByteBufComposer.Component())
-        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).charSequenceValue.toString() == "test"
-
-        fixMessage.resetAllDataFieldsAndReleaseByteSource()
+        1 * channelHandlerContext.fireChannelRead({
+            verifyAll(it, FixMessage) { decodedFixMessage ->
+                decodedFixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
+                decodedFixMessage.is(fixMessage)
+                decodedFixMessage.startIndex == 0
+                decodedFixMessage.endIndex == encodedMessage1Part1.writerIndex() + encodedMessage1Part2.writerIndex()
+                decodedFixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).charSequenceValue.toString() == "test"
+            }
+        })
+        encodedMessage1Part1.refCnt() == 0
+        encodedMessage1Part2.refCnt() == 0
+        encodedMessage2Part1.refCnt() == 1
+        encodedMessage2Part2.refCnt() == 1
+        messageDecoder.byteBufComposer.storedStartIndex == ByteBufComposer.INITIAL_VALUE
+        messageDecoder.byteBufComposer.storedEndIndex == ByteBufComposer.INITIAL_VALUE
+        Assertions.assertThat(messageDecoder.byteBufComposer.components).containsOnly(new ByteBufComposer.Component())
 
         when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessage2Part1)
@@ -141,23 +137,20 @@ class MessageDecoderTest extends Specification {
 
         then:
         encodedMessage1Part1.refCnt() == 0
-        encodedMessage1Part2.refCnt() == 0 //because of fixMessage.resetAllDataFieldsAndReleaseByteSource() call couple of lines above
-        encodedMessage2Part1.refCnt() == 1
-        encodedMessage2Part2.refCnt() == 1
-        1 * fixMessageObjectPool.tryGetAndRetain() >> fixMessage
-        1 * channelHandlerContext.fireChannelRead(fixMessage)
+        encodedMessage1Part2.refCnt() == 0
+        encodedMessage2Part1.refCnt() == 0
+        encodedMessage2Part2.refCnt() == 0
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
-        fixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
-        def expectedComponent3 = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessage2Part1.writerIndex() - 1, buffer: encodedMessage2Part1, offset: 0)
-        def expectedComponent4 = new ByteBufComposer.Component(startIndex: expectedComponent3.endIndex + 1, endIndex: expectedComponent3.endIndex + 1 + encodedMessage2Part2.writerIndex() - 1, buffer: encodedMessage2Part2,
-                                                               offset: expectedComponent3.endIndex + 1)
-        Assertions.assertThat(messageDecoder.byteBufComposer.components)
-                  .containsOnlyOnce(expectedComponent3)
-                  .containsOnlyOnce(expectedComponent4)
-                  .contains(expectedComponent3, Index.atIndex(0))
-                  .contains(expectedComponent4, Index.atIndex(1))
-                  .containsOnly(expectedComponent3, expectedComponent4, new ByteBufComposer.Component())
-        fixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).charSequenceValue.toString() == "test2"
+        1 * channelHandlerContext.fireChannelRead({
+            verifyAll(it, FixMessage) { decodedFixMessage ->
+                decodedFixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
+                decodedFixMessage.is(fixMessage)
+                decodedFixMessage.startIndex == 0
+                decodedFixMessage.endIndex == encodedMessage2Part1.writerIndex() + encodedMessage2Part2.writerIndex()
+                decodedFixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).charSequenceValue.toString() == "test2"
+            }
+        })
+        Assertions.assertThat(messageDecoder.byteBufComposer.components).containsOnly(new ByteBufComposer.Component())
         0 * _
     }
 
@@ -165,28 +158,24 @@ class MessageDecoderTest extends Specification {
         setup:
         messageDecoder.@state = MessageDecoder.State.DECODING
         fixMessage.retain() //that's because it's going to be released when fixMessageParser is being reset
-        messageDecoder.@fixMessageParser.@fixMessage = fixMessage
 
         when:
         messageDecoder.reset()
 
         then:
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
-        messageDecoder.@fixMessageParser.@fixMessage == null
     }
 
     def "should reset state when channel becomes active"() {
         setup:
         messageDecoder.@state = MessageDecoder.State.DECODING
         fixMessage.retain() //that's because it's going to be released when fixMessageParser is being reset
-        messageDecoder.@fixMessageParser.@fixMessage = fixMessage
 
         when:
         messageDecoder.channelActive(channelHandlerContext)
 
         then:
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
-        messageDecoder.@fixMessageParser.@fixMessage == null
         1 * channelHandlerContext.fireChannelActive()
         0 * _
     }
@@ -207,25 +196,33 @@ class MessageDecoderTest extends Specification {
         setup:
         ByteBuf encodedMessage = Unpooled.
                 wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u00018=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test2\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
-        FixMessage fixMessage2 = new FixMessage(new FieldCodec())
 
         when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessage)
 
         then:
-        2 * fixMessageObjectPool.tryGetAndRetain() >> fixMessage >> fixMessage2
-        1 * channelHandlerContext.fireChannelRead(fixMessage) >> channelHandlerContext
-        1 * channelHandlerContext.fireChannelRead(fixMessage2) >> channelHandlerContext
-        fixMessage.getField(58).charSequenceValue.toString() == "test"
-        fixMessage2.getField(58).charSequenceValue.toString() == "test2"
-        fixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
-        fixMessage2.messageByteSource.is(messageDecoder.byteBufComposer)
-        encodedMessage.refCnt() == 1
-        def expectedComponent = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessage.writerIndex() - 1, buffer: encodedMessage)
-        Assertions.assertThat(messageDecoder.byteBufComposer.components)
-                  .containsOnlyOnce(expectedComponent)
-                  .contains(expectedComponent, Index.atIndex(0))
-                  .containsOnly(expectedComponent, new ByteBufComposer.Component())
+        1 * channelHandlerContext.fireChannelRead({
+            verifyAll(it, FixMessage) { decodedMessage ->
+                decodedMessage.is(fixMessage)
+                decodedMessage.getField(58).charSequenceValue.toString() == "test"
+                decodedMessage.startIndex == 0
+                decodedMessage.endIndex == 51
+                decodedMessage.messageByteSource.is(messageDecoder.byteBufComposer)
+            }
+        }) >> channelHandlerContext
+        1 * channelHandlerContext.fireChannelRead({
+            verifyAll(it, FixMessage) { decodedMessage ->
+                decodedMessage.is(fixMessage)
+                decodedMessage.getField(58).charSequenceValue.toString() == "test2"
+                decodedMessage.startIndex == 52
+                decodedMessage.endIndex == encodedMessage.writerIndex()
+                decodedMessage.messageByteSource.is(messageDecoder.byteBufComposer)
+            }
+        }) >> channelHandlerContext
+        encodedMessage.refCnt() == 0
+        messageDecoder.byteBufComposer.storedStartIndex == ByteBufComposer.INITIAL_VALUE
+        messageDecoder.byteBufComposer.storedEndIndex == ByteBufComposer.INITIAL_VALUE
+        Assertions.assertThat(messageDecoder.byteBufComposer.components).containsOnly(new ByteBufComposer.Component())
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
         0 * _
     }
@@ -235,31 +232,36 @@ class MessageDecoderTest extends Specification {
         ByteBuf encodedMessagePart1 = Unpooled.
                 wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u00018=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=tes".getBytes(StandardCharsets.US_ASCII))
         ByteBuf encodedMessagePart2 = Unpooled.wrappedBuffer("t2\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
-        FixMessage fixMessage2 = new FixMessage(new FieldCodec())
+        FixMessage fixMessage2 = new FixMessage(fieldCodec)
 
         when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessagePart1)
         messageDecoder.channelRead(channelHandlerContext, encodedMessagePart2)
 
         then:
-        2 * fixMessageObjectPool.tryGetAndRetain() >> fixMessage >> fixMessage2
-        1 * channelHandlerContext.fireChannelRead(fixMessage) >> channelHandlerContext
-        1 * channelHandlerContext.fireChannelRead(fixMessage2) >> channelHandlerContext
-        fixMessage.getField(58).charSequenceValue.toString() == "test"
-        fixMessage2.getField(58).charSequenceValue.toString() == "test2"
-        fixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
-        fixMessage2.messageByteSource.is(messageDecoder.byteBufComposer)
-        encodedMessagePart1.refCnt() == 1
-        encodedMessagePart2.refCnt() == 1
-        def expectedComponent = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessagePart1.writerIndex() - 1, buffer: encodedMessagePart1, offset: 0)
-        def expectedComponent2 = new ByteBufComposer.Component(startIndex: expectedComponent.endIndex + 1, endIndex: expectedComponent.endIndex + 1 + encodedMessagePart2.writerIndex() - 1, buffer: encodedMessagePart2,
-                                                               offset: expectedComponent.endIndex + 1)
-        Assertions.assertThat(messageDecoder.byteBufComposer.components)
-                  .containsOnlyOnce(expectedComponent)
-                  .containsOnlyOnce(expectedComponent2)
-                  .contains(expectedComponent, Index.atIndex(0))
-                  .contains(expectedComponent2, Index.atIndex(1))
-                  .containsOnly(expectedComponent, expectedComponent2, new ByteBufComposer.Component())
+        1 * channelHandlerContext.fireChannelRead({
+            verifyAll(it, FixMessage) { decodedMessage ->
+                decodedMessage.is(fixMessage)
+                decodedMessage.getField(58).charSequenceValue.toString() == "test"
+                decodedMessage.startIndex == 0
+                decodedMessage.endIndex == 51
+                decodedMessage.messageByteSource.is(messageDecoder.byteBufComposer)
+            }
+        }) >> channelHandlerContext
+        1 * channelHandlerContext.fireChannelRead({
+            verifyAll(it, FixMessage) { decodedMessage ->
+                decodedMessage.is(fixMessage)
+                decodedMessage.getField(58).charSequenceValue.toString() == "test2"
+                decodedMessage.startIndex == 52
+                decodedMessage.endIndex == encodedMessagePart1.writerIndex() + encodedMessagePart2.writerIndex()
+                decodedMessage.messageByteSource.is(messageDecoder.byteBufComposer)
+            }
+        }) >> channelHandlerContext
+        encodedMessagePart1.refCnt() == 0
+        encodedMessagePart2.refCnt() == 0
+        messageDecoder.byteBufComposer.storedStartIndex == ByteBufComposer.INITIAL_VALUE
+        messageDecoder.byteBufComposer.storedEndIndex == ByteBufComposer.INITIAL_VALUE
+        Assertions.assertThat(messageDecoder.byteBufComposer.components).containsOnly(new ByteBufComposer.Component())
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
         0 * _
     }
@@ -269,72 +271,15 @@ class MessageDecoderTest extends Specification {
         ByteBuf encodedMessagePart1 = Unpooled.
                 wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u00018=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=tes".getBytes(StandardCharsets.US_ASCII))
         ByteBuf encodedMessagePart2 = Unpooled.wrappedBuffer("t2\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
-        FixMessage fixMessage2 = new FixMessage(new FieldCodec())
-        fixMessage.retain()
-        fixMessage2.retain()
 
         when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessagePart1)
         messageDecoder.channelRead(channelHandlerContext, encodedMessagePart2)
-        fixMessage.release()
-        fixMessage2.release()
 
         then:
-        2 * fixMessageObjectPool.tryGetAndRetain() >> fixMessage >> fixMessage2
-        1 * channelHandlerContext.fireChannelRead(fixMessage) >> channelHandlerContext
-        1 * channelHandlerContext.fireChannelRead(fixMessage2) >> channelHandlerContext
+        2 * channelHandlerContext.fireChannelRead(fixMessage) >> channelHandlerContext
         encodedMessagePart1.refCnt() == 0
         encodedMessagePart2.refCnt() == 0
     }
 
-    def "should schedule task when message pool is empty"() {
-        setup:
-        ByteBuf encodedMessage = Unpooled.wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
-        Channel channel = Mock()
-        EventLoop eventLoop = Mock()
-        messageDecoder.readTask.taskScheduled = false
-
-        when:
-        messageDecoder.channelRead(channelHandlerContext, encodedMessage)
-
-        then:
-        encodedMessage.refCnt() == 1
-        1 * fixMessageObjectPool.tryGetAndRetain() >> null
-        1 * channelHandlerContext.channel() >> channel
-        1 * channel.eventLoop() >> eventLoop
-        1 * eventLoop.execute(messageDecoder.readTask)
-        messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
-        messageDecoder.byteBufComposer.storedStartIndex == 0
-        messageDecoder.byteBufComposer.storedEndIndex == encodedMessage.writerIndex() - 1
-        def expectedComponent = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessage.writerIndex() - 1, buffer: encodedMessage)
-        Assertions.assertThat(messageDecoder.byteBufComposer.components)
-                  .containsOnlyOnce(expectedComponent)
-                  .contains(expectedComponent, Index.atIndex(0))
-                  .containsOnly(expectedComponent, new ByteBufComposer.Component())
-        messageDecoder.readTask.taskScheduled
-        0 * _
-    }
-
-    def "should not schedule task when message pool is empty and task is already scheduled"() {
-        setup:
-        ByteBuf encodedMessage = Unpooled.wrappedBuffer("8=FIXT.1.1\u00019=28\u000149=sender\u000156=target\u000158=test\u000110=023\u0001".getBytes(StandardCharsets.US_ASCII))
-        messageDecoder.readTask.taskScheduled = true
-
-        when:
-        messageDecoder.channelRead(channelHandlerContext, encodedMessage)
-
-        then:
-        encodedMessage.refCnt() == 1
-        1 * fixMessageObjectPool.tryGetAndRetain() >> null
-        messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
-        messageDecoder.byteBufComposer.storedStartIndex == 0
-        messageDecoder.byteBufComposer.storedEndIndex == encodedMessage.writerIndex() - 1
-        def expectedComponent = new ByteBufComposer.Component(startIndex: 0, endIndex: encodedMessage.writerIndex() - 1, buffer: encodedMessage)
-        Assertions.assertThat(messageDecoder.byteBufComposer.components)
-                  .containsOnlyOnce(expectedComponent)
-                  .contains(expectedComponent, Index.atIndex(0))
-                  .containsOnly(expectedComponent, new ByteBufComposer.Component())
-        messageDecoder.readTask.taskScheduled
-        0 * _
-    }
 }

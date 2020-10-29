@@ -26,8 +26,6 @@ import javax.inject.Singleton;
 class SimplifiedMessageDecoder extends ChannelInboundHandlerAdapter {
 
     private static final LogonOnlySpec LOGON_ONLY_SPEC = new LogonOnlySpec();
-    private final ByteBufComposer byteBufComposer = new ByteBufComposer(1);
-    private final FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer, LOGON_ONLY_SPEC);
     private final FieldCodec fieldCodec;
 
     @Inject
@@ -39,21 +37,23 @@ class SimplifiedMessageDecoder extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof ByteBuf) {
             final ByteBuf in = (ByteBuf) msg;
+            final FixMessage fixMessage = new NotPoolableFixMessage(fieldCodec);
             try {
-                byteBufComposer.addByteBuf(in);
                 /**
-                 * This handler should handle 1 message only anyway, first logon, so we can afford invocation of {@link FixMessage#FixMessage(FixSpec)}. After that it's removed
-                 * from
-                 * pipeline by {@link io.github.zlooo.fixyou.netty.handler.admin.LogonHandler#addRequiredChannelsToPipeline(ChannelHandlerContext, NettyHandlerAwareSessionState)}
+                 * This handler should handle 1 message only anyway, first logon, so we can afford couple of constructor invocations. After that it's removed from pipeline by
+                 * {@link io.github.zlooo.fixyou.netty.handler.admin.LogonHandler#addRequiredChannelsToPipeline(ChannelHandlerContext, NettyHandlerAwareSessionState)}
                  */
-                final FixMessage fixMessage = new NotPoolableFixMessage(fieldCodec);
-                fixMessageParser.setFixMessage(fixMessage);
+                final ByteBufComposer byteBufComposer = new ByteBufComposer(1);
+                byteBufComposer.addByteBuf(in);
+                fixMessage.setMessageByteSource(byteBufComposer);
+                final FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer, LOGON_ONLY_SPEC, fixMessage);
+                fixMessageParser.startParsing();
                 fixMessageParser.parseFixMsgBytes();
                 if (fixMessageParser.isDone()) {
                     if (log.isTraceEnabled()) {
                         log.trace("Message after decoding {}", fixMessage.toString(true));
                     }
-                    ctx.fireChannelRead(fixMessageParser.getFixMessage());
+                    ctx.fireChannelRead(fixMessage);
                 } else {
                     log.error("Incomplete logon message arrived, closing channel {}", ctx.channel());
                     /**
@@ -64,7 +64,7 @@ class SimplifiedMessageDecoder extends ChannelInboundHandlerAdapter {
                     ctx.close();
                 }
             } finally {
-                fixMessageParser.setFixMessage(null);
+                fixMessage.releaseByteSource();
                 in.release();
             }
         } else {

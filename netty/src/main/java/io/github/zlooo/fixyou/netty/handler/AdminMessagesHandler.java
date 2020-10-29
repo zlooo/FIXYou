@@ -26,6 +26,7 @@ class AdminMessagesHandler extends SimpleChannelInboundHandler<FixMessage> {
 
     @Inject
     AdminMessagesHandler(Set<AdministrativeMessageHandler> administrativeMessageHandlers) {
+        super(false);
         for (final AdministrativeMessageHandler administrativeMessageHandler : administrativeMessageHandlers) {
             final AdministrativeMessageHandler previousHandler = handlerMap.put(administrativeMessageHandler.supportedMessageType(), administrativeMessageHandler);
             if (previousHandler != null) {
@@ -42,7 +43,6 @@ class AdminMessagesHandler extends SimpleChannelInboundHandler<FixMessage> {
             if (messageHandler != null) {
                 messageHandler.handleMessage(fixMessage, channelHandlerContext);
             } else {
-                fixMessage.retain();
                 if (log.isDebugEnabled()) {
                     log.debug("No admin handler found for message {}, passing it further", messageType);
                 }

@@ -5,7 +5,6 @@ import dagger.Component;
 import io.github.zlooo.fixyou.FIXYouConfiguration;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.fix.commons.CoreModule;
-import io.github.zlooo.fixyou.fix.commons.DictionaryRepository;
 import io.github.zlooo.fixyou.fix.commons.FixMessageListener;
 import io.github.zlooo.fixyou.fix.commons.config.validator.ConfigValidator;
 import io.github.zlooo.fixyou.fix.commons.session.SessionModule;
@@ -26,8 +25,6 @@ public interface FixYouNettyComponent {
 
     NettyResettablesSupplier resettableSupplier();
 
-    DictionaryRepository dictionaryRepository();
-
     @NamedHandler(Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR)
     ChannelHandler beforeSessionMessageValidatorHandler();
 
@@ -45,6 +42,9 @@ public interface FixYouNettyComponent {
 
     @Named("retransmissionSubscriberPool")
     ObjectPool retransmissionSubscriberPool();
+
+    @Named("fixMessageObjectPool")
+    ObjectPool fixMessageObjectPool();
 
     @Component.Builder
     interface Builder {

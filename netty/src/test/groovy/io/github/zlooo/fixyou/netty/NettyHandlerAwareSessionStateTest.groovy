@@ -1,7 +1,7 @@
 package io.github.zlooo.fixyou.netty
 
 import io.github.zlooo.fixyou.FixConstants
-import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
+import io.github.zlooo.fixyou.Resettable
 import io.github.zlooo.fixyou.netty.handler.NettyResettablesNames
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
 import io.github.zlooo.fixyou.parser.model.FieldCodec
@@ -18,12 +18,12 @@ class NettyHandlerAwareSessionStateTest extends Specification {
     private FixMessage fixMessage = new FixMessage(new FieldCodec())
     private ChannelHandlerContext notMovingForwardOnReadAndWriteCtx = Mock()
     private ChannelOutboundHandler sessionHandler = Mock()
+    private SessionID sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
 
     def "should queue message when session is persistent"() {
         setup:
         MessageStore messageStore = Mock()
-        def sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
-        NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setPersistent(true).setMessageStore(messageStore), sessionID, Mock(DefaultObjectPool), Mock(DefaultObjectPool), TestSpec.INSTANCE)
+        NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setPersistent(true).setMessageStore(messageStore), sessionID, TestSpec.INSTANCE)
         sessionState.getResettables()[NettyResettablesNames.NOT_MOVING_FORWARD_ON_READ_AND_WRITE_CHANNEL_HANDLER_CONTEXT] = notMovingForwardOnReadAndWriteCtx
         sessionState.getResettables()[NettyResettablesNames.SESSION] = sessionHandler
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 10L
@@ -41,8 +41,7 @@ class NettyHandlerAwareSessionStateTest extends Specification {
 
     def "should not queue message when session is not persistent"() {
         setup:
-        def sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
-        NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), sessionID, Mock(DefaultObjectPool), Mock(DefaultObjectPool), TestSpec.INSTANCE)
+        NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), sessionID, TestSpec.INSTANCE)
         sessionState.getResettables()[NettyResettablesNames.NOT_MOVING_FORWARD_ON_READ_AND_WRITE_CHANNEL_HANDLER_CONTEXT] = notMovingForwardOnReadAndWriteCtx
         sessionState.getResettables()[NettyResettablesNames.SESSION] = sessionHandler
         fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).booleanValue = 10L

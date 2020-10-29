@@ -1,7 +1,6 @@
 package io.github.zlooo.fixyou.netty.handler
 
 import io.github.zlooo.fixyou.FixConstants
-import io.github.zlooo.fixyou.commons.pool.ObjectPool
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
 import io.github.zlooo.fixyou.parser.model.FieldCodec
@@ -26,7 +25,7 @@ class MessageEncoderTest extends Specification {
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionAttribute = Mock()
     private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), new SessionID("testBeginString".toCharArray(), 15, "testSender".toCharArray(), 10, "testTarget".toCharArray(), 10),
-                                                                                           Mock(ObjectPool), Mock(ObjectPool), TestSpec.INSTANCE)
+                                                                                           TestSpec.INSTANCE)
 
     def "should encode simple message"() {
         setup:

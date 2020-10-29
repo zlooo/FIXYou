@@ -41,7 +41,6 @@ class RetransmitionSubscriber extends AbstractPoolableObject implements LongSubs
     public void onNext(long sequenceNumber, FixMessage fixMessage) {
         if (fixMessage == FixMessageUtils.EMPTY_FAKE_MESSAGE) {
             storeSequenceNumberForGapFill(sequenceNumber);
-            fixMessage.release();
         } else {
             if (!FixMessageUtils.isAdminMessage(fixMessage)) {
                 sendGapFillIfNecessary();

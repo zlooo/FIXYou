@@ -22,10 +22,8 @@ import java.util.concurrent.TimeUnit
 
 class PipelineUtilsTest extends Specification {
 
-    private DefaultObjectPool<FixMessage> fixMessageObjectReadPool = Mock()
-    private DefaultObjectPool<FixMessage> fixMessageObjectWritePool = Mock()
     private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)), new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0),
-                                                                                           fixMessageObjectReadPool, fixMessageObjectWritePool, TestSpec.INSTANCE)
+                                                                                           TestSpec.INSTANCE)
     private ChannelHandler messageDecoder = Mock()
     private ChannelHandler genericDecoder = Mock()
     private ChannelHandler messageEncoder = Mock()

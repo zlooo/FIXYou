@@ -17,7 +17,7 @@ public class FixMessage extends AbstractPoolableObject {
 
     public static final byte FIELD_SEPARATOR = AsciiCodes.SOH;
     public static final byte FIELD_VALUE_SEPARATOR = AsciiCodes.EQUALS;
-    private static final int NOT_SET = -1;
+    public static final int NOT_SET = -1;
     private static final Field PLACEHOLDER = new PlaceholderField();
     private static final double LOAD_FACTOR = 1.2;
 
@@ -48,7 +48,11 @@ public class FixMessage extends AbstractPoolableObject {
     @Nullable
     public Field getField(int number) {
         ensureArraysLengthIsSufficient(number);
-        Field field = allFields[number];
+        return getFieldNoArrayLengthCheck(number);
+    }
+
+    private Field getFieldNoArrayLengthCheck(int number) {
+        Field field = ArrayUtils.getElementAt(allFields, number);
         if (field == PLACEHOLDER) {
             field = new Field(number, fieldCodec);
             allFields[number] = field;
@@ -96,11 +100,15 @@ public class FixMessage extends AbstractPoolableObject {
                 field.reset();
             }
         }
+        releaseByteSource();
+        startIndex = NOT_SET;
+        endIndex = NOT_SET;
+    }
+
+    public void releaseByteSource() {
         if (messageByteSource != null && holdsData()) {
             messageByteSource.releaseData(startIndex, endIndex);
         }
-        startIndex = NOT_SET;
-        endIndex = NOT_SET;
     }
 
     private boolean holdsData() {
@@ -117,6 +125,23 @@ public class FixMessage extends AbstractPoolableObject {
     public void close() {
         for (int i = 0; i < actualFieldsLength; i++) {
             ArrayUtils.getElementAt(actualFields, i).close();
+        }
+    }
+
+    public void copyDataFrom(FixMessage sourceMessage, boolean unsetSourceStartEndIndices) {
+        messageByteSource = sourceMessage.messageByteSource;
+        startIndex = sourceMessage.startIndex;
+        endIndex = sourceMessage.endIndex;
+        ensureArraysLengthIsSufficient(sourceMessage.allFields.length);
+        for (int i = 0; i < sourceMessage.actualFieldsLength; i++) {
+            final Field field = ArrayUtils.getElementAt(sourceMessage.actualFields, i);
+            if (field.isValueSet()) {
+                getFieldNoArrayLengthCheck(field.getNumber()).copyDataFrom(field);
+            }
+        }
+        if (unsetSourceStartEndIndices) {
+            sourceMessage.setStartIndex(FixMessage.NOT_SET);
+            sourceMessage.setEndIndex(FixMessage.NOT_SET);
         }
     }
 

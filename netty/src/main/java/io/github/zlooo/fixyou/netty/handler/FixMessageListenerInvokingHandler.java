@@ -13,6 +13,7 @@ import io.github.zlooo.fixyou.commons.NamingThreadFactory;
 import io.github.zlooo.fixyou.fix.commons.FixMessageListener;
 import io.github.zlooo.fixyou.netty.AbstractNettyAwareFixMessageListener;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
+import io.github.zlooo.fixyou.parser.model.FieldCodec;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.netty.channel.Channel;
@@ -32,11 +33,11 @@ class FixMessageListenerInvokingHandler extends SimpleChannelInboundHandler<FixM
     private final boolean invokeDirectly;
     private final Disruptor<Event> disruptor;
 
-    FixMessageListenerInvokingHandler(FixMessageListener fixMessageListener, FIXYouConfiguration configuration) {
-        super(!configuration.isSeparateIoFromAppThread());
+    FixMessageListenerInvokingHandler(FixMessageListener fixMessageListener, FIXYouConfiguration configuration, FieldCodec fieldCodec) {
+        super(false);
         this.fixMessageListener = fixMessageListener;
         if (configuration.isSeparateIoFromAppThread()) {
-            disruptor = new Disruptor<>(() -> new Event(fixMessageListener), configuration.getFixMessageListenerInvokerDisruptorSize(), new NamingThreadFactory("FixMessageListenerInvoker"), ProducerType.MULTI,
+            disruptor = new Disruptor<>(() -> new Event(fixMessageListener, fieldCodec), configuration.getFixMessageListenerInvokerDisruptorSize(), new NamingThreadFactory("FixMessageListenerInvoker"), ProducerType.MULTI,
                                         PhasedBackoffWaitStrategy.withSleep(DefaultConfiguration.FIX_MESSAGE_LISTENER_INVOKER_DISRUPTOR_TIMEOUT, DefaultConfiguration.FIX_MESSAGE_LISTENER_INVOKER_DISRUPTOR_TIMEOUT,
                                                                             TimeUnit.MILLISECONDS));
             for (int i = 0; i < configuration.getNumberOfAppThreads(); i++) {
@@ -77,7 +78,7 @@ class FixMessageListenerInvokingHandler extends SimpleChannelInboundHandler<FixM
                 final Channel channel = ctx.channel();
                 event.sessionID = channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY).get().getSessionId();
                 event.eventHandlerNumber = channel.attr(FIXYouChannelInitializer.ORDINAL_NUMBER_KEY).get();
-                event.fixMessage = msg;
+                event.fixMessage.copyDataFrom(msg, true);
                 ringBuffer.publish(sequence);
             } catch (InsufficientCapacityException e) {
                 log.warn("Insufficient capacity in disruptor's ring buffer, have to drop one or else boom goes the dynamite");
@@ -85,12 +86,17 @@ class FixMessageListenerInvokingHandler extends SimpleChannelInboundHandler<FixM
         }
     }
 
-    @RequiredArgsConstructor
     private static class Event {
         private final FixMessageListener fixMessageListener;
         private SessionID sessionID;
         private FixMessage fixMessage;
         private int eventHandlerNumber;
+
+        public Event(FixMessageListener fixMessageListener, FieldCodec fieldCodec) {
+            this.fixMessageListener = fixMessageListener;
+            this.fixMessage = new FixMessage(fieldCodec);
+            this.fixMessage.retain();
+        }
     }
 
     @RequiredArgsConstructor
@@ -104,7 +110,7 @@ class FixMessageListenerInvokingHandler extends SimpleChannelInboundHandler<FixM
                 try {
                     event.fixMessageListener.onFixMessage(event.sessionID, event.fixMessage);
                 } finally {
-                    event.fixMessage.release();
+                    event.fixMessage.resetAllDataFieldsAndReleaseByteSource();
                 }
             }
         }

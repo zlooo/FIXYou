@@ -18,15 +18,14 @@ import spock.lang.Specification
 class ResendRequestHandlerTest extends Specification {
 
     private DefaultObjectPool<RetransmitionSubscriber> fixMessageSubscriberPool = Mock()
-    private ResendRequestHandler resendRequestHandler = new ResendRequestHandler(fixMessageSubscriberPool)
+    private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
+    private ResendRequestHandler resendRequestHandler = new ResendRequestHandler(fixMessageSubscriberPool, fixMessageObjectPool)
     private ChannelHandlerContext channelHandlerContext = Mock()
     private FixMessage fixMessage = new FixMessage(new FieldCodec())
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
-    private DefaultObjectPool<FixMessage> fixMessageObjectReadPool = Mock()
-    private DefaultObjectPool<FixMessage> fixMessageObjectWritePool = Mock()
     private SessionID sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), sessionID, fixMessageObjectReadPool, fixMessageObjectWritePool, TestSpec.INSTANCE)
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), sessionID, TestSpec.INSTANCE)
 
     def "should start message retrieval and send when persistence is on"() {
         setup:
@@ -47,7 +46,7 @@ class ResendRequestHandlerTest extends Specification {
         1 * sessionStateAttribute.get() >> sessionState
         1 * fixMessageSubscriberPool.getAndRetain() >> fixMessageSubscriber
         1 * messageStore.getMessages(sessionID, 666L, 777L, fixMessageSubscriber)
-        fixMessageSubscriber.fixMessagePool == fixMessageObjectWritePool
+        fixMessageSubscriber.fixMessagePool == fixMessageObjectPool
         fixMessageSubscriber.channelHandlerContext == channelHandlerContext
         0 * _
     }

@@ -23,7 +23,14 @@ class SimplifiedMessageDecoderTest extends Specification {
         messageDecoder.channelRead(channelHandlerContext, encodedMessage)
 
         then:
-        1 * channelHandlerContext.fireChannelRead(_ as FixMessage)
+        1 * channelHandlerContext.fireChannelRead({
+            verifyAll(it, FixMessage) { decodedMessage ->
+                decodedMessage.startIndex == 0
+                decodedMessage.endIndex == encodedMessage.writerIndex()
+                decodedMessage.messageByteSource != null
+            }
+        })
+        encodedMessage.refCnt() == 0
         0 * _
     }
 

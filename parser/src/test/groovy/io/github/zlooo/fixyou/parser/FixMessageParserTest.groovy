@@ -19,18 +19,35 @@ class FixMessageParserTest extends Specification {
     private static final FixSpec50SP2 fixSpec50SP2 = new FixSpec50SP2()
     private FixMessage fixMessage = new FixMessage(new FieldCodec())
     private ByteBufComposer byteBufComposer = new ByteBufComposer(10)
-    private FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer, fixSpec50SP2)
+    private FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer, fixSpec50SP2, fixMessage)
+
+    void setup(){
+        fixMessage.setMessageByteSource(byteBufComposer)
+    }
 
     void cleanup() {
         byteBufComposer.reset()
     }
 
+    def "should start parsing"() {
+        setup:
+        fixMessageParser.@storedEndIndexOfLastUnfinishedMessage = 666
+        fixMessage.startIndex = 123
+
+        when:
+        fixMessageParser.startParsing()
+
+        then:
+        fixMessage.startIndex == 0
+        fixMessageParser.@storedEndIndexOfLastUnfinishedMessage == 0
+    }
+
     def "should parse new order single message, simple message case"() {
         setup:
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(simpleNewOrderSingle.getBytes(StandardCharsets.US_ASCII)))
-        fixMessageParser.setFixMessage(fixMessage)
 
         when:
+        fixMessageParser.startParsing()
         fixMessageParser.parseFixMsgBytes()
 
         then:
@@ -38,15 +55,15 @@ class FixMessageParserTest extends Specification {
         fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
         assertSimpleNewOrderSingle(fixMessage)
         fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == simpleNewOrderSingle.length() - 1
+        fixMessage.getEndIndex() == simpleNewOrderSingle.length()
     }
 
     def "should discard garbage data from fix message"() {
         setup:
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(("garbage garbage" + simpleNewOrderSingle).getBytes(StandardCharsets.US_ASCII)))
-        fixMessageParser.setFixMessage(fixMessage)
 
         when:
+        fixMessageParser.startParsing()
         fixMessageParser.parseFixMsgBytes()
 
         then:
@@ -54,7 +71,7 @@ class FixMessageParserTest extends Specification {
         fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
         assertSimpleNewOrderSingle(fixMessage)
         fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == simpleNewOrderSingle.length() + "garbage garbage".length() - 1
+        fixMessage.getEndIndex() == simpleNewOrderSingle.length() + "garbage garbage".length()
     }
 
     def "should parse execution report message, message with repeating group(382)"() {
@@ -63,9 +80,9 @@ class FixMessageParserTest extends Specification {
                          "\u000120=0\u000139=2\u0001150=2\u000154=1\u000138=100\u000140=1\u000159=0\u000131=25.4800\u000132=100\u000114=0\u00016=0\u0001151=0\u000160=20090323-15:40:30\u000158=Fill\u000130=N\u000176=0034\u0001207=N\u0001" +
                          "47=A\u0001382=1\u0001375=TOD\u0001337=0000\u0001437=100\u0001438=20090330-23:40:35\u000129=1\u000163=0\u000110=080\u0001"
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
-        fixMessageParser.setFixMessage(fixMessage)
 
         when:
+        fixMessageParser.startParsing()
         fixMessageParser.parseFixMsgBytes()
 
         then:
@@ -116,7 +133,7 @@ class FixMessageParserTest extends Specification {
         fixMessage.getField(63).charSequenceValue.toString() == "0"
         fixMessage.getField(10).charSequenceValue.toString() == "080"
         fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == message.length() - 1
+        fixMessage.getEndIndex() == message.length()
     }
 
     def "should parse execution report message, message with multiple occurrences of repeating group(382)"() {
@@ -125,9 +142,9 @@ class FixMessageParserTest extends Specification {
                          "\u000120=0\u000139=2\u0001150=2\u000154=1\u000138=100\u000140=1\u000159=0\u000131=25.4800\u000132=100\u000114=0\u00016=0\u0001151=0\u000160=20090323-15:40:30\u000158=Fill\u000130=N\u000176=0034\u0001207=N\u0001" +
                          "47=A\u0001382=2\u0001375=TOD\u0001337=0000\u0001437=100\u0001438=20090330-23:40:35\u0001375=TOD2\u0001337=0001\u0001437=101\u0001438=20090330-23:40:36\u000129=1\u000163=0\u000110=080\u0001"
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
-        fixMessageParser.setFixMessage(fixMessage)
 
         when:
+        fixMessageParser.startParsing()
         fixMessageParser.parseFixMsgBytes()
 
         then:
@@ -169,21 +186,21 @@ class FixMessageParserTest extends Specification {
         repeatingGroupField.longValue == 2
         repeatingGroupField.@fieldValue.valueTypeSet == FieldType.GROUP
         repeatingGroupField.@fieldValue.repetitionCounter == 2
-        repeatingGroupField.getFieldForGivenRepetition(0,375).charSequenceValue.toString() == "TOD"
-        repeatingGroupField.getFieldForGivenRepetition(0,337).charSequenceValue.toString() == "0000"
-        repeatingGroupField.getFieldForGivenRepetition(0,437).doubleUnscaledValue == 100
-        repeatingGroupField.getFieldForGivenRepetition(0,437).scale == 0
-        repeatingGroupField.getFieldForGivenRepetition(0,438).timestampValue == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090330-23:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
-        repeatingGroupField.getFieldForGivenRepetition(1,375).charSequenceValue.toString() == "TOD2"
-        repeatingGroupField.getFieldForGivenRepetition(1,337).charSequenceValue.toString() == "0001"
-        repeatingGroupField.getFieldForGivenRepetition(1,437).doubleUnscaledValue == 101
-        repeatingGroupField.getFieldForGivenRepetition(1,437).scale == 0
-        repeatingGroupField.getFieldForGivenRepetition(1,438).timestampValue == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090330-23:40:36", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        repeatingGroupField.getFieldForGivenRepetition(0, 375).charSequenceValue.toString() == "TOD"
+        repeatingGroupField.getFieldForGivenRepetition(0, 337).charSequenceValue.toString() == "0000"
+        repeatingGroupField.getFieldForGivenRepetition(0, 437).doubleUnscaledValue == 100
+        repeatingGroupField.getFieldForGivenRepetition(0, 437).scale == 0
+        repeatingGroupField.getFieldForGivenRepetition(0, 438).timestampValue == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090330-23:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        repeatingGroupField.getFieldForGivenRepetition(1, 375).charSequenceValue.toString() == "TOD2"
+        repeatingGroupField.getFieldForGivenRepetition(1, 337).charSequenceValue.toString() == "0001"
+        repeatingGroupField.getFieldForGivenRepetition(1, 437).doubleUnscaledValue == 101
+        repeatingGroupField.getFieldForGivenRepetition(1, 437).scale == 0
+        repeatingGroupField.getFieldForGivenRepetition(1, 438).timestampValue == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090330-23:40:36", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
         fixMessage.getField(29).charValue == "1" as char
         fixMessage.getField(63).charSequenceValue.toString() == "0"
         fixMessage.getField(10).charSequenceValue.toString() == "080"
         fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == message.length() - 1
+        fixMessage.getEndIndex() == message.length()
     }
 
     def "should parse fake confirmation message, message with nested repeating groups"() {
@@ -191,9 +208,9 @@ class FixMessageParserTest extends Specification {
         String message = "8=FIX.4.4\u00019=378\u000135=AK\u000134=5\u000149=CCG\u000156=ABC_DEFG01\u000152=20090323-15:40:35\u000185=2\u0001787=C\u0001781=2\u0001782=ID1\u0001782=ID2\u0001787=D\u0001781=2\u0001782=ID3\u0001782=ID4" +
                          "\u000110=080\u0001"
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
-        fixMessageParser.setFixMessage(fixMessage)
 
         when:
+        fixMessageParser.startParsing()
         fixMessageParser.parseFixMsgBytes()
 
         then:
@@ -210,22 +227,22 @@ class FixMessageParserTest extends Specification {
         dlvyInstGroup.longValue == 2
         dlvyInstGroup.@fieldValue.valueTypeSet == FieldType.GROUP
         dlvyInstGroup.@fieldValue.repetitionCounter == 2
-        dlvyInstGroup.getFieldForGivenRepetition(0,787).charValue == 'C' as char
-        def settlPartiesGroup1 = dlvyInstGroup.getFieldForGivenRepetition(0,781)
+        dlvyInstGroup.getFieldForGivenRepetition(0, 787).charValue == 'C' as char
+        def settlPartiesGroup1 = dlvyInstGroup.getFieldForGivenRepetition(0, 781)
         settlPartiesGroup1.longValue == 2
         settlPartiesGroup1.@fieldValue.valueTypeSet == FieldType.GROUP
         settlPartiesGroup1.@fieldValue.repetitionCounter == 2
-        settlPartiesGroup1.getFieldForGivenRepetition(0,782).charSequenceValue.toString() == 'ID1'
-        settlPartiesGroup1.getFieldForGivenRepetition(1,782).charSequenceValue.toString() == 'ID2'
-        dlvyInstGroup.getFieldForGivenRepetition(1,787).charValue == 'D' as char
-        def settlPartiesGroup2 = dlvyInstGroup.getFieldForGivenRepetition(1,781)
+        settlPartiesGroup1.getFieldForGivenRepetition(0, 782).charSequenceValue.toString() == 'ID1'
+        settlPartiesGroup1.getFieldForGivenRepetition(1, 782).charSequenceValue.toString() == 'ID2'
+        dlvyInstGroup.getFieldForGivenRepetition(1, 787).charValue == 'D' as char
+        def settlPartiesGroup2 = dlvyInstGroup.getFieldForGivenRepetition(1, 781)
         settlPartiesGroup2.longValue == 2
         settlPartiesGroup2.@fieldValue.valueTypeSet == FieldType.GROUP
         settlPartiesGroup2.@fieldValue.repetitionCounter == 2
-        settlPartiesGroup2.getFieldForGivenRepetition(0,782).charSequenceValue.toString() == 'ID3'
-        settlPartiesGroup2.getFieldForGivenRepetition(1,782).charSequenceValue.toString() == 'ID4'
+        settlPartiesGroup2.getFieldForGivenRepetition(0, 782).charSequenceValue.toString() == 'ID3'
+        settlPartiesGroup2.getFieldForGivenRepetition(1, 782).charSequenceValue.toString() == 'ID4'
         fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == message.length() - 1
+        fixMessage.getEndIndex() == message.length()
     }
 
     def "should check if can continue parsing"() {
@@ -249,9 +266,9 @@ class FixMessageParserTest extends Specification {
         setup:
         String message = "8=FIX.4.4\u00019=378\u000135=AK\u000134=5\u000149=CCG\u000156=ABC_DEFG01\u000152=20090323-15:40:"
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
-        fixMessageParser.setFixMessage(fixMessage)
 
         when:
+        fixMessageParser.startParsing()
         fixMessageParser.parseFixMsgBytes()
 
         then:
@@ -273,9 +290,9 @@ class FixMessageParserTest extends Specification {
         setup:
         String message = "8=FIX.4.4\u00019=378\u000135=AK\u000134=5\u000149=CCG\u000156=ABC_DEFG01\u000152=20090323-15:40:35\u0001"
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
-        fixMessageParser.setFixMessage(fixMessage)
 
         when:
+        fixMessageParser.startParsing()
         fixMessageParser.parseFixMsgBytes()
 
         then:
@@ -293,27 +310,10 @@ class FixMessageParserTest extends Specification {
         fixMessage.getEndIndex() == FixMessage.NOT_SET
     }
 
-    def "should set new fix message"() {
-        setup:
-        def byteBufComposer = new ByteBufComposer(1)
-        byteBufComposer.readerIndex(10)
-        fixMessageParser = new FixMessageParser(byteBufComposer, fixSpec50SP2)
-        fixMessageParser.storedEndIndexOfLastUnfinishedMessage = 666
-
-        when:
-        fixMessageParser.setFixMessage(fixMessage)
-
-        then:
-        fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
-        fixMessage.messageByteSource == byteBufComposer
-        fixMessage.getStartIndex() == byteBufComposer.readerIndex()
-    }
-
     def "should parse simple new order single fragmented with garbage"() {
         setup:
         def packet1 = Unpooled.wrappedBuffer(simpleNewOrderSingleWithGarbage.substring(0, packet1End).getBytes(StandardCharsets.US_ASCII))
         byteBufComposer.addByteBuf(packet1)
-        fixMessageParser.setFixMessage(fixMessage)
         fixMessageParser.parseFixMsgBytes()
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(simpleNewOrderSingleWithGarbage.substring(packet1End, simpleNewOrderSingleWithGarbage.length()).getBytes(StandardCharsets.US_ASCII)))
 
@@ -337,10 +337,7 @@ class FixMessageParserTest extends Specification {
 
     def "should reset parser"() {
         setup:
-        def byteBufComposer = new ByteBufComposer(1)
-        fixMessageParser = new FixMessageParser(byteBufComposer, fixSpec50SP2)
         fixMessage.retain()
-        fixMessageParser.@fixMessage = fixMessage
         fixMessageParser.@storedEndIndexOfLastUnfinishedMessage = 666
         fixMessageParser.@parsingRepeatingGroup = true
         fixMessageParser.@groupFieldsStack.add(new Field(TestSpec.USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER, new FieldCodec()))
@@ -350,11 +347,11 @@ class FixMessageParserTest extends Specification {
 
         then:
         fixMessageParser.@bytesToParse.is(byteBufComposer)
-        fixMessageParser.@fixMessage == null
+        fixMessageParser.@fixMessage.is(fixMessage)
         fixMessageParser.@storedEndIndexOfLastUnfinishedMessage == 0
         !fixMessageParser.@parsingRepeatingGroup
         fixMessageParser.@groupFieldsStack.isEmpty()
-        fixMessage.refCnt() == 0
+        fixMessage.refCnt() == 1 //1 because of retain at the beginning, basically we're checking that reset() does not release fixMessage
     }
 
     private final static String simpleNewOrderSingle = "8=FIX.4.2\u00019=145\u000135=D\u000134=4\u000149=ABC_DEFG01\u000152=20090323-15:40:29\u000156=CCG\u0001115=XYZ\u000111=NF " +

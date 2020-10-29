@@ -137,4 +137,47 @@ class DoubleFieldTest extends Specification {
         buf.toString(StandardCharsets.US_ASCII) == "1.472"
         result == TestUtils.sumBytes("1.472".getBytes(StandardCharsets.US_ASCII))
     }
+
+    def "should copy unparsed value from other field"() {
+        setup:
+        Field newField = new Field(5, new FieldCodec())
+
+        when:
+        newField.copyDataFrom(field)
+
+        then:
+        newField.@fieldValue.longValue == FieldValue.LONG_DEFAULT_VALUE
+        newField.@fieldValue.scale == 0
+        newField.@fieldValue.length == 0
+        newField.doubleUnscaledValue == -123666
+        newField.scale == 3
+        newField.startIndex == 0
+        newField.endIndex == 8
+        newField.indicesSet
+        newField.valueSet
+        newField.fieldData.is(field.fieldData)
+    }
+
+    def "should copy previously set value"() {
+        setup:
+        Field existingField = new Field(10, new FieldCodec())
+        existingField.setDoubleValue(769667, 3 as short)
+        Field newField = new Field(11, new FieldCodec())
+
+        when:
+        newField.copyDataFrom(existingField)
+
+        then:
+        newField.@fieldValue.longValue == 769667
+        newField.@fieldValue.scale == 3
+        newField.@fieldValue.length == 7
+        newField.@fieldValue.rawValue.toString(0, 7, StandardCharsets.US_ASCII) == "769.667"
+        newField.doubleUnscaledValue == 769667
+        newField.scale == 3
+        newField.startIndex == 0
+        newField.endIndex == 0
+        !newField.indicesSet
+        newField.valueSet
+        newField.fieldData == null
+    }
 }

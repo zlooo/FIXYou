@@ -1,11 +1,10 @@
 package io.github.zlooo.fixyou.netty;
 
 import io.github.zlooo.fixyou.FixConstants;
-import io.github.zlooo.fixyou.commons.pool.ObjectPool;
-import io.github.zlooo.fixyou.fix.commons.session.AbstractMessagePoolingSessionState;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.netty.handler.NettyResettablesNames;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
+import io.github.zlooo.fixyou.session.AbstractSessionState;
 import io.github.zlooo.fixyou.session.SessionConfig;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.netty.channel.Channel;
@@ -25,15 +24,15 @@ import javax.annotation.Nullable;
 @EqualsAndHashCode(callSuper = true)
 @Accessors(chain = true)
 @Slf4j
-public class NettyHandlerAwareSessionState extends AbstractMessagePoolingSessionState {
+public class NettyHandlerAwareSessionState extends AbstractSessionState {
 
     public static final AttributeKey<NettyHandlerAwareSessionState> ATTRIBUTE_KEY = AttributeKey.valueOf("sessionState");
     private static final String SESSION_MISSING_EXCEPTION_MESSAGE_PART_2 = " to have session state, but it's not there";
 
     private Channel channel;
 
-    public NettyHandlerAwareSessionState(SessionConfig sessionConfig, SessionID sessionId, ObjectPool<FixMessage> fixMessageReadPool, ObjectPool<FixMessage> fixMessageWritePool, FixSpec fixSpec) {
-        super(sessionConfig, sessionId, fixMessageReadPool, fixMessageWritePool, fixSpec);
+    public NettyHandlerAwareSessionState(SessionConfig sessionConfig, SessionID sessionId, FixSpec fixSpec) {
+        super(sessionConfig, sessionId, fixSpec);
     }
 
     public static @Nullable

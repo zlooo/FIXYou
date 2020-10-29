@@ -4,9 +4,7 @@ import io.github.zlooo.fixyou.FIXYouConfiguration
 import io.github.zlooo.fixyou.Resettable
 import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject
-import io.github.zlooo.fixyou.commons.pool.ArrayBackedObjectPool
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
-import io.github.zlooo.fixyou.fix.commons.session.AbstractMessagePoolingSessionState
 import io.github.zlooo.fixyou.netty.handler.NettyResettablesNames
 import io.github.zlooo.fixyou.netty.test.framework.*
 import io.github.zlooo.fixyou.parser.model.FixMessage
@@ -55,9 +53,9 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
         acceptorPort = SocketUtils.findAvailableTcpPort()
         LOGGER.debug("Starting FIXYou, listening on port {}", acceptorPort)
         engine = FIXYouNetty.
-                create(FIXYouConfiguration.builder().acceptorListenPort(acceptorPort).initiator(false).fixMessageReadPoolSize(4).fixMessageWritePoolSize(4).fixMessageListenerInvokerDisruptorSize(8).build(), testFixMessageListener).
+                create(FIXYouConfiguration.builder().acceptorListenPort(acceptorPort).initiator(false).fixMessagePoolSize(4).fixMessageListenerInvokerDisruptorSize(8).build(), testFixMessageListener).
                 //TODO test spec for now but once we have real one it should be used here instead
-                        registerSessionAndDictionary(fixYouSessionId, "dictionaryId", TestSpec.INSTANCE, createConfig())
+                        registerSession(fixYouSessionId, TestSpec.INSTANCE, createConfig())
         engine.start().get()
         LOGGER.debug("Creating quickfix initiator")
         initiator = QuickfixTestUtils.setupInitiator(acceptorPort, sessionID, testQuickfixApplication)
@@ -154,16 +152,7 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
     }
 
     protected Collection<FixMessage> getInUseFixMessages() {
-        def fixMessageReadPool = ((AbstractMessagePoolingSessionState) ((FIXYouNettyAcceptor) engine).@fixYouNettyComponent.sessionRegistry().
-                getStateForSession(fixYouSessionId)).fixMessageReadPool
-        Collection inUseMessages = checkPool(fixMessageReadPool)
-        def fixMessageWritePool = ((AbstractMessagePoolingSessionState) ((FIXYouNettyAcceptor) engine).@fixYouNettyComponent.sessionRegistry().
-                getStateForSession(fixYouSessionId)).fixMessageWritePool
-        inUseMessages.addAll(checkPool(fixMessageWritePool))
-        return inUseMessages
-    }
-
-    protected Collection checkPool(ArrayBackedObjectPool objectPool) {
+        def objectPool = engine.fixYouNettyComponent.fixMessageObjectPool()
         if (objectPool.@objectArray.contains(null)) {
             Assert.fail("Array in FixMessage object pool contains nulls, this means something has not been returned to the pool, which is baaaaaaaad")
         }
@@ -176,7 +165,6 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
                 inUseMessages.add(objectPool.@secondObject)
             }
         }
-
         return inUseMessages
     }
 
