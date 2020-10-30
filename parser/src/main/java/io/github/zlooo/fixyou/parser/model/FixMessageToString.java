@@ -16,13 +16,14 @@ class FixMessageToString {
     static String toString(FixMessage message, boolean wholeMessage) {
         final StringBuilder builder = new StringBuilder("FixMessage -> ");
         final Field[] fields = message.getActualFields();
-        final boolean longMessage = message.getActualFieldsLength() > LONG_MESSAGE_FIELD_NUMBER_THRESHOLD;
+        final int actualFieldsLength = message.getActualFieldsLength();
+        final boolean longMessage = actualFieldsLength > LONG_MESSAGE_FIELD_NUMBER_THRESHOLD;
         final boolean shortenOutput = longMessage && !wholeMessage;
-        final int fieldsLimit = shortenOutput ? LONG_MESSAGE_FIELD_NUMBER_THRESHOLD : message.getActualFieldsLength();
+        final int fieldsLimit = shortenOutput ? LONG_MESSAGE_FIELD_NUMBER_THRESHOLD : actualFieldsLength;
         for (int i = 0; i < fieldsLimit; i++) {
             appendFieldToBuilderIfValueIsSet(builder, fields[i]);
         }
-        builder.deleteCharAt(builder.length() - 1).append(shortenOutput ? "..." : "").append(", refCnt=").append(message.refCnt());
+        builder.deleteCharAt(builder.length() - 1).append(shortenOutput ? "..." : "").append(", refCnt=").append(message.refCnt()).append(", startIndex=").append(message.getStartIndex()).append(", endIndex=").append(message.getEndIndex());
         return builder.toString();
     }
 

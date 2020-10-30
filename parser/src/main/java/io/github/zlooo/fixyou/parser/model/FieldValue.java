@@ -124,21 +124,24 @@ class FieldValue implements Resettable, Closeable {
 
     void copyDataFrom(FieldValue fieldValue, FieldCodec fieldCodec) {
         repetitionCounter = fieldValue.repetitionCounter;
-        ensureRepetitionsArrayCapacity();
-        for (int i = 0; i < fieldValue.repetitions.length; i++) {
-            final Repetition currentRepetition = ArrayUtils.getElementAt(repetitions, i);
-            for (final Field groupField : ArrayUtils.getElementAt(fieldValue.repetitions, i).idToField.values()) {
-                currentRepetition.getExistingOrNewGroupField(groupField.getNumber(), fieldCodec).copyDataFrom(groupField);
-            }
+        final int repetitionsArrayLength = fieldValue.repetitions.length;
+        if (repetitionsArrayLength > 0) {
+            ensureRepetitionsArrayCapacity();
+            for (int i = 0; i < repetitionsArrayLength; i++) {
+                final Repetition currentRepetition = ArrayUtils.getElementAt(repetitions, i);
+                for (final Field groupField : ArrayUtils.getElementAt(fieldValue.repetitions, i).idToField.values()) {
+                    currentRepetition.getExistingOrNewGroupField(groupField.getNumber(), fieldCodec).copyDataFrom(groupField);
+                }
 
+            }
         }
         parsed = fieldValue.parsed;
         booleanValue = fieldValue.booleanValue;
         charValue = fieldValue.charValue;
         charValueRaw = fieldValue.charValueRaw;
-        length = fieldValue.length;
-        charSequenceValue.setLength(length);
-        rawValue.clear().writeBytes(fieldValue.rawValue, 0, length);
+        this.length = fieldValue.length;
+        charSequenceValue.setLength(this.length);
+        rawValue.clear().writeBytes(fieldValue.rawValue, 0, this.length);
         final char[] sourceCharArray = fieldValue.charArrayValue;
         final int sourceCharArrayLength = sourceCharArray.length;
         ensureCharArraysCapacity(sourceCharArrayLength);

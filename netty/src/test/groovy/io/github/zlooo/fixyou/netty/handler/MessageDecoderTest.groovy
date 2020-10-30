@@ -35,7 +35,7 @@ class MessageDecoderTest extends Specification {
                 decodedFixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
                 decodedFixMessage.is(fixMessage)
                 decodedFixMessage.startIndex == 0
-                decodedFixMessage.endIndex == encodedMessage.writerIndex()
+                decodedFixMessage.endIndex == encodedMessage.writerIndex() - 1
             }
         })
         messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
@@ -87,7 +87,7 @@ class MessageDecoderTest extends Specification {
                 decodedFixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
                 decodedFixMessage.is(fixMessage)
                 decodedFixMessage.startIndex == 0
-                decodedFixMessage.endIndex == encodedMessagePart1.writerIndex() + encodedMessagePart2.writerIndex()
+                decodedFixMessage.endIndex == encodedMessagePart1.writerIndex() + encodedMessagePart2.writerIndex() - 1
                 decodedFixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).charSequenceValue.toString() == "test"
             }
         })
@@ -119,7 +119,7 @@ class MessageDecoderTest extends Specification {
                 decodedFixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
                 decodedFixMessage.is(fixMessage)
                 decodedFixMessage.startIndex == 0
-                decodedFixMessage.endIndex == encodedMessage1Part1.writerIndex() + encodedMessage1Part2.writerIndex()
+                decodedFixMessage.endIndex == encodedMessage1Part1.writerIndex() + encodedMessage1Part2.writerIndex() - 1
                 decodedFixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).charSequenceValue.toString() == "test"
             }
         })
@@ -146,7 +146,7 @@ class MessageDecoderTest extends Specification {
                 decodedFixMessage.messageByteSource.is(messageDecoder.byteBufComposer)
                 decodedFixMessage.is(fixMessage)
                 decodedFixMessage.startIndex == 0
-                decodedFixMessage.endIndex == encodedMessage2Part1.writerIndex() + encodedMessage2Part2.writerIndex()
+                decodedFixMessage.endIndex == encodedMessage2Part1.writerIndex() + encodedMessage2Part2.writerIndex() - 1
                 decodedFixMessage.getField(FixConstants.TEXT_FIELD_NUMBER).charSequenceValue.toString() == "test2"
             }
         })
@@ -206,7 +206,7 @@ class MessageDecoderTest extends Specification {
                 decodedMessage.is(fixMessage)
                 decodedMessage.getField(58).charSequenceValue.toString() == "test"
                 decodedMessage.startIndex == 0
-                decodedMessage.endIndex == 51
+                decodedMessage.endIndex == 50
                 decodedMessage.messageByteSource.is(messageDecoder.byteBufComposer)
             }
         }) >> channelHandlerContext
@@ -214,8 +214,8 @@ class MessageDecoderTest extends Specification {
             verifyAll(it, FixMessage) { decodedMessage ->
                 decodedMessage.is(fixMessage)
                 decodedMessage.getField(58).charSequenceValue.toString() == "test2"
-                decodedMessage.startIndex == 52
-                decodedMessage.endIndex == encodedMessage.writerIndex()
+                decodedMessage.startIndex == 51
+                decodedMessage.endIndex == encodedMessage.writerIndex() - 1
                 decodedMessage.messageByteSource.is(messageDecoder.byteBufComposer)
             }
         }) >> channelHandlerContext
@@ -244,7 +244,7 @@ class MessageDecoderTest extends Specification {
                 decodedMessage.is(fixMessage)
                 decodedMessage.getField(58).charSequenceValue.toString() == "test"
                 decodedMessage.startIndex == 0
-                decodedMessage.endIndex == 51
+                decodedMessage.endIndex == 50
                 decodedMessage.messageByteSource.is(messageDecoder.byteBufComposer)
             }
         }) >> channelHandlerContext
@@ -252,8 +252,8 @@ class MessageDecoderTest extends Specification {
             verifyAll(it, FixMessage) { decodedMessage ->
                 decodedMessage.is(fixMessage)
                 decodedMessage.getField(58).charSequenceValue.toString() == "test2"
-                decodedMessage.startIndex == 52
-                decodedMessage.endIndex == encodedMessagePart1.writerIndex() + encodedMessagePart2.writerIndex()
+                decodedMessage.startIndex == 51
+                decodedMessage.endIndex == encodedMessagePart1.writerIndex() + encodedMessagePart2.writerIndex() - 1
                 decodedMessage.messageByteSource.is(messageDecoder.byteBufComposer)
             }
         }) >> channelHandlerContext
@@ -281,5 +281,4 @@ class MessageDecoderTest extends Specification {
         encodedMessagePart1.refCnt() == 0
         encodedMessagePart2.refCnt() == 0
     }
-
 }

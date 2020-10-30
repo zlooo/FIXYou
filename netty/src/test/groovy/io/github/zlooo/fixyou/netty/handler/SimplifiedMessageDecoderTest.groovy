@@ -26,7 +26,7 @@ class SimplifiedMessageDecoderTest extends Specification {
         1 * channelHandlerContext.fireChannelRead({
             verifyAll(it, FixMessage) { decodedMessage ->
                 decodedMessage.startIndex == 0
-                decodedMessage.endIndex == encodedMessage.writerIndex()
+                decodedMessage.endIndex == encodedMessage.writerIndex() - 1
                 decodedMessage.messageByteSource != null
             }
         })

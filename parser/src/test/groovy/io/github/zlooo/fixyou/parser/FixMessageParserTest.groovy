@@ -21,7 +21,7 @@ class FixMessageParserTest extends Specification {
     private ByteBufComposer byteBufComposer = new ByteBufComposer(10)
     private FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer, fixSpec50SP2, fixMessage)
 
-    void setup(){
+    void setup() {
         fixMessage.setMessageByteSource(byteBufComposer)
     }
 
@@ -55,7 +55,7 @@ class FixMessageParserTest extends Specification {
         fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
         assertSimpleNewOrderSingle(fixMessage)
         fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == simpleNewOrderSingle.length()
+        fixMessage.getEndIndex() == simpleNewOrderSingle.length() - 1
     }
 
     def "should discard garbage data from fix message"() {
@@ -71,7 +71,7 @@ class FixMessageParserTest extends Specification {
         fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
         assertSimpleNewOrderSingle(fixMessage)
         fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == simpleNewOrderSingle.length() + "garbage garbage".length()
+        fixMessage.getEndIndex() == simpleNewOrderSingle.length() + "garbage garbage".length() - 1
     }
 
     def "should parse execution report message, message with repeating group(382)"() {
@@ -133,7 +133,7 @@ class FixMessageParserTest extends Specification {
         fixMessage.getField(63).charSequenceValue.toString() == "0"
         fixMessage.getField(10).charSequenceValue.toString() == "080"
         fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == message.length()
+        fixMessage.getEndIndex() == message.length() - 1
     }
 
     def "should parse execution report message, message with multiple occurrences of repeating group(382)"() {
@@ -200,7 +200,7 @@ class FixMessageParserTest extends Specification {
         fixMessage.getField(63).charSequenceValue.toString() == "0"
         fixMessage.getField(10).charSequenceValue.toString() == "080"
         fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == message.length()
+        fixMessage.getEndIndex() == message.length() - 1
     }
 
     def "should parse fake confirmation message, message with nested repeating groups"() {
@@ -242,7 +242,7 @@ class FixMessageParserTest extends Specification {
         settlPartiesGroup2.getFieldForGivenRepetition(0, 782).charSequenceValue.toString() == 'ID3'
         settlPartiesGroup2.getFieldForGivenRepetition(1, 782).charSequenceValue.toString() == 'ID4'
         fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == message.length()
+        fixMessage.getEndIndex() == message.length() - 1
     }
 
     def "should check if can continue parsing"() {

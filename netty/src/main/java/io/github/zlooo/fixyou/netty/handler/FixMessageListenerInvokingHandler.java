@@ -1,9 +1,6 @@
 package io.github.zlooo.fixyou.netty.handler;
 
-import com.lmax.disruptor.EventHandler;
-import com.lmax.disruptor.InsufficientCapacityException;
-import com.lmax.disruptor.PhasedBackoffWaitStrategy;
-import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.*;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import io.github.zlooo.fixyou.Closeable;
@@ -21,6 +18,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.TimeUnit;
@@ -43,6 +41,7 @@ class FixMessageListenerInvokingHandler extends SimpleChannelInboundHandler<FixM
             for (int i = 0; i < configuration.getNumberOfAppThreads(); i++) {
                 disruptor.handleEventsWith(new FixMessageListenerEventHandler(i));
             }
+            disruptor.setDefaultExceptionHandler(new LoggingExceptionHandler());
             disruptor.start();
             invokeDirectly = false;
         } else {
@@ -81,12 +80,14 @@ class FixMessageListenerInvokingHandler extends SimpleChannelInboundHandler<FixM
                 event.fixMessage.copyDataFrom(msg, true);
                 ringBuffer.publish(sequence);
             } catch (InsufficientCapacityException e) {
-                log.warn("Insufficient capacity in disruptor's ring buffer, have to drop one or else boom goes the dynamite");
+                log.warn("Insufficient capacity in disruptor's ring buffer, have to drop one or else boom goes the dynamite. Fix message dropped is logged on debug level.");
+                log.debug("FixMessage that's dropped: {}", msg);
             }
         }
     }
 
-    private static class Event {
+    @ToString
+    private static final class Event {
         private final FixMessageListener fixMessageListener;
         private SessionID sessionID;
         private FixMessage fixMessage;
@@ -100,7 +101,7 @@ class FixMessageListenerInvokingHandler extends SimpleChannelInboundHandler<FixM
     }
 
     @RequiredArgsConstructor
-    private static class FixMessageListenerEventHandler implements EventHandler<Event> {
+    private static final class FixMessageListenerEventHandler implements EventHandler<Event> {
 
         private final int eventHandlerNumber;
 
@@ -113,6 +114,24 @@ class FixMessageListenerInvokingHandler extends SimpleChannelInboundHandler<FixM
                     event.fixMessage.resetAllDataFieldsAndReleaseByteSource();
                 }
             }
+        }
+    }
+
+    private static final class LoggingExceptionHandler implements ExceptionHandler<Event> {
+
+        @Override
+        public void handleEventException(Throwable ex, long sequence, Event event) {
+            log.error("Exception when handling event {}", event, ex);
+        }
+
+        @Override
+        public void handleOnStartException(Throwable ex) {
+            log.error("Exception during startup", ex);
+        }
+
+        @Override
+        public void handleOnShutdownException(Throwable ex) {
+            log.error("Exception during shutdown", ex);
         }
     }
 }

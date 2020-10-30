@@ -61,7 +61,7 @@ public class FixMessageParser implements Resettable {
     public void parseFixMsgBytes() {
         int closestFieldTerminatorIndex;
 
-        while (!bytesToParse.readerIndexBeyondStoredEnd() && ((closestFieldTerminatorIndex = bytesToParse.indexOfClosest(FixMessage.FIELD_SEPARATOR)) != ByteBufComposer.NOT_FOUND)) {
+        while (!bytesToParse.readerIndexBeyondStoredEnd() && ((closestFieldTerminatorIndex = bytesToParse.indexOfClosestSOH()) != ByteBufComposer.NOT_FOUND)) {
             final int fieldNum = ParsingUtils.parseInteger(bytesToParse, bytesToParse.readerIndex(), FixMessage.FIELD_VALUE_SEPARATOR, true);
             final int start = bytesToParse.readerIndex();
             Field field;
@@ -90,7 +90,7 @@ public class FixMessageParser implements Resettable {
             }
             if (fieldNum == FixConstants.CHECK_SUM_FIELD_NUMBER) {
                 storedEndIndexOfLastUnfinishedMessage = 0;
-                fixMessage.setEndIndex(closestFieldTerminatorIndex + 1); //including last SOH
+                fixMessage.setEndIndex(closestFieldTerminatorIndex); //including last SOH
                 return;
             }
         }

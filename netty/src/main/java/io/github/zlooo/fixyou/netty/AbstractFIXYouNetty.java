@@ -15,6 +15,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.ResourceLeakDetector;
 
+import javax.annotation.Nonnull;
 import java.util.Set;
 import java.util.concurrent.Future;
 
@@ -36,6 +37,7 @@ abstract class AbstractFIXYouNetty implements Engine {
 
     }
 
+    @Nonnull
     @Override
     public Future<?> stop() {
         final io.netty.util.concurrent.Future<?> shutdownGracefully = eventLoopGroup.shutdownGracefully();
@@ -45,8 +47,9 @@ abstract class AbstractFIXYouNetty implements Engine {
         return shutdownGracefully;
     }
 
+    @Nonnull
     @Override
-    public Engine registerSession(SessionID sessionID, FixSpec fixSpec, SessionConfig sessionConfig) {
+    public Engine registerSession(@Nonnull SessionID sessionID, @Nonnull FixSpec fixSpec, @Nonnull SessionConfig sessionConfig) {
         final Set<String> errorMessages = configValidator.validateSessionConfig(sessionConfig);
         if (!errorMessages.isEmpty()) {
             throw new FIXYouException("Session configuration validation failed, reason(s): " + String.join(", ", errorMessages));

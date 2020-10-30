@@ -1,8 +1,10 @@
 package io.github.zlooo.fixyou.commons;
 
 import io.github.zlooo.fixyou.Resettable;
+import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
+import io.netty.util.ByteProcessor;
 import lombok.Data;
 import lombok.Getter;
 import lombok.ToString;
@@ -25,6 +27,7 @@ public class ByteBufComposer implements Resettable {
     public static final int NOT_FOUND = -1;
     private static final int INITIAL_VALUE = -1;
     private static final String IOOBE_MESSAGE = "This instance does not contain data for index ";
+    private static final ByteProcessor SOH_FINDER = new ByteProcessor.IndexOfProcessor((byte) 1);
     @ToString.Exclude
     private final Component[] components;
     private final int mask;
@@ -51,8 +54,8 @@ public class ByteBufComposer implements Resettable {
 
     public boolean addByteBuf(ByteBuf byteBuf) {
         byteBuf.retain();
-        final Component previousComponent = components[toArrayIndex(arrayIndex - 1)];
-        final Component component = components[toArrayIndex(arrayIndex++)];
+        final Component previousComponent = ArrayUtils.getElementAt(components, toArrayIndex(arrayIndex - 1));
+        final Component component = ArrayUtils.getElementAt(components, toArrayIndex(arrayIndex++));
         if (component.buffer != null) {
             return false;
         }
@@ -81,7 +84,7 @@ public class ByteBufComposer implements Resettable {
             int componentArrayIndex = findReaderComponentIndex(startIndexInclusive); //here we're making sure that startIndexInclusive is between this component's start and end index
             Component component;
             for (; ; ) {
-                component = components[toArrayIndex(componentArrayIndex++)];
+                component = ArrayUtils.getElementAt(components, toArrayIndex(componentArrayIndex++));
                 if (isEmpty(component)) {
                     break;
                 }
@@ -89,7 +92,7 @@ public class ByteBufComposer implements Resettable {
                 final boolean startEqualsOrPrecedesComponentsStart = startIndexInclusive <= component.startIndex;
                 if (!(startEqualsOrPrecedesComponentsStart || endEqualsOrExceedsComponentsEnd)) {
                     throw new IllegalArgumentException(
-                            String.format("No holes allowed, after releasing <%1$d, %2$d> from <%3$d, %4$d> we'd have 2 ranges", startIndexInclusive, endIndexInclusive, component.startIndex, component.endIndex));
+                            String.format("No holes allowed, after releasing <%1$d, %2$d> from <%3$d, %4$d> we'd have 2 ranges in single component", startIndexInclusive, endIndexInclusive, component.startIndex, component.endIndex));
                 }
                 if (endEqualsOrExceedsComponentsEnd && startEqualsOrPrecedesComponentsStart) {
                     component.reset();
@@ -154,7 +157,7 @@ public class ByteBufComposer implements Resettable {
         int localReaderIndex = index;
         Component component;
         while (remainingBytesToRead > 0) {
-            component = components[toArrayIndex(readerComponentIndex++)];
+            component = ArrayUtils.getElementAt(components, toArrayIndex(readerComponentIndex++));
             final int bytesReadFromComponent = readDataFromComponent(component, localReaderIndex, remainingBytesToRead, destination, bytesRead);
             bytesRead += bytesReadFromComponent;
             localReaderIndex += bytesReadFromComponent;
@@ -173,13 +176,13 @@ public class ByteBufComposer implements Resettable {
     }
 
     public byte getByte(int index) {
-        final Component component = components[findReaderComponentIndex(index)];
+        final Component component = ArrayUtils.getElementAt(components, findReaderComponentIndex(index));
         return component.getBuffer().getByte(index - component.offset);
     }
 
     private int findReaderComponentIndex(int index) {
         for (int i = 0; i < components.length; i++) {
-            final Component component = components[i];
+            final Component component = ArrayUtils.getElementAt(components, i);
             if (component.endIndex >= index && component.startIndex <= index) {
                 return i;
             }
@@ -223,18 +226,27 @@ public class ByteBufComposer implements Resettable {
         return readerIndex >= storedEndIndex;
     }
 
+    public int indexOfClosestSOH() {
+        return indexOfClosest(SOH_FINDER);
+    }
+
     /**
      * Finds closest index of provided value that's greater than current reader index
      *
-     * @param valueToFind value to look for
+     * @param valueToFind value to look for, should be instance of {@link io.netty.util.ByteProcessor.IndexOfProcessor} but any {@link ByteProcessor} will be accepted, it's up to you to make sure it's correct one
      * @return index of given value or {@link #NOT_FOUND}
      */
-    public int indexOfClosest(byte valueToFind) {
+    public int indexOfClosest(ByteProcessor valueToFind) {
         int readerComponentIndex = findReaderComponentIndex(readerIndex);
         while (true) {
-            final Component component = components[toArrayIndex(readerComponentIndex++)];
+            final Component component = ArrayUtils.getElementAt(components, toArrayIndex(readerComponentIndex++));
             if (!isEmpty(component) && component.endIndex >= readerIndex) {
-                final int result = component.buffer.indexOf(readerIndex - component.offset, component.buffer.writerIndex(), valueToFind);
+                final int fromIndex = Math.max(readerIndex - component.offset, 0);
+                /**
+                 * According to {@link io.github.zlooo.fixyou.commons.ByteBufComposerPerformanceTest} {@link ByteBuf#forEachByte(int, int, ByteProcessor)} is almost 4,5 times faster than {@link ByteBuf#indexOf(int, int, byte)} that's
+                 * quite a difference
+                 */
+                final int result = component.buffer.forEachByte(fromIndex, component.buffer.writerIndex() - fromIndex, valueToFind);
                 if (result != NOT_FOUND) {
                     return result + component.offset;
                 }
