@@ -1,12 +1,14 @@
 package io.github.zlooo.fixyou.parser.model;
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer;
-import io.github.zlooo.fixyou.model.FixSpec;
+import io.github.zlooo.fixyou.utils.ArrayUtils;
+
+import javax.annotation.Nonnull;
 
 public final class NotPoolableFixMessage extends FixMessage {
 
-    public NotPoolableFixMessage(FixSpec spec) {
-        super(spec);
+    public NotPoolableFixMessage(@Nonnull FieldCodec fieldCodec) {
+        super(fieldCodec);
         exceptionOnReferenceCheckFail = false;
         retain();
     }
@@ -18,7 +20,9 @@ public final class NotPoolableFixMessage extends FixMessage {
         if (messageByteSource != null) {
             int maxIndex = 0;
             int minIndex = Integer.MAX_VALUE;
-            for (final AbstractField field : getFieldsOrdered()) {
+            final Field[] fields = getActualFields();
+            for (int i = 0; i < getActualFieldsLength(); i++) {
+                final Field field = ArrayUtils.getElementAt(fields, i);
                 if (field.isValueSet()) {
                     final int endIndex = field.getEndIndex();
                     if (maxIndex < endIndex) {

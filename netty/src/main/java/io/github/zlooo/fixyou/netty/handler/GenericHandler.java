@@ -4,9 +4,7 @@ import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.fix.commons.RequiredFieldMissingException;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
-import io.github.zlooo.fixyou.parser.model.CharSequenceField;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
-import io.github.zlooo.fixyou.parser.model.TimestampField;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.netty.channel.*;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +30,7 @@ class GenericHandler extends ChannelDuplexHandler { //TODO remember about unit t
         if (msg instanceof FixMessage) {
             final FixMessage fixMessage = (FixMessage) msg;
             final NettyHandlerAwareSessionState sessionState = NettyHandlerAwareSessionState.getForChannelContext(ctx);
-            final CharSequence messageType = fixMessage.<CharSequenceField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getValue();
+            final CharSequence messageType = fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getCharSequenceValue();
             if ((sessionState == null || !sessionState.getConnected().get()) && !ArrayUtils.equals(FixConstants.LOGON, messageType)) {
                 final Channel channel = ctx.channel();
                 log.error("First message received but it's not logon request, disconnecting channel {}", channel);
@@ -53,9 +51,9 @@ class GenericHandler extends ChannelDuplexHandler { //TODO remember about unit t
             checkIfFieldsArePresent(fixMessage, FixConstants.MESSAGE_TYPE_FIELD_NUMBER, FixConstants.SENDER_COMP_ID_FIELD_NUMBER, FixConstants.TARGET_COMP_ID_FIELD_NUMBER,
                                     FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER);
             final long timestamp = clock.millis();
-            fixMessage.<TimestampField>getField(FixConstants.SENDING_TIME_FIELD_NUMBER).setValue(timestamp);
+            fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).setTimestampValue(timestamp);
             if (shouldSetOrigSendingTime(fixMessage)) {
-                fixMessage.<TimestampField>getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).setValue(timestamp);
+                fixMessage.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).setTimestampValue(timestamp);
             }
         }
         super.write(ctx, msg, promise);

@@ -1,15 +1,13 @@
 package io.github.zlooo.fixyou.parser.model
 
-import io.github.zlooo.fixyou.model.FieldType
-import io.netty.buffer.ByteBuf
-import io.netty.buffer.Unpooled
+
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
 
-class AbstractFieldTest extends Specification {
+class FieldTest extends Specification {
 
-    private TestField field = new TestField(1)
+    private Field field = new Field(1, new FieldCodec())
 
     def "should encode field number on creation"() {
         expect:
@@ -38,27 +36,5 @@ class AbstractFieldTest extends Specification {
         field.startIndex == 0
         field.endIndex == 0
         !field.valueSet
-    }
-
-    private static class TestField extends AbstractField {
-
-        TestField(int number) {
-            super(number)
-        }
-
-        @Override
-        FieldType getFieldType() {
-            return FieldType.CHAR
-        }
-
-        @Override
-        protected void resetInnerState() {
-
-        }
-
-        @Override
-        int appendByteBufWithValue(ByteBuf out) {
-
-        }
     }
 }

@@ -1,11 +1,13 @@
 package io.github.zlooo.fixyou.utils;
 
 import lombok.experimental.UtilityClass;
+import sun.misc.Unsafe;
 
 @UtilityClass
 public final class ArrayUtils {
 
     public static final int NOT_FOUND = -1;
+    public static final int[] EMPTY_INT_ARRAY = new int[0];
 
     /**
      * Adds given element at given index moving following elements to the right if necessary. This method assumes sufficient capacity.
@@ -57,5 +59,22 @@ public final class ArrayUtils {
             }
         }
         return NOT_FOUND;
+    }
+
+    /**
+     * Based on results I got from {@link io.github.zlooo.fixyou.commons.utils.ArrayDataGetPerformanceTest} it's faster to use this method than normal array[index]
+     * ArrayDataGetPerformanceTest.unsafeReferenceGet - score 62,150
+     * ArrayDataGetPerformanceTest.normalReferenceGet - score 45,399
+     */
+    public static <T> T getElementAt(T[] array, int index) {
+        return (T) UnsafeAccessor.UNSAFE.getObject(array, (long) (Unsafe.ARRAY_OBJECT_BASE_OFFSET + (Unsafe.ARRAY_OBJECT_INDEX_SCALE * index)));
+    }
+
+    public static int getElementAt(int[] array, int index) {
+        return UnsafeAccessor.UNSAFE.getInt(array, (long) (Unsafe.ARRAY_INT_BASE_OFFSET + (Unsafe.ARRAY_INT_INDEX_SCALE * index)));
+    }
+
+    public static char getElementAt(char[] array, int index) {
+        return UnsafeAccessor.UNSAFE.getChar(array, (long) (Unsafe.ARRAY_CHAR_BASE_OFFSET + (Unsafe.ARRAY_CHAR_INDEX_SCALE * index)));
     }
 }

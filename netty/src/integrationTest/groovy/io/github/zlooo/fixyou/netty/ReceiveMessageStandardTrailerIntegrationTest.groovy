@@ -80,7 +80,7 @@ class ReceiveMessageStandardTrailerIntegrationTest extends AbstractFixYOUAccepto
 
         then:
         testFixMessageListener.messagesReceived.size() == 1
-        testFixMessageListener.messagesReceived[0].getField(ClOrdID.FIELD).value == expectedClordId
+        testFixMessageListener.messagesReceived[0].getField(ClOrdID.FIELD).charSequenceValue.chars == expectedClordId
         nextExpectedInboundSequenceNumber() == 3
     }
 
@@ -116,7 +116,7 @@ class ReceiveMessageStandardTrailerIntegrationTest extends AbstractFixYOUAccepto
 
         then:
         testFixMessageListener.messagesReceived.size() == 1
-        testFixMessageListener.messagesReceived[0].getField(ClOrdID.FIELD).value == expectedClordId
+        testFixMessageListener.messagesReceived[0].getField(ClOrdID.FIELD).charSequenceValue.chars == expectedClordId
         nextExpectedInboundSequenceNumber() == 3
     }
 
@@ -152,7 +152,7 @@ class ReceiveMessageStandardTrailerIntegrationTest extends AbstractFixYOUAccepto
 
         then:
         testFixMessageListener.messagesReceived.size() == 1
-        testFixMessageListener.messagesReceived[0].getField(ClOrdID.FIELD).value == expectedClordId
+        testFixMessageListener.messagesReceived[0].getField(ClOrdID.FIELD).charSequenceValue.chars == expectedClordId
         nextExpectedInboundSequenceNumber() == 3
     }
 }

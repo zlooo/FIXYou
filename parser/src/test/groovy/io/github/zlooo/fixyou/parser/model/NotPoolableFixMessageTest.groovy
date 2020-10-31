@@ -1,17 +1,18 @@
 package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer
-import io.github.zlooo.fixyou.parser.TestSpec
 import spock.lang.Specification
 
 class NotPoolableFixMessageTest extends Specification {
 
-    private NotPoolableFixMessage fixMessage = new NotPoolableFixMessage(TestSpec.INSTANCE)
-    private AbstractField field = Mock()
+    private NotPoolableFixMessage fixMessage = new NotPoolableFixMessage(new FieldCodec())
+    private Field field = Mock()
 
     void setup() {
-        def fieldsOrdered = fixMessage.fieldsOrdered
-        (0..fieldsOrdered.length - 1).forEach { fieldsOrdered[it] = field }
+        (0..9).forEach {
+            fixMessage.getField(it + 1)
+            fixMessage.actualFields[it] = field
+        }
     }
 
     def "should close message and release buffer on deallocate"() {
@@ -23,10 +24,10 @@ class NotPoolableFixMessageTest extends Specification {
         fixMessage.deallocate()
 
         then:
-        fixMessage.fieldsOrdered.length * field.close()
-        fixMessage.fieldsOrdered.length * field.getStartIndex() >> 2
-        fixMessage.fieldsOrdered.length * field.getEndIndex() >> 10
-        fixMessage.fieldsOrdered.length * field.isValueSet() >> true
+        fixMessage.actualFieldsLength * field.close()
+        fixMessage.actualFieldsLength * field.getStartIndex() >> 2
+        fixMessage.actualFieldsLength * field.getEndIndex() >> 10
+        fixMessage.actualFieldsLength * field.isValueSet() >> true
         1 * messageByteSource.releaseData(0, 10)
         0 * _
     }
@@ -36,7 +37,7 @@ class NotPoolableFixMessageTest extends Specification {
         fixMessage.deallocate()
 
         then:
-        fixMessage.fieldsOrdered.length * field.close()
+        fixMessage.actualFieldsLength * field.close()
         0 * _
     }
 }

@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.github.zlooo.fixyou.parser.TestSpec
 import io.github.zlooo.fixyou.parser.TestUtils
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -11,11 +12,11 @@ import java.nio.charset.StandardCharsets
 
 class LongFieldTest extends Specification {
 
-    private LongField field
+    private Field field
     private ByteBuf underlyingBuf = Unpooled.buffer(10, 10)
 
     void setup() {
-        field = new LongField(1)
+        field = new Field(1, new FieldCodec())
         def byteBufComposer = new ByteBufComposer(1)
         field.setFieldData(byteBufComposer)
         underlyingBuf.clear().writeCharSequence("123456", StandardCharsets.US_ASCII)
@@ -24,9 +25,9 @@ class LongFieldTest extends Specification {
         field.setIndexes(0, 7)
     }
 
-    def "should get value"() {
+    def "should get long value"() {
         expect:
-        field.getValue() == 123456
+        field.longValue == 123456
         field.valueSet
     }
 
@@ -35,54 +36,92 @@ class LongFieldTest extends Specification {
         field.reset()
 
         expect:
-        field.value == LongField.DEFAULT_VALUE
+        field.longValue == FieldValue.LONG_DEFAULT_VALUE
     }
 
     def "should cache value once parsed"() {
         setup:
-        field.getValue()
+        field.longValue
         underlyingBuf.clear().writeCharSequence("!", StandardCharsets.US_ASCII)
         field.setIndexes(0, 1)
 
         expect:
-        field.getValue() == 123456
+        field.longValue == 123456
         field.valueSet
     }
 
     def "should reset state"() {
         when:
-        field.resetInnerState()
+        field.reset()
 
         then:
-        field.@value == LongField.DEFAULT_VALUE
-        field.@sumOfBytes == 0
-        field.@rawValue.readerIndex() == 0
-        field.@rawValue.writerIndex() == 0
+        field.@fieldValue.longValue == FieldValue.LONG_DEFAULT_VALUE
+        field.@fieldValue.sumOfBytes == 0
+        field.@fieldValue.rawValue.readerIndex() == 0
+        field.@fieldValue.rawValue.writerIndex() == 0
     }
 
     def "should set value"() {
         when:
-        field.setValue(666)
+        field.longValue = 666
 
         then:
-        field.@value == 666
-        field.@rawValue.toString(0, 3, StandardCharsets.US_ASCII) == "666"
-        field.@rawValue.readerIndex() == 0
-        field.@rawValue.writerIndex() == 3
-        field.@sumOfBytes == 3 * AsciiString.c2b("6" as char)
+        field.@fieldValue.longValue == 666
+        field.@fieldValue.rawValue.toString(0, 3, StandardCharsets.US_ASCII) == "666"
+        field.@fieldValue.rawValue.readerIndex() == 0
+        field.@fieldValue.rawValue.writerIndex() == 3
+        field.@fieldValue.sumOfBytes == 3 * AsciiString.c2b("6" as char)
         field.valueSet
     }
 
     def "should append provided byte buf with value"() {
         setup:
-        field.value = 14666
+        field.longValue = 14666
         def buf = Unpooled.buffer(10, 10)
 
         when:
-        def result = field.appendByteBufWithValue(buf)
+        def result = field.appendByteBufWithValue(buf, TestSpec.INSTANCE)
 
         then:
         buf.toString(StandardCharsets.US_ASCII) == "14666"
         result == TestUtils.sumBytes("14666".getBytes(StandardCharsets.US_ASCII))
+    }
+
+    def "should copy unparsed value from other field"() {
+        setup:
+        Field newField = new Field(5, new FieldCodec())
+
+        when:
+        newField.copyDataFrom(field)
+
+        then:
+        newField.@fieldValue.longValue == FieldValue.LONG_DEFAULT_VALUE
+        newField.longValue == 123456
+        newField.startIndex == 0
+        newField.endIndex == 7
+        newField.indicesSet
+        newField.valueSet
+        newField.fieldData.is(field.fieldData)
+    }
+
+    def "should copy previously set value"() {
+        setup:
+        Field existingField = new Field(10, new FieldCodec())
+        existingField.longValue = 666
+        Field newField = new Field(11, new FieldCodec())
+
+        when:
+        newField.copyDataFrom(existingField)
+
+        then:
+        newField.@fieldValue.longValue == 666
+        newField.@fieldValue.length == 3
+        newField.@fieldValue.rawValue.toString(0, 3, StandardCharsets.US_ASCII) == "666"
+        newField.longValue == 666
+        newField.startIndex == 0
+        newField.endIndex == 0
+        !newField.indicesSet
+        newField.valueSet
+        newField.fieldData == null
     }
 }

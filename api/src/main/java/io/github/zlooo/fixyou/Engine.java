@@ -19,23 +19,11 @@ public interface Engine {
      * Registers new session
      *
      * @param sessionID     session identifier
-     * @param dictionaryID  dictionary id that will be used for session that's being registered
-     * @param sessionConfig session config
-     * @return this
-     */
-    @Nonnull
-    Engine registerSession(@Nonnull SessionID sessionID, @Nonnull String dictionaryID, @Nonnull SessionConfig sessionConfig);
-
-    /**
-     * Registers session and dictionary
-     *
-     * @param sessionID     session identifier
-     * @param dictionaryID  dictionary id that will be used for session that's being registered. This id should also be used in case multiple sessions should use the same dictionary
      * @param fixSpec       instance of FixSpec that describes FIX message and fields structure. You can either implement one yourself or use
-     *                      <a href="https://github.com/zlooo/FIXYou-tools/tree/master/fix_spec_generator">https://github.com/zlooo/FIXYou-tools/tree/master/fix_spec_generator</a> to generate one
+     *      *                      <a href="https://github.com/zlooo/FIXYou-tools/tree/master/fix_spec_generator">https://github.com/zlooo/FIXYou-tools/tree/master/fix_spec_generator</a> to generate one
      * @param sessionConfig session config
      * @return this
      */
     @Nonnull
-    Engine registerSessionAndDictionary(@Nonnull SessionID sessionID, @Nonnull String dictionaryID, @Nonnull FixSpec fixSpec, @Nonnull SessionConfig sessionConfig);
+    Engine registerSession(@Nonnull SessionID sessionID, @Nonnull FixSpec fixSpec, @Nonnull SessionConfig sessionConfig);
 }

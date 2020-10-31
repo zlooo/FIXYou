@@ -2,11 +2,11 @@ package io.github.zlooo.fixyou.netty.handler
 
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
-import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
 import io.github.zlooo.fixyou.netty.handler.validation.PredicateWithValidator
 import io.github.zlooo.fixyou.netty.handler.validation.SingleArgValidator
 import io.github.zlooo.fixyou.netty.handler.validation.TwoArgsValidator
 import io.github.zlooo.fixyou.netty.handler.validation.ValidationFailureAction
+import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.ValidationConfig
@@ -24,15 +24,15 @@ class MessageValidatorHandlerTest extends Specification {
     private Predicate<ValidationConfig> predicate2 = Mock()
     private TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState> validator2 = Mock()
     private PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>> predicateWithValidator1 = new PredicateWithValidator<>(predicate2, validator2)
-    private MessageValidationHandler validatorHandler = new MessageValidationHandler([validator1], [predicateWithValidator1])
+    private DefaultObjectPool<FixMessage> fixMessagePool = Mock()
+    private MessageValidationHandler validatorHandler = new MessageValidationHandler([validator1], [predicateWithValidator1], fixMessagePool)
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionAttribute = Mock()
     private NettyHandlerAwareSessionState sessionState = Mock()
     private ValidationConfig validationConfig = new ValidationConfig()
     private SessionConfig sessionConfig = new SessionConfig().setValidationConfig(validationConfig)
-    private DefaultObjectPool<FixMessage> fixMessagePool = Mock()
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
     private ValidationFailureAction validationFailureAction = Mock()
 
     def "should perform after validation failure action when unconditional validation fails"() {
@@ -44,7 +44,6 @@ class MessageValidatorHandlerTest extends Specification {
         1 * channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY) >> sessionAttribute
         1 * sessionAttribute.get() >> sessionState
         1 * validator1.apply(fixMessage) >> validationFailureAction
-        1 * sessionState.getFixMessageWritePool() >> fixMessagePool
         1 * validationFailureAction.perform(channelHandlerContext, fixMessage, fixMessagePool)
         0 * _
     }
@@ -61,7 +60,6 @@ class MessageValidatorHandlerTest extends Specification {
         1 * sessionState.getSessionConfig() >> sessionConfig
         1 * predicate2.test(validationConfig) >> true
         1 * validator2.apply(fixMessage, sessionState) >> validationFailureAction
-        1 * sessionState.getFixMessageWritePool() >> fixMessagePool
         1 * validationFailureAction.perform(channelHandlerContext, fixMessage, fixMessagePool)
         0 * _
     }

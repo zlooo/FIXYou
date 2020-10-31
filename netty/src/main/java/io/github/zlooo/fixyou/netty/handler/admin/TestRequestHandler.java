@@ -3,7 +3,7 @@ package io.github.zlooo.fixyou.netty.handler.admin;
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
-import io.github.zlooo.fixyou.parser.model.CharSequenceField;
+import io.github.zlooo.fixyou.parser.model.Field;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
@@ -29,10 +29,8 @@ class TestRequestHandler implements AdministrativeMessageHandler {
         if (log.isDebugEnabled()) {
             log.debug("Test request received for session " + NettyHandlerAwareSessionState.getForChannelContext(ctx).getSessionId() + ", responding with heartbeat");
         }
-        fixMessage.retain();
-        final CharSequenceField testReqID = fixMessage.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER);
-        testReqID.getValue(); //just to trigger parsing
-        ctx.writeAndFlush(FixMessageUtils.toHeartbeatMessage(fixMessage, testReqID.getUnderlyingValue(), testReqID.getLength())).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+        final Field testReqID = fixMessage.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER);
+        ctx.writeAndFlush(FixMessageUtils.toHeartbeatMessage(fixMessage, testReqID.getCharArrayValue(), testReqID.getLength()).retain()).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
     }
 
     @Override

@@ -4,6 +4,7 @@ import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
+import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.MessageStore
 import io.github.zlooo.fixyou.session.SessionConfig
@@ -21,13 +22,13 @@ class MessageStoreHandlerTest extends Specification {
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
     private Attribute sessionStateAttribute = Mock()
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), sessionID, Mock(DefaultObjectPool), Mock(DefaultObjectPool), TestSpec.INSTANCE)
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), sessionID, TestSpec.INSTANCE)
 
     def "should store message if session is persistent"() {
         setup:
         sessionState.getSessionConfig().setPersistent(true)
-        FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
-        fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 666L
+        FixMessage fixMessage = new FixMessage(new FieldCodec())
+        fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 666L
 
         when:
         messageStoreHandler.write(channelHandlerContext, fixMessage, null)
@@ -44,8 +45,8 @@ class MessageStoreHandlerTest extends Specification {
     def "should pass message if session is not established"() {
         setup:
         sessionState.getSessionConfig().setPersistent(false)
-        FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
-        fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value = 666L
+        FixMessage fixMessage = new FixMessage(new FieldCodec())
+        fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 666L
 
         when:
         messageStoreHandler.write(channelHandlerContext, fixMessage, null)

@@ -2,7 +2,6 @@ package io.github.zlooo.fixyou.parser
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.model.ApplicationVersionID
-import io.github.zlooo.fixyou.model.FieldType
 import io.github.zlooo.fixyou.model.FixSpec
 
 class TestSpec implements FixSpec {
@@ -21,20 +20,8 @@ class TestSpec implements FixSpec {
     }
 
     @Override
-    FieldType[] getTypes() {
-        return [FieldType.LONG, FieldType.BOOLEAN, FieldType.GROUP, FieldType.CHAR_ARRAY]
-    }
-
-    @Override
     char[][] getMessageTypes() {
         return [FixConstants.LOGON, ['D'] as char[]]
-    }
-
-    @Override
-    int highestFieldNumber() {
-        final int[] fieldsOrder = getFieldsOrder()
-        Arrays.sort(fieldsOrder)
-        return fieldsOrder[fieldsOrder.length - 1]
     }
 
     @Override
@@ -43,13 +30,12 @@ class TestSpec implements FixSpec {
     }
 
     @Override
-    FieldNumberTypePair[] getChildPairSpec(int groupNumber) {
+    int[] getRepeatingGroupFieldNumbers(int groupNumber) {
         switch (groupNumber) {
-            case EMPTY_CHILD_PAIR_SPEC_FIELD_NUMBER: return [] as FieldNumberTypePair[]
-            case NULL_CHILD_PAIR_SPEC_FIELD_NUMBER: return null
-            case USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER: return [new FieldNumberTypePair(FieldType.LONG, LONG_FIELD_NUMBER), new FieldNumberTypePair(FieldType.BOOLEAN, BOOLEAN_FIELD_NUMBER)] as FieldNumberTypePair[]
+            case EMPTY_CHILD_PAIR_SPEC_FIELD_NUMBER: return [] as int[]
+            case USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER: return [LONG_FIELD_NUMBER, BOOLEAN_FIELD_NUMBER] as int[]
             default:
-                return null
+                throw new IllegalArgumentException("Only 2 group numbers are supported, empty - $EMPTY_CHILD_PAIR_SPEC_FIELD_NUMBER and the one containing 2 fields - $USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER")
         }
     }
 }

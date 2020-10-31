@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.netty.handler.admin;
 
 import io.github.zlooo.fixyou.FixConstants;
+import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.fix.commons.Authenticator;
 import io.github.zlooo.fixyou.fix.commons.LogoutTexts;
 import io.github.zlooo.fixyou.fix.commons.RejectReasons;
@@ -16,7 +17,6 @@ import io.github.zlooo.fixyou.netty.utils.DelegatingChannelHandlerContext;
 import io.github.zlooo.fixyou.netty.utils.FixChannelListeners;
 import io.github.zlooo.fixyou.netty.utils.PipelineUtils;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
-import io.github.zlooo.fixyou.parser.model.LongField;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.github.zlooo.fixyou.session.SessionRegistry;
 import io.netty.channel.ChannelFutureListener;
@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 @Singleton
@@ -41,15 +42,18 @@ class LogonHandler implements AdministrativeMessageHandler {
     private final SessionRegistry<NettyHandlerAwareSessionState> sessionRegistry;
     private final ChannelHandler beforeSessionMessageValidatorHandler;
     private final ChannelHandler afterSessionMessageValidatorHandler;
+    private final ObjectPool<FixMessage> fixMessageObjectPool;
 
     @Inject
     LogonHandler(@Nullable Authenticator authenticator, SessionRegistry sessionRegistry,
                  @NamedHandler(Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR) ChannelHandler beforeSessionMessageValidatorHandler,
-                 @NamedHandler(Handlers.AFTER_SESSION_MESSAGE_VALIDATOR) ChannelHandler afterSessionMessageValidatorHandler) {
+                 @NamedHandler(Handlers.AFTER_SESSION_MESSAGE_VALIDATOR) ChannelHandler afterSessionMessageValidatorHandler,
+                 @Named("fixMessageObjectPool") ObjectPool fixMessageObjectPool) {
         this.authenticator = authenticator;
         this.sessionRegistry = sessionRegistry;
         this.beforeSessionMessageValidatorHandler = beforeSessionMessageValidatorHandler;
         this.afterSessionMessageValidatorHandler = afterSessionMessageValidatorHandler;
+        this.fixMessageObjectPool = fixMessageObjectPool;
     }
 
     @Override
@@ -84,13 +88,13 @@ class LogonHandler implements AdministrativeMessageHandler {
                         log.info("Reset sequence number flag set, resetting session {}", sessionState.getSessionId());
                         sessionState.reset();
                     }
-                    final SessionAwareChannelInboundHandler sessionHandler = addRequiredHandlersToPipelineIfNeeded(ctx, sessionState, fixMessage.<LongField>getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getValue());
+                    final SessionAwareChannelInboundHandler sessionHandler = addRequiredHandlersToPipelineIfNeeded(ctx, sessionState, fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getLongValue());
                     if (!sessionState.isLogonSent()) {
                         ctx.writeAndFlush(
-                                FixMessageUtils.toLogonMessage(sessionState.getFixMessageWritePool().getAndRetain(),
+                                FixMessageUtils.toLogonMessage(fixMessageObjectPool.getAndRetain(),
                                                                sessionState.getFixSpec().applicationVersionId().getValue(),
-                                                               fixMessage.<LongField>getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).getValue(),
-                                                               fixMessage.<LongField>getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getValue(),
+                                                               fixMessage.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).getLongValue(),
+                                                               fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getLongValue(),
                                                                resetSequenceFlagSet))
                            .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE).addListener(FixChannelListeners.LOGON_SENT);
                     } else {
@@ -101,8 +105,7 @@ class LogonHandler implements AdministrativeMessageHandler {
                     return sessionHandler;
                 } else {
                     log.error("Authentication for session {} failed", sessionID);
-                    fixMessage.retain();
-                    ctx.writeAndFlush(FixMessageUtils.toLogoutMessage(fixMessage, LogoutTexts.BAD_CREDENTIALS))
+                    ctx.writeAndFlush(FixMessageUtils.toLogoutMessage(fixMessage, LogoutTexts.BAD_CREDENTIALS).retain())
                        .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
                        .addListener(FixChannelListeners.LOGOUT_SENT);
                 }
@@ -122,13 +125,12 @@ class LogonHandler implements AdministrativeMessageHandler {
         log.warn("Invalid logon message received, responding with reject and logout messages");
         final ChannelOutboundHandler sessionHandler = (ChannelOutboundHandler) sessionState.getResettables().get(NettyResettablesNames.SESSION);
         final ChannelHandlerContext notMovingForwardCtx = (ChannelHandlerContext) sessionState.getResettables().get(NettyResettablesNames.NOT_MOVING_FORWARD_ON_READ_AND_WRITE_CHANNEL_HANDLER_CONTEXT);
-        final FixMessage rejectMessage = FixMessageUtils.toRejectMessage(sessionState.getFixMessageWritePool().getAndRetain(), RejectReasons.OTHER, RejectReasons.INVALID_LOGON_MESSAGE);
+        final FixMessage rejectMessage = FixMessageUtils.toRejectMessage(fixMessageObjectPool.getAndRetain(), RejectReasons.OTHER, RejectReasons.INVALID_LOGON_MESSAGE);
         sessionHandler.write(notMovingForwardCtx, rejectMessage, null); //Yeah manually getting session handler and applying it looks a bit odd :/
         ctx.write(rejectMessage).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
         final FixMessage logoutMessage = FixMessageUtils.toLogoutMessage(fixMessage, LogoutTexts.INVALID_LOGON_MESSAGE);
-        logoutMessage.retain();
         sessionHandler.write(notMovingForwardCtx, logoutMessage, null);
-        ctx.writeAndFlush(logoutMessage).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE).addListener(ChannelFutureListener.CLOSE);
+        ctx.writeAndFlush(logoutMessage.retain()).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE).addListener(ChannelFutureListener.CLOSE);
     }
 
     private SessionAwareChannelInboundHandler addRequiredHandlersToPipelineIfNeeded(ChannelHandlerContext ctx, NettyHandlerAwareSessionState sessionState, long heartbeatInterval) {

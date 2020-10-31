@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.parser;
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer;
+import io.github.zlooo.fixyou.parser.model.FieldCodec;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -20,7 +21,7 @@ public class FIXYouParser {
         final ByteBuf byteBufBytes = Unpooled.directBuffer(msgBytes.length);
         byteBufBytes.writeBytes(msgBytes);
         byteBufComposer.addByteBuf(byteBufBytes);
-        fixMessageParser = new FixMessageParser(byteBufComposer);
+        fixMessageParser = new FixMessageParser(byteBufComposer, new FixSpec50SP2(), new FixMessage(new FieldCodec()));
     }
 
     @TearDown
@@ -34,7 +35,7 @@ public class FIXYouParser {
 
     @Benchmark
     @BenchmarkMode({Mode.Throughput, Mode.SampleTime})
-    public void fixMessageReaderTest(FIXYouParser parser) throws Exception {
-        fixMessageParser.parseFixMsgBytes();
+    public void fixMessageReaderTest(FIXYouParser state) throws Exception {
+        state.fixMessageParser.parseFixMsgBytes();
     }
 }

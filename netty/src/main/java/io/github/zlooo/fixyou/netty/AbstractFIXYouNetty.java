@@ -1,7 +1,9 @@
 package io.github.zlooo.fixyou.netty;
 
-import io.github.zlooo.fixyou.*;
-import io.github.zlooo.fixyou.fix.commons.DictionaryRepository;
+import io.github.zlooo.fixyou.Closeable;
+import io.github.zlooo.fixyou.Engine;
+import io.github.zlooo.fixyou.FIXYouConfiguration;
+import io.github.zlooo.fixyou.FIXYouException;
 import io.github.zlooo.fixyou.fix.commons.config.validator.ConfigValidator;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.netty.handler.FixYouNettyComponent;
@@ -13,6 +15,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.ResourceLeakDetector;
 
+import javax.annotation.Nonnull;
 import java.util.Set;
 import java.util.concurrent.Future;
 
@@ -34,6 +37,7 @@ abstract class AbstractFIXYouNetty implements Engine {
 
     }
 
+    @Nonnull
     @Override
     public Future<?> stop() {
         final io.netty.util.concurrent.Future<?> shutdownGracefully = eventLoopGroup.shutdownGracefully();
@@ -43,26 +47,16 @@ abstract class AbstractFIXYouNetty implements Engine {
         return shutdownGracefully;
     }
 
+    @Nonnull
     @Override
-    public Engine registerSession(SessionID sessionID, String dictionaryID, SessionConfig sessionConfig) {
+    public Engine registerSession(@Nonnull SessionID sessionID, @Nonnull FixSpec fixSpec, @Nonnull SessionConfig sessionConfig) {
         final Set<String> errorMessages = configValidator.validateSessionConfig(sessionConfig);
         if (!errorMessages.isEmpty()) {
             throw new FIXYouException("Session configuration validation failed, reason(s): " + String.join(", ", errorMessages));
         }
         final SessionRegistry<NettyHandlerAwareSessionState> sessionRegistry = fixYouNettyComponent.sessionRegistry();
         final NettyResettablesSupplier nettyResettablesSupplier = fixYouNettyComponent.resettableSupplier();
-        final DictionaryRepository.Dictionary dictionary = fixYouNettyComponent.dictionaryRepository().getDictionary(dictionaryID);
-        if (dictionary == null) {
-            throw new FIXYouException("Could not find dictionary with id " + dictionaryID + ". Are you sure you've registered it?");
-        }
-        sessionRegistry.registerExpectedSession(new NettyHandlerAwareSessionState(sessionConfig, sessionID, dictionary.getFixMessageReadPool(), dictionary.getFixMessageWritePool(), dictionary.getFixSpec()), nettyResettablesSupplier);
-        return this;
-    }
-
-    @Override
-    public Engine registerSessionAndDictionary(SessionID sessionID, String dictionaryID, FixSpec fixSpec, SessionConfig sessionConfig) {
-        fixYouNettyComponent.dictionaryRepository().registerDictionary(dictionaryID, fixSpec, fixYouConfiguration.getFixMessageReadPoolSize(), fixYouConfiguration.getFixMessageWritePoolSize());
-        registerSession(sessionID, dictionaryID, sessionConfig);
+        sessionRegistry.registerExpectedSession(new NettyHandlerAwareSessionState(sessionConfig, sessionID, fixSpec), nettyResettablesSupplier);
         return this;
     }
 }

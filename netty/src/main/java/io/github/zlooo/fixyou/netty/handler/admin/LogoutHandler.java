@@ -2,7 +2,6 @@ package io.github.zlooo.fixyou.netty.handler.admin;
 
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
-import io.github.zlooo.fixyou.parser.model.CharSequenceField;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -27,9 +26,8 @@ class LogoutHandler implements AdministrativeMessageHandler {
         log.info("Logout request for session {} received, closing connection", sessionState.getSessionId());
         if (!sessionState.isLogoutSent()) {
             sessionState.setLogoutSent(true);
-            fixMessage.retain();
-            fixMessage.<CharSequenceField>getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setValue(FixConstants.LOGOUT);
-            ctx.writeAndFlush(fixMessage).addListener(ChannelFutureListener.CLOSE);
+            fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue(FixConstants.LOGOUT);
+            ctx.writeAndFlush(fixMessage.retain()).addListener(ChannelFutureListener.CLOSE);
         } else {
             ctx.channel().close();
         }

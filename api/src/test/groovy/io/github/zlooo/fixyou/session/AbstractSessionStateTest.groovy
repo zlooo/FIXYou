@@ -27,15 +27,37 @@ class AbstractSessionStateTest extends Specification {
         0 * _
     }
 
+    def "should close resettables when closed"() {
+        setup:
+        ClosableResettable closableResettable = Mock()
+        sessionState.resettables["resettable"] = resettable1
+        sessionState.resettables["closeableResettable"] = closableResettable
+
+        when:
+        sessionState.close()
+
+        then:
+        1 * closableResettable.close()
+        0 * _
+    }
+
     private static class TestSessionState extends AbstractSessionState {
 
         TestSessionState(SessionConfig sessionConfig, SessionID sessionId, FixSpec fixSpec) {
             super(sessionConfig, sessionId, fixSpec)
         }
+    }
+
+    private static class ClosableResettable implements Resettable, io.github.zlooo.fixyou.Closeable {
 
         @Override
         void close() {
-            //nothing to do
+
+        }
+
+        @Override
+        void reset() {
+
         }
     }
 }

@@ -1,7 +1,7 @@
 package io.github.zlooo.fixyou.fix.commons.session
 
 import io.github.zlooo.fixyou.FixConstants
-import io.github.zlooo.fixyou.fix.commons.TestSpec
+import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.SessionID
 import org.assertj.core.api.Assertions
@@ -13,7 +13,7 @@ class SessionIDUtilsTest extends Specification {
 
     def "should set all session id fields"() {
         setup:
-        def fixMessage = new FixMessage(TestSpec.INSTANCE)
+        def fixMessage = new FixMessage(new FieldCodec())
 
         when:
         SessionIDUtils.setSessionIdFields(fixMessage, sessionID)
@@ -21,16 +21,16 @@ class SessionIDUtilsTest extends Specification {
         then:
         def sessionIdFieldsMap = sessionIDFieldsMap()
         for (Map.Entry<SessionID.Fields, Integer> mappingEntry : sessionIdFieldsMap) {
-            assert fixMessage.getField(mappingEntry.value).value.toString().toCharArray() == sessionID.properties[mappingEntry.key.name()]
+            assert fixMessage.getField(mappingEntry.value).charSequenceValue.chars == sessionID.properties[mappingEntry.key.name()]
         }
     }
 
     def "should build session id from fix message"() {
         setup:
-        def fixMessage = new FixMessage(TestSpec.INSTANCE)
-        fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).value = sessionID.beginString
-        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value = sessionID.senderCompID
-        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value = sessionID.targetCompID
+        def fixMessage = new FixMessage(new FieldCodec())
+        fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).charSequenceValue = sessionID.beginString
+        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).charSequenceValue = sessionID.senderCompID
+        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).charSequenceValue = sessionID.targetCompID
 
         expect:
         SessionIDUtils.buildSessionID(fixMessage, false) == sessionID
@@ -38,10 +38,10 @@ class SessionIDUtilsTest extends Specification {
 
     def "should build session id from fix message with comp ids flipped"() {
         setup:
-        def fixMessage = new FixMessage(TestSpec.INSTANCE)
-        fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).value = sessionID.beginString
-        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value = sessionID.senderCompID
-        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value = sessionID.targetCompID
+        def fixMessage = new FixMessage(new FieldCodec())
+        fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).charSequenceValue = sessionID.beginString
+        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).charSequenceValue = sessionID.senderCompID
+        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).charSequenceValue = sessionID.targetCompID
 
         expect:
         SessionIDUtils.buildSessionID(fixMessage, true) == new SessionID(sessionID.beginString, sessionID.beginString.length, sessionID.targetCompID, sessionID.targetCompID.length, sessionID.senderCompID, sessionID.senderCompID.length)
@@ -49,9 +49,9 @@ class SessionIDUtilsTest extends Specification {
 
     def "should check if comp ids are equal"() {
         setup:
-        def fixMessage = new FixMessage(TestSpec.INSTANCE)
-        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value = senderCompID
-        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value = targetCompID
+        def fixMessage = new FixMessage(new FieldCodec())
+        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).charSequenceValue = senderCompID
+        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).charSequenceValue = targetCompID
 
         expect:
         SessionIDUtils.checkCompIDs(fixMessage, sessionIdToCompare, flipIDs) == result

@@ -65,4 +65,49 @@ class ArrayUtilsTest extends Specification {
         [1, 2, 3, 4, 5] as int[] | 5       | 4
         [1, 2, 3, 4, 5] as int[] | -1      | ArrayUtils.NOT_FOUND
     }
+
+    def "should get element at for object array"() {
+        setup:
+        def array = ["0", "1", "2", "3"] as String[]
+
+        expect:
+        ArrayUtils.getElementAt(array, index) == expectedResult
+
+        where:
+        index | expectedResult
+        0     | "0"
+        1     | "1"
+        2     | "2"
+        3     | "3"
+    }
+
+    def "should get element at for int array"() {
+        setup:
+        def array = [0, 1, 2, 3] as int[]
+
+        expect:
+        ArrayUtils.getElementAt(array, index) == expectedResult
+
+        where:
+        index | expectedResult
+        0     | 0
+        1     | 1
+        2     | 2
+        3     | 3
+    }
+
+    def "should get element at for char array"() {
+        setup:
+        def array = ["0" as char, "1" as char, "2" as char, "3" as char] as char[]
+
+        expect:
+        ArrayUtils.getElementAt(array, index) == expectedResult
+
+        where:
+        index | expectedResult
+        0     | "0" as char
+        1     | "1" as char
+        2     | "2" as char
+        3     | "3" as char
+    }
 }

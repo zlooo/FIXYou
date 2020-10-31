@@ -5,7 +5,7 @@ import io.github.zlooo.fixyou.FIXYouConfiguration
 import io.github.zlooo.fixyou.fix.commons.FixMessageListener
 import io.github.zlooo.fixyou.netty.AbstractNettyAwareFixMessageListener
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
-import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
+import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.SessionID
 import io.netty.channel.Channel
@@ -23,13 +23,12 @@ class FixMessageListenerInvokingHandlerTest extends Specification {
     private Attribute<Integer> ordinalNumberAttribute = Mock()
     private NettyHandlerAwareSessionState sessionState = Mock()
     private SessionID sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
     def fixYouConfiguration = new FIXYouConfiguration.FIXYouConfigurationBuilder().separateIoFromAppThread(false).build()
 
     def "should invoke fix message listener directly"() {
         setup:
-        fixMessage.retain()
-        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener, fixYouConfiguration)
+        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener, fixYouConfiguration, new FieldCodec())
 
         when:
         handler.channelRead(channelHandlerContext, fixMessage)
@@ -47,9 +46,10 @@ class FixMessageListenerInvokingHandlerTest extends Specification {
 
     def "should invoke fix message listener via disruptor"() {
         setup:
-        fixMessage.retain()
         def fixMessageListener = new TestFixMessageListener()
-        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener, new FIXYouConfiguration.FIXYouConfigurationBuilder().separateIoFromAppThread(true).build())
+        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener,
+                                                                                          new FIXYouConfiguration.FIXYouConfigurationBuilder().separateIoFromAppThread(true).fixMessageListenerInvokerDisruptorSize(4).build(),
+                                                                                          new FieldCodec())
         PollingConditions pollingConditions = new PollingConditions()
 
         when:
@@ -77,7 +77,7 @@ class FixMessageListenerInvokingHandlerTest extends Specification {
     def "should set channel is listener is instance of AbstractNettyAwareFixMessageListener"() {
         setup:
         TestFixMessageListener fixMessageListener = new TestFixMessageListener()
-        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener, fixYouConfiguration)
+        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener, fixYouConfiguration, new FieldCodec())
 
         when:
         handler.channelActive(channelHandlerContext)

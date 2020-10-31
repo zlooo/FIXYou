@@ -3,11 +3,12 @@ package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.parser.TestSpec
+import org.assertj.core.api.Assertions
 import spock.lang.Specification
 
 class FixMessageTest extends Specification {
 
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
 
     def "should set new message byte source"() {
         setup:
@@ -26,11 +27,11 @@ class FixMessageTest extends Specification {
     def "should reset all data fields and release message byte source"() {
         setup:
         def longField = fixMessage.getField(TestSpec.LONG_FIELD_NUMBER)
-        longField.value = 666L
+        longField.longValue = 666L
         longField.startIndex = 7
         longField.endIndex = 10
         def booleanField = fixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER)
-        booleanField.value = true
+        booleanField.booleanValue = true
         booleanField.startIndex = 12
         booleanField.endIndex = 13
         def messageByteSource = Mock(ByteBufComposer)
@@ -50,15 +51,87 @@ class FixMessageTest extends Specification {
     }
 
     def "should close fields when message is closed"() {
-        def field = Mock(AbstractField)
-        def fieldsOrdered = fixMessage.fieldsOrdered
-        (0..fieldsOrdered.length - 1).forEach { fieldsOrdered[it] = field }
+        def field = Mock(Field)
+        (0..9).forEach {
+            fixMessage.getField(it + 1)
+            fixMessage.actualFields[it] = field
+        }
 
         when:
         fixMessage.close()
 
         then:
-        fieldsOrdered.length * field.close()
+        fixMessage.@actualFieldsLength * field.close()
         0 * _
+    }
+
+    def "should extend fields arrays when necessary"() {
+        when:
+        def result = fixMessage.getField(5000)
+
+        then:
+        result != null
+        !result.is(FixMessage.PLACEHOLDER)
+        result instanceof Field
+        result.number == 5000
+        !result.valueSet
+        fixMessage.allFields.length >= 5001
+        fixMessage.actualFields.length >= 5001
+    }
+
+    def "should copy values to other message"() {
+        setup:
+        def longField = fixMessage.getField(TestSpec.LONG_FIELD_NUMBER)
+        longField.longValue = 666L
+        longField.startIndex = 7
+        longField.endIndex = 10
+        def booleanField = fixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER)
+        booleanField.booleanValue = true
+        booleanField.startIndex = 12
+        booleanField.endIndex = 13
+        def messageByteSource = Mock(ByteBufComposer)
+        fixMessage.@messageByteSource = messageByteSource
+        fixMessage.startIndex = 1
+        fixMessage.endIndex = 2
+        def newFixMessage = new FixMessage(new FieldCodec())
+
+        when:
+        newFixMessage.copyDataFrom(fixMessage, unsetIndices)
+
+        then:
+        newFixMessage.getField(TestSpec.LONG_FIELD_NUMBER).longValue == 666
+        newFixMessage.getField(TestSpec.LONG_FIELD_NUMBER).valueSet
+        newFixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER).booleanValue
+        newFixMessage.getField(TestSpec.BOOLEAN_FIELD_NUMBER).valueSet
+        newFixMessage.messageByteSource.is(messageByteSource)
+        newFixMessage.startIndex == 1
+        newFixMessage.endIndex == 2
+        fixMessage.startIndex == expectedSrcStartIndex
+        fixMessage.endIndex == expectedSrcEndIndex
+
+        where:
+        unsetIndices | expectedSrcStartIndex | expectedSrcEndIndex
+        false        | 1                     | 2
+        true         | FixMessage.NOT_SET    | FixMessage.NOT_SET
+    }
+
+    //The point of this test is to see that if requested field number is larger than current size of all fields array it's not resized but placeholder is returned instead. If however field number is within current size of a table, normal
+    // field should be returned
+    def "should get field or placeholder"() {
+        setup:
+        def fieldsNumber = fixMessage.@allFields.length
+
+        when:
+        def result = fixMessage.getFieldOrPlaceholder(fieldNumber)
+
+        then:
+        Assertions.assertThat(result).isInstanceOf(clazz)
+        !result.valueSet
+        fixMessage.@allFields.length == fieldsNumber
+
+        where:
+        fieldNumber | clazz
+        10          | Field
+        100000      | FixMessage.PlaceholderField
     }
 }

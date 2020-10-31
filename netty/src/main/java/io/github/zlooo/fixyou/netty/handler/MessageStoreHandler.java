@@ -4,7 +4,6 @@ import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.Resettable;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
-import io.github.zlooo.fixyou.parser.model.LongField;
 import io.github.zlooo.fixyou.session.MessageStore;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.netty.channel.ChannelHandler;
@@ -30,7 +29,7 @@ class MessageStoreHandler extends ChannelOutboundHandlerAdapter implements Reset
         final NettyHandlerAwareSessionState sessionState = NettyHandlerAwareSessionState.getForChannelContext(ctx);
         if (sessionState != null && msg instanceof FixMessage) {
             final FixMessage fixMessage = (FixMessage) msg;
-            messageStore.storeMessage(sessionState.getSessionId(), fixMessage.<LongField>getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).getValue(), fixMessage);
+            messageStore.storeMessage(sessionState.getSessionId(), fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).getLongValue(), fixMessage);
         } else {
             log.warn("Either session cannot be found or handler is in wrong place(expecting to get FixMessage but got {})", msg);
         }

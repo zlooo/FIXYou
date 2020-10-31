@@ -2,6 +2,7 @@ package io.github.zlooo.fixyou.commons
 
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
+import io.netty.util.ByteProcessor
 import org.assertj.core.api.Assertions
 import spock.lang.Specification
 
@@ -315,6 +316,27 @@ class ByteBufComposerTest extends Specification {
         thrown(IndexOutOfBoundsException)
     }
 
+    def "should release buffer when release call is split in 2 and spans across multiple buffers"(){
+        setup:
+        def bufferToAdd1 = Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[])
+        def bufferToAdd2 = Unpooled.wrappedBuffer([6, 7, 8, 9, 10] as byte[])
+        composer.addByteBuf(bufferToAdd1)
+        composer.addByteBuf(bufferToAdd2)
+        composer.releaseData(0,1)
+
+        when:
+        composer.releaseData(2, 6)
+
+        then:
+        composer.storedStartIndex==7
+        composer.storedEndIndex==9
+        composer.arrayIndex == 2
+        composer.readerIndex == 7
+        Assertions.assertThat(composer.components).containsOnly(EMPTY_COMPONENT, new ByteBufComposer.Component(startIndex: 7, endIndex: 9, offset: 5, buffer: bufferToAdd2))
+        bufferToAdd1.refCnt() == 1
+        bufferToAdd2.refCnt() == 2
+    }
+
     def "should get bytes after buffer overlap"() {
         setup:
         List<ByteBuf> buffers = []
@@ -323,39 +345,42 @@ class ByteBufComposerTest extends Specification {
         composer.releaseData(0, 4)
         (16..18).forEach { buffers.add(Unpooled.wrappedBuffer([it] as byte[])) }
         buffers.subList(16, buffers.size()).forEach { composer.addByteBuf(it) }
-        def destination = new byte[10]
+        def destination = Unpooled.buffer(10)
 
         when:
         composer.getBytes(14, 3, destination)
 
         then:
-        Assertions.assertThat(destination).containsExactly(resize([14, 15, 16] as byte[], destination.length))
+        destination.writerIndex() == 3
+        destination.getByte(0) == 14
+        destination.getByte(1) == 15
+        destination.getByte(2) == 16
     }
 
     def "should get bytes"() {
         setup:
         def bytes = [1, 2, 3, 4, 5] as byte[]
         composer.addByteBuf(Unpooled.wrappedBuffer(bytes))
-        def destination = new byte[10]
+        def destination = Unpooled.buffer(10)
 
         when:
         composer.getBytes(0, bytes.length, destination)
 
         then:
-        Assertions.assertThat(destination).containsExactly(resize(bytes, destination.length))
+        Assertions.assertThat(destination.array()).containsExactly(resize(bytes, destination.capacity()))
     }
 
     def "should get bytes from two buffers"() {
         setup:
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[]))
         composer.addByteBuf(Unpooled.wrappedBuffer([6, 7, 8] as byte[]))
-        def destination = new byte[10]
+        def destination = Unpooled.buffer(10)
 
         when:
         composer.getBytes(0, 8, destination)
 
         then:
-        Assertions.assertThat(destination).containsExactly(resize([1, 2, 3, 4, 5, 6, 7, 8] as byte[], destination.length))
+        Assertions.assertThat(destination.array()).containsExactly(resize([1, 2, 3, 4, 5, 6, 7, 8] as byte[], destination.capacity()))
     }
 
     def "should get bytes from three buffers"() {
@@ -363,13 +388,13 @@ class ByteBufComposerTest extends Specification {
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3] as byte[]))
         composer.addByteBuf(Unpooled.wrappedBuffer([4, 5] as byte[]))
         composer.addByteBuf(Unpooled.wrappedBuffer([6, 7, 8] as byte[]))
-        def destination = new byte[10]
+        def destination = Unpooled.buffer(10)
 
         when:
         composer.getBytes(0, 8, destination)
 
         then:
-        Assertions.assertThat(destination).containsExactly(resize([1, 2, 3, 4, 5, 6, 7, 8] as byte[], destination.length))
+        Assertions.assertThat(destination.array()).containsExactly(resize([1, 2, 3, 4, 5, 6, 7, 8] as byte[], destination.capacity()))
     }
 
     def "should get bytes from non zero index buffers"() {
@@ -377,33 +402,33 @@ class ByteBufComposerTest extends Specification {
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3] as byte[]))
         composer.addByteBuf(Unpooled.wrappedBuffer([4, 5] as byte[]))
         composer.addByteBuf(Unpooled.wrappedBuffer([6, 7, 8] as byte[]))
-        def destination = new byte[10]
+        def destination = Unpooled.buffer(10)
 
         when:
         composer.getBytes(4, 3, destination)
 
         then:
-        Assertions.assertThat(destination).containsExactly(resize([5, 6, 7] as byte[], destination.length))
+        Assertions.assertThat(destination.array()).containsExactly(resize([5, 6, 7] as byte[], destination.capacity()))
     }
 
     def "should get bytes from middle of component buffers"() {
         setup:
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[]))
         composer.addByteBuf(Unpooled.wrappedBuffer([6, 7, 8] as byte[]))
-        def destination = new byte[10]
+        def destination = Unpooled.buffer(10)
 
         when:
         composer.getBytes(2, 6, destination)
 
         then:
-        Assertions.assertThat(destination).containsExactly(resize([3, 4, 5, 6, 7, 8] as byte[], destination.length))
+        Assertions.assertThat(destination.array()).containsExactly(resize([3, 4, 5, 6, 7, 8] as byte[], destination.capacity()))
     }
 
     def "should not get bytes because of wrong index or length requested"() {
         setup:
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[]))
         composer.addByteBuf(Unpooled.wrappedBuffer([6, 7, 8] as byte[]))
-        def destination = new byte[10]
+        def destination = Unpooled.buffer(10)
 
         when:
         composer.getBytes(index, length, destination)
@@ -423,13 +448,13 @@ class ByteBufComposerTest extends Specification {
         setup:
         composer.addByteBuf(Unpooled.wrappedBuffer("abcdef".getBytes(StandardCharsets.US_ASCII)))
         composer.releaseData(0, 2)
-        def dest = new byte[10]
+        def dest = Unpooled.buffer(10)
 
         when:
         composer.getBytes(3, 3, dest)
 
         then:
-        Assertions.assertThat(dest).containsExactly(resize("def".getBytes(StandardCharsets.US_ASCII), dest.length))
+        Assertions.assertThat(dest.array()).containsExactly(resize("def".getBytes(StandardCharsets.US_ASCII), dest.capacity()))
     }
 
     def "should get byte"() {
@@ -457,7 +482,7 @@ class ByteBufComposerTest extends Specification {
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[]))
 
         expect:
-        composer.indexOfClosest(elementToFind) == expectedResult
+        composer.indexOfClosest(iop(elementToFind)) == expectedResult
 
         where:
         elementToFind | expectedResult
@@ -475,7 +500,7 @@ class ByteBufComposerTest extends Specification {
         composer.addByteBuf(Unpooled.wrappedBuffer([9, 10] as byte[]))
 
         expect:
-        composer.indexOfClosest(elementToFind) == expectedResult
+        composer.indexOfClosest(iop(elementToFind)) == expectedResult
 
         where:
         elementToFind | expectedResult
@@ -499,7 +524,7 @@ class ByteBufComposerTest extends Specification {
         composer.readerIndex(readerIndex)
 
         expect:
-        composer.indexOfClosest(elementToFind) == expectedResult
+        composer.indexOfClosest(iop(elementToFind)) == expectedResult
 
         where:
         elementToFind | readerIndex | expectedResult
@@ -519,7 +544,7 @@ class ByteBufComposerTest extends Specification {
         composer.readerIndex(2)
 
         expect:
-        composer.indexOfClosest(6 as byte) == 5
+        composer.indexOfClosest(iop(6 as byte)) == 5
     }
 
     def "should reset composer"() {
@@ -546,5 +571,9 @@ class ByteBufComposerTest extends Specification {
 
     List components(int startingIndex, int endingIndex) {
         (startingIndex..endingIndex).collect { index -> new ByteBufComposer.Component(startIndex: index, endIndex: index, buffer: Unpooled.wrappedBuffer([index] as byte[])) }
+    }
+
+    private ByteProcessor iop(byte valueToFind){
+        return new ByteProcessor.IndexOfProcessor(valueToFind)
     }
 }

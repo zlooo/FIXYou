@@ -3,7 +3,7 @@ package io.github.zlooo.fixyou.netty.handler
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.admin.AdministrativeMessageHandler
-import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
+import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
@@ -23,7 +23,7 @@ class AdminMessagesHandlerTest extends Specification {
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
     private NettyHandlerAwareSessionState sessionState = Mock()
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
 
     void setup() {
         fixMessage.retain()
@@ -31,7 +31,7 @@ class AdminMessagesHandlerTest extends Specification {
 
     def "should handle message of known type"() {
         setup:
-        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = FixConstants.LOGON
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue = FixConstants.LOGON
 
         when:
         handler.channelRead(channelHandlerContext, fixMessage)
@@ -46,7 +46,7 @@ class AdminMessagesHandlerTest extends Specification {
 
     def "should handle message of unknown type"() {
         setup:
-        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = FixConstants.SEQUENCE_RESET
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).booleanValue = FixConstants.SEQUENCE_RESET
 
         when:
         handler.channelRead(channelHandlerContext, fixMessage)
@@ -80,7 +80,7 @@ class AdminMessagesHandlerTest extends Specification {
 
     def "should do nothing if session is not established and message is not logon"() {
         setup:
-        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = FixConstants.SEQUENCE_RESET
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).booleanValue = FixConstants.SEQUENCE_RESET
 
         when:
         handler.channelRead(channelHandlerContext, fixMessage)

@@ -1,8 +1,10 @@
 package io.github.zlooo.fixyou.netty.handler;
 
 import io.github.zlooo.fixyou.Resettable;
+import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
+import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.netty.channel.*;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
@@ -38,6 +40,7 @@ public class MutableIdleStateHandler extends ChannelDuplexHandler implements Ses
 
     private final boolean observeOutput;
     private final NettyHandlerAwareSessionState sessionState;
+    private final ObjectPool<FixMessage> fixMessageObjectPool;
     private long readerIdleTimeNanos;
     private long writerIdleTimeNanos;
     private long allIdleTimeNanos;
@@ -62,33 +65,17 @@ public class MutableIdleStateHandler extends ChannelDuplexHandler implements Ses
     private long lastFlushProgress;
     private EventLoop eventLoop;
 
-    public MutableIdleStateHandler(NettyHandlerAwareSessionState sessionState) {
-        this(sessionState, false, 0, 0, 0, TimeUnit.NANOSECONDS);
+    public MutableIdleStateHandler(NettyHandlerAwareSessionState sessionState, ObjectPool<FixMessage> fixMessageObjectPool) {
+        this(sessionState, fixMessageObjectPool, false, 0, 0, 0, TimeUnit.NANOSECONDS);
     }
 
-    /**
-     * Creates a new instance firing {@link IdleStateEvent}s.
-     *
-     * @param readerIdleTimeSeconds an {@link IdleStateEvent} whose state is {@link IdleState#READER_IDLE}
-     *                              will be triggered when no read was performed for the specified
-     *                              period of time.  Specify {@code 0} to disable.
-     * @param writerIdleTimeSeconds an {@link IdleStateEvent} whose state is {@link IdleState#WRITER_IDLE}
-     *                              will be triggered when no write was performed for the specified
-     *                              period of time.  Specify {@code 0} to disable.
-     * @param allIdleTimeSeconds    an {@link IdleStateEvent} whose state is {@link IdleState#ALL_IDLE}
-     *                              will be triggered when neither read nor write was performed for
-     *                              the specified period of time.  Specify {@code 0} to disable.
-     */
-    public MutableIdleStateHandler(NettyHandlerAwareSessionState sessionState, int readerIdleTimeSeconds, int writerIdleTimeSeconds, int allIdleTimeSeconds) {
+    public MutableIdleStateHandler(NettyHandlerAwareSessionState sessionState, ObjectPool<FixMessage> fixMessageObjectPool, int readerIdleTimeSeconds, int writerIdleTimeSeconds, int allIdleTimeSeconds) {
 
-        this(sessionState, readerIdleTimeSeconds, writerIdleTimeSeconds, allIdleTimeSeconds, TimeUnit.SECONDS);
+        this(sessionState, fixMessageObjectPool,readerIdleTimeSeconds, writerIdleTimeSeconds, allIdleTimeSeconds, TimeUnit.SECONDS);
     }
 
-    /**
-     * @see #MutableIdleStateHandler(NettyHandlerAwareSessionState, boolean, long, long, long, TimeUnit)
-     */
-    public MutableIdleStateHandler(NettyHandlerAwareSessionState sessionState, long readerIdleTime, long writerIdleTime, long allIdleTime, TimeUnit unit) {
-        this(sessionState, false, readerIdleTime, writerIdleTime, allIdleTime, unit);
+    public MutableIdleStateHandler(NettyHandlerAwareSessionState sessionState, ObjectPool<FixMessage> fixMessageObjectPool, long readerIdleTime, long writerIdleTime, long allIdleTime, TimeUnit unit) {
+        this(sessionState, fixMessageObjectPool,false, readerIdleTime, writerIdleTime, allIdleTime, unit);
     }
 
     /**
@@ -108,8 +95,9 @@ public class MutableIdleStateHandler extends ChannelDuplexHandler implements Ses
      * @param unit           the {@link TimeUnit} of {@code readerIdleTime},
      *                       {@code writeIdleTime}, and {@code allIdleTime}
      */
-    public MutableIdleStateHandler(NettyHandlerAwareSessionState sessionState, boolean observeOutput, long readerIdleTime, long writerIdleTime, long allIdleTime, TimeUnit unit) {
+    public MutableIdleStateHandler(NettyHandlerAwareSessionState sessionState, ObjectPool<FixMessage> fixMessageObjectPool, boolean observeOutput, long readerIdleTime, long writerIdleTime, long allIdleTime, TimeUnit unit) {
         this.sessionState = sessionState;
+        this.fixMessageObjectPool = fixMessageObjectPool;
         ObjectUtil.checkNotNull(unit, "unit");
 
         this.observeOutput = observeOutput;
@@ -320,13 +308,13 @@ public class MutableIdleStateHandler extends ChannelDuplexHandler implements Ses
         switch (idleState) {
             case WRITER_IDLE:
                 log.info("Connection idle for too long, sending heartbeat for session {}", sessionState.getSessionId());
-                ctx.writeAndFlush(FixMessageUtils.toHeartbeatMessage(sessionState.getFixMessageWritePool().getAndRetain())).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+                ctx.writeAndFlush(FixMessageUtils.toHeartbeatMessage(fixMessageObjectPool.getAndRetain())).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
                 break;
             case READER_IDLE:
                 if (evt.isFirst()) {
                     log.info("Connection idle for too long, sending test request for session {}", sessionState.getSessionId());
                     //TODO some randomness in test request id?
-                    ctx.writeAndFlush(FixMessageUtils.toTestRequest(sessionState.getFixMessageWritePool().getAndRetain(), TEST_REQ_ID)).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+                    ctx.writeAndFlush(FixMessageUtils.toTestRequest(fixMessageObjectPool.getAndRetain(), TEST_REQ_ID)).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
                 } else {
                     log.warn("Second read timeout, closing connection for session {}", sessionState.getSessionId());
                     ctx.close();

@@ -3,6 +3,7 @@ package io.github.zlooo.fixyou.fix.commons;
 import dagger.Module;
 import dagger.Provides;
 import io.github.zlooo.fixyou.fix.commons.config.validator.ConfigValidatorModule;
+import io.github.zlooo.fixyou.parser.model.FieldCodec;
 
 import javax.annotation.Nullable;
 import java.time.Clock;
@@ -19,5 +20,10 @@ public interface CoreModule {
     @Provides
     static Clock provideClock() {
         return Clock.systemUTC();
+    }
+
+    @Provides
+    static FieldCodec provideFieldCodec() {
+        return new FieldCodec();
     }
 }

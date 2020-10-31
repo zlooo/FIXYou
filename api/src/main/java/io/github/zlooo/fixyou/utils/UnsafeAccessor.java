@@ -1,4 +1,4 @@
-package io.github.zlooo.fixyou.commons.utils;
+package io.github.zlooo.fixyou.utils;
 
 import io.github.zlooo.fixyou.FIXYouException;
 import lombok.experimental.UtilityClass;
@@ -11,7 +11,6 @@ import java.security.PrivilegedExceptionAction;
 @UtilityClass
 public class UnsafeAccessor {
     public static final Unsafe UNSAFE;
-    public static final long ARRAY_OBJECT_BASE_OFFSET;
 
     static {
         Unsafe unsafe = null;
@@ -31,6 +30,5 @@ public class UnsafeAccessor {
         }
 
         UNSAFE = unsafe;
-        ARRAY_OBJECT_BASE_OFFSET = Unsafe.ARRAY_OBJECT_BASE_OFFSET;
     }
 }

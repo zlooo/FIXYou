@@ -3,11 +3,10 @@ package io.github.zlooo.fixyou.netty.handler;
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.model.ApplicationVersionID;
-import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
-import io.github.zlooo.fixyou.parser.FixFieldsTypes;
 import io.github.zlooo.fixyou.parser.FixMessageParser;
+import io.github.zlooo.fixyou.parser.model.FieldCodec;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
@@ -18,7 +17,6 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -27,33 +25,35 @@ import javax.inject.Singleton;
 @ChannelHandler.Sharable
 class SimplifiedMessageDecoder extends ChannelInboundHandlerAdapter {
 
-    private static final SimplifiedSpec SIMPLIFIED_SPEC = new SimplifiedSpec();
-    private final ByteBufComposer byteBufComposer = new ByteBufComposer(1);
-    private final FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer);
+    private static final LogonOnlySpec LOGON_ONLY_SPEC = new LogonOnlySpec();
+    private final FieldCodec fieldCodec;
 
     @Inject
-    SimplifiedMessageDecoder() {
+    SimplifiedMessageDecoder(FieldCodec fieldCodec) {
+        this.fieldCodec = fieldCodec;
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof ByteBuf) {
             final ByteBuf in = (ByteBuf) msg;
+            final FixMessage fixMessage = new NotPoolableFixMessage(fieldCodec);
             try {
-                byteBufComposer.addByteBuf(in);
                 /**
-                 * This handler should handle 1 message only anyway, first logon, so we can afford invocation of {@link FixMessage#FixMessage(FixSpec)}. After that it's removed
-                 * from
-                 * pipeline by {@link io.github.zlooo.fixyou.netty.handler.admin.LogonHandler#addRequiredChannelsToPipeline(ChannelHandlerContext, NettyHandlerAwareSessionState)}
+                 * This handler should handle 1 message only anyway, first logon, so we can afford couple of constructor invocations. After that it's removed from pipeline by
+                 * {@link io.github.zlooo.fixyou.netty.handler.admin.LogonHandler#addRequiredChannelsToPipeline(ChannelHandlerContext, NettyHandlerAwareSessionState)}
                  */
-                final FixMessage fixMessage = new NotPoolableFixMessage(SIMPLIFIED_SPEC);
-                fixMessageParser.setFixMessage(fixMessage);
+                final ByteBufComposer byteBufComposer = new ByteBufComposer(1);
+                byteBufComposer.addByteBuf(in);
+                fixMessage.setMessageByteSource(byteBufComposer);
+                final FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer, LOGON_ONLY_SPEC, fixMessage);
+                fixMessageParser.startParsing();
                 fixMessageParser.parseFixMsgBytes();
                 if (fixMessageParser.isDone()) {
                     if (log.isTraceEnabled()) {
                         log.trace("Message after decoding {}", fixMessage.toString(true));
                     }
-                    ctx.fireChannelRead(fixMessageParser.getFixMessage());
+                    ctx.fireChannelRead(fixMessage);
                 } else {
                     log.error("Incomplete logon message arrived, closing channel {}", ctx.channel());
                     /**
@@ -64,7 +64,7 @@ class SimplifiedMessageDecoder extends ChannelInboundHandlerAdapter {
                     ctx.close();
                 }
             } finally {
-                fixMessageParser.setFixMessage(null);
+                fixMessage.releaseByteSource();
                 in.release();
             }
         } else {
@@ -76,52 +76,44 @@ class SimplifiedMessageDecoder extends ChannelInboundHandlerAdapter {
      * All we need are fields that are relevant for {@link io.github.zlooo.fixyou.netty.handler.admin.LogonHandler}. The basic idea is that this spec is just for logon, then once
      * logged in a proper spec is used that is bound to session itself
      */
-    private static final class SimplifiedSpec implements FixSpec {
+    private static final class LogonOnlySpec implements FixSpec {
 
-        private final int highestFieldNumber = ArrayUtils.max(getFieldsOrder());
+        private static final int[] FIELDS_ORDER = {FixConstants.BEGIN_STRING_FIELD_NUMBER, FixConstants.BODY_LENGTH_FIELD_NUMBER, FixConstants.MESSAGE_TYPE_FIELD_NUMBER,
+                FixConstants.APPL_VERSION_ID_FIELD_NUMBER,
+                FixConstants.SENDER_COMP_ID_FIELD_NUMBER, FixConstants.TARGET_COMP_ID_FIELD_NUMBER, FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER,
+                FixConstants.SENDING_TIME_FIELD_NUMBER, FixConstants.ENCRYPT_METHOD_FIELD_NUMBER, FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER,
+                FixConstants.BEGIN_SEQUENCE_NUMBER_FIELD_NUMBER, FixConstants.END_SEQUENCE_NUMBER_FIELD_NUMBER, FixConstants.TEXT_FIELD_NUMBER, FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER,
+                FixConstants.USERNAME_FIELD_NUMBER, FixConstants.PASSWORD_FIELD_NUMBER, FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER,
+                FixConstants.CHECK_SUM_FIELD_NUMBER};
+        private static final char[][] MESSAGE_TYPES = {FixConstants.LOGON};
+        private static final int HIGHEST_FIELD_NUMBER = ArrayUtils.max(FIELDS_ORDER);
 
         @Override
         public int[] getFieldsOrder() {
-            return new int[]{FixConstants.BEGIN_STRING_FIELD_NUMBER, FixConstants.BODY_LENGTH_FIELD_NUMBER, FixConstants.MESSAGE_TYPE_FIELD_NUMBER,
-                    FixConstants.APPL_VERSION_ID_FIELD_NUMBER,
-                    FixConstants.SENDER_COMP_ID_FIELD_NUMBER, FixConstants.TARGET_COMP_ID_FIELD_NUMBER, FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER,
-                    FixConstants.SENDING_TIME_FIELD_NUMBER, FixConstants.ENCRYPT_METHOD_FIELD_NUMBER, FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER,
-                    FixConstants.BEGIN_SEQUENCE_NUMBER_FIELD_NUMBER, FixConstants.END_SEQUENCE_NUMBER_FIELD_NUMBER, FixConstants.TEXT_FIELD_NUMBER, FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER,
-                    FixConstants.USERNAME_FIELD_NUMBER, FixConstants.PASSWORD_FIELD_NUMBER, FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER,
-                    FixConstants.CHECK_SUM_FIELD_NUMBER};
-        }
-
-        @Override
-        public FieldType[] getTypes() {
-            return new FieldType[]{FixFieldsTypes.BEGIN_STRING, FixFieldsTypes.BODY_LENGTH, FixFieldsTypes.MESSAGE_TYPE, FixFieldsTypes.APPL_VERSION_ID,
-                    FixFieldsTypes.SENDER_COMP_ID,
-                    FixFieldsTypes.TARGET_COMP_ID, FixFieldsTypes.MESSAGE_SEQUENCE_NUMBER, FixFieldsTypes.SENDING_TIME, FixFieldsTypes.ENCRYPT_METHOD,
-                    FixFieldsTypes.HEARTBEAT_INTERVAL, FixFieldsTypes.BEGIN_SEQUENCE_NUMBER, FixFieldsTypes.END_SEQUENCE_NUMBER, FixFieldsTypes.TEXT, FixFieldsTypes.RESET_SEQ_NUMBER_FLAG, FixFieldsTypes.USERNAME,
-                    FixFieldsTypes.PASSWORD,
-                    FixFieldsTypes.DEFAULT_APP_VERSION_ID,
-                    FixFieldsTypes.CHECK_SUM};
+            return FIELDS_ORDER;
         }
 
         @Nonnull
         @Override
         public char[][] getMessageTypes() {
-            return new char[][]{FixConstants.LOGON};
+            return MESSAGE_TYPES;
         }
 
         @Override
         public int highestFieldNumber() {
-            return highestFieldNumber;
+            return HIGHEST_FIELD_NUMBER;
         }
 
+        @Nonnull
         @Override
         public ApplicationVersionID applicationVersionId() {
             throw new UnsupportedOperationException("Simplified spec does not define application version id");
         }
 
-        @Nullable
+        @Nonnull
         @Override
-        public FieldNumberTypePair[] getChildPairSpec(int groupNumber) {
-            return null;
+        public int[] getRepeatingGroupFieldNumbers(int groupNumber) {
+            return ArrayUtils.EMPTY_INT_ARRAY;
         }
     }
 

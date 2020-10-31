@@ -3,10 +3,7 @@ package io.github.zlooo.fixyou.netty
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.netty.test.framework.FixMessages
 import io.github.zlooo.fixyou.netty.test.framework.QuickfixTestUtils
-import io.github.zlooo.fixyou.parser.model.CharField
-import io.github.zlooo.fixyou.parser.model.CharSequenceField
 import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.parser.model.TimestampField
 import quickfix.Message
 import quickfix.Session
 import quickfix.SessionID
@@ -119,7 +116,7 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         then:
         nextExpectedInboundSequenceNumber() == 3
         testFixMessageListener.messagesReceived.size() == 1
-        testFixMessageListener.messagesReceived[0].getField(ClOrdID.FIELD).value.toString() == clordid
+        testFixMessageListener.messagesReceived[0].getField(ClOrdID.FIELD).charSequenceValue.toString() == clordid
     }
 
     def "should process resend message 2-e-2-1"() {
@@ -143,8 +140,8 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         then:
         assertMinimalNewOrderSingle(firstOrder, testFixMessageListener.messagesReceived[0])
         assertMinimalNewOrderSingle(secondOrder, testFixMessageListener.messagesReceived[1])
-        testFixMessageListener.messagesReceived[0].getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value == 2L
-        testFixMessageListener.messagesReceived[1].getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).value == 3L
+        testFixMessageListener.messagesReceived[0].getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue == 2L
+        testFixMessageListener.messagesReceived[1].getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue == 3L
         sessionHandler().@sequenceNumberToQueuedFixMessages.isEmpty()
     }
 
@@ -457,10 +454,10 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
     }
 
     void assertMinimalNewOrderSingle(NewOrderSingle expected, FixMessage actual) {
-        assert actual.<CharSequenceField> getField(ClOrdID.FIELD).value.toString() == expected.getClOrdID().value
-        assert actual.<CharField> getField(Side.FIELD).value == expected.getSide().value
-        assert actual.<TimestampField> getField(TransactTime.FIELD).value == expected.getTransactTime().value.toInstant(ZoneOffset.UTC).toEpochMilli()
-        assert actual.<CharField> getField(OrdType.FIELD).value == expected.getOrdType().value
+        assert actual.getField(ClOrdID.FIELD).charSequenceValue.toString() == expected.getClOrdID().value
+        assert actual.getField(Side.FIELD).charValue == expected.getSide().value
+        assert actual.getField(TransactTime.FIELD).timestampValue == expected.getTransactTime().value.toInstant(ZoneOffset.UTC).toEpochMilli()
+        assert actual.getField(OrdType.FIELD).charValue == expected.getOrdType().value
     }
 
     void assertHeader(SessionID sessionID, Integer expectedSequenceNumber, Message.Header header) {

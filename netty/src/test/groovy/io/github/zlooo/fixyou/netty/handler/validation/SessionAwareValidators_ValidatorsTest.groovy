@@ -5,6 +5,7 @@ import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
+import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID
@@ -21,16 +22,14 @@ class SessionAwareValidators_ValidatorsTest extends Specification {
 
     private static OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC)
     private static SessionID sessionID = new SessionID('beginString'.toCharArray(), 11, 'senderCompId'.toCharArray(), 12, 'targetCompId'.toCharArray(), 12)
-    private FixMessage fixMessage = new FixMessage(TestSpec.INSTANCE)
+    private FixMessage fixMessage = new FixMessage(new FieldCodec())
     private SessionConfig sessionConfig = new SessionConfig()
-    private DefaultObjectPool<FixMessage> fixMessageObjectReadPool = Mock()
-    private DefaultObjectPool<FixMessage> fixMessageObjectWritePool = Mock()
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(sessionConfig, sessionID, fixMessageObjectReadPool, fixMessageObjectWritePool, TestSpec.INSTANCE)
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(sessionConfig, sessionID, TestSpec.INSTANCE)
 
     def "should validate session id"() {
         setup:
-        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).value = senderCompID
-        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).value = targetCompID
+        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).charSequenceValue = senderCompID
+        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).charSequenceValue = targetCompID
 
         when:
         def result = SessionAwareValidators.COMP_ID_VALIDATOR.validator.apply(fixMessage, sessionState)
@@ -47,7 +46,7 @@ class SessionAwareValidators_ValidatorsTest extends Specification {
 
     def "should validate begin string"() {
         setup:
-        fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).value = beginString
+        fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).charSequenceValue = beginString
 
         when:
         def result = SessionAwareValidators.BEGIN_STRING_VALIDATOR.validator.apply(fixMessage, sessionState)
@@ -84,7 +83,7 @@ class SessionAwareValidators_ValidatorsTest extends Specification {
 
     def "should validate message type"() {
         setup:
-        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).value = messageType
+        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue = messageType
 
         when:
         def result = SessionAwareValidators.MESSAGE_TYPE_VALIDATOR.validator.apply(fixMessage, sessionState)
@@ -100,7 +99,7 @@ class SessionAwareValidators_ValidatorsTest extends Specification {
 
     def "should validate sending time"() {
         setup:
-        fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).value = sendingTime.toInstant().toEpochMilli()
+        fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).timestampValue = sendingTime.toInstant().toEpochMilli()
         def validator = SessionAwareValidators.createSendingTimeValidator(clock)
 
         when:

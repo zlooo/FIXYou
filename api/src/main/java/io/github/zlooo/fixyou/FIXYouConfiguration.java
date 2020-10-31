@@ -22,9 +22,7 @@ public class FIXYouConfiguration {
     @Builder.Default
     private boolean addLoggingHandler = false;
     @Builder.Default
-    private int fixMessageReadPoolSize = DefaultConfiguration.FIX_MESSAGE_READ_POOL_SIZE;
-    @Builder.Default
-    private int fixMessageWritePoolSize = DefaultConfiguration.FIX_MESSAGE_WRITE_POOL_SIZE;
+    private int fixMessagePoolSize = DefaultConfiguration.FIX_MESSAGE_POOL_SIZE;
     @Builder.Default
     private int fixMessageListenerInvokerDisruptorSize = DefaultConfiguration.FIX_MESSAGE_LISTENER_INVOKER_DISRUPTOR_SIZE;
 }
