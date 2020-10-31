@@ -3,6 +3,7 @@ package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.parser.TestSpec
+import org.assertj.core.api.Assertions
 import spock.lang.Specification
 
 class FixMessageTest extends Specification {
@@ -110,7 +111,27 @@ class FixMessageTest extends Specification {
 
         where:
         unsetIndices | expectedSrcStartIndex | expectedSrcEndIndex
-        false        | 1                  | 2
-        true         | FixMessage.NOT_SET | FixMessage.NOT_SET
+        false        | 1                     | 2
+        true         | FixMessage.NOT_SET    | FixMessage.NOT_SET
+    }
+
+    //The point of this test is to see that if requested field number is larger than current size of all fields array it's not resized but placeholder is returned instead. If however field number is within current size of a table, normal
+    // field should be returned
+    def "should get field or placeholder"() {
+        setup:
+        def fieldsNumber = fixMessage.@allFields.length
+
+        when:
+        def result = fixMessage.getFieldOrPlaceholder(fieldNumber)
+
+        then:
+        Assertions.assertThat(result).isInstanceOf(clazz)
+        !result.valueSet
+        fixMessage.@allFields.length == fieldsNumber
+
+        where:
+        fieldNumber | clazz
+        10          | Field
+        100000      | FixMessage.PlaceholderField
     }
 }

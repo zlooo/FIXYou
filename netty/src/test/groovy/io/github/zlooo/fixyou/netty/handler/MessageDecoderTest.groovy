@@ -2,12 +2,17 @@ package io.github.zlooo.fixyou.netty.handler
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
 import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.session.SessionConfig
+import io.github.zlooo.fixyou.session.SessionID
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
+import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
+import io.netty.util.Attribute
 import org.assertj.core.api.Assertions
 import org.assertj.core.data.Index
 import spock.lang.Specification
@@ -280,5 +285,23 @@ class MessageDecoderTest extends Specification {
         2 * channelHandlerContext.fireChannelRead(fixMessage) >> channelHandlerContext
         encodedMessagePart1.refCnt() == 0
         encodedMessagePart2.refCnt() == 0
+    }
+
+    def "should close channel when byte buf composer is full"() {
+        setup:
+        (0..messageDecoder.@byteBufComposer.@components.length).forEach({ messageDecoder.@byteBufComposer.addByteBuf(Unpooled.buffer()) })
+        Channel channel = Mock()
+        Attribute sessionAttribute = Mock()
+        NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), new SessionID("".chars, 0, "".chars, 0, "".chars, 0), TestSpec.INSTANCE)
+
+        when:
+        messageDecoder.channelRead(channelHandlerContext, Unpooled.buffer())
+
+        then:
+        1 * channelHandlerContext.channel() >> channel
+        1 * channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY) >> sessionAttribute
+        1 * sessionAttribute.get() >> sessionState
+        1 * channel.disconnect()
+        0 * _
     }
 }
