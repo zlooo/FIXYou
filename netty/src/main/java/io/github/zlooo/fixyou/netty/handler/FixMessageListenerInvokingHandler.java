@@ -98,6 +98,11 @@ class FixMessageListenerInvokingHandler extends SimpleChannelInboundHandler<FixM
             this.fixMessage = new FixMessage(fieldCodec);
             this.fixMessage.retain();
         }
+
+        @ToString.Include
+        private String fixMessage() {
+            return fixMessage.toString(true);
+        }
     }
 
     @RequiredArgsConstructor

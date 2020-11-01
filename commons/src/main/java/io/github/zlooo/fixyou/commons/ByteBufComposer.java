@@ -53,13 +53,11 @@ public class ByteBufComposer implements Resettable {
     }
 
     public boolean addByteBuf(ByteBuf byteBuf) {
-        byteBuf.retain();
         final Component previousComponent = ArrayUtils.getElementAt(components, toArrayIndex(arrayIndex - 1));
         final Component component = ArrayUtils.getElementAt(components, toArrayIndex(arrayIndex++));
         if (component.buffer != null) {
             return false;
         }
-        component.buffer = byteBuf;
         if (previousComponent.endIndex != INITIAL_VALUE) { //TODO JMH this and check if changing this to a boolean variable improves performance
             component.startIndex = previousComponent.endIndex + 1;
         } else {
@@ -69,6 +67,7 @@ public class ByteBufComposer implements Resettable {
         component.offset = component.startIndex;
         component.endIndex = component.startIndex + byteBuf.readableBytes() - 1;
         storedEndIndex = component.endIndex;
+        byteBuf.retain();
         component.buffer = byteBuf;
         return true;
     }
@@ -193,7 +192,7 @@ public class ByteBufComposer implements Resettable {
     private int readDataFromComponent(Component component, int index, int maxLength, ByteBuf destination, int destinationIndex) {
         final int startIndex = index - component.offset;
         final ByteBuf buffer = component.buffer;
-        final int numberOfBytesToTransfer = Math.min(maxLength, buffer.capacity() - startIndex);
+        final int numberOfBytesToTransfer = Math.min(maxLength, buffer.writerIndex() - startIndex);
         buffer.getBytes(startIndex, destination, destinationIndex, numberOfBytesToTransfer);
         destination.writerIndex(destinationIndex + numberOfBytesToTransfer);
         return numberOfBytesToTransfer;
@@ -259,7 +258,7 @@ public class ByteBufComposer implements Resettable {
 
     @ToString.Include
     private String components() {
-        return "(Only non-empty)" + Stream.of(components).filter(item -> item.buffer != null).map(Component::toString).collect(Collectors.joining(", "));
+        return "(Only non-empty)" + Stream.of(components).filter(item -> item.buffer != null).map(Component::toString).collect(Collectors.joining(",\n"));
     }
 
     @Data
