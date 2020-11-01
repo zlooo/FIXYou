@@ -457,6 +457,21 @@ class ByteBufComposerTest extends Specification {
         Assertions.assertThat(dest.array()).containsExactly(resize("def".getBytes(StandardCharsets.US_ASCII), dest.capacity()))
     }
 
+    def "should get bytes from component that's not 100% filled"(){
+        setup:
+        def buf = Unpooled.buffer(100)
+        buf.writeBytes("some".getBytes(StandardCharsets.US_ASCII))
+        composer.addByteBuf(buf)
+        composer.addByteBuf(Unpooled.wrappedBuffer("thing".getBytes(StandardCharsets.US_ASCII)))
+        def dest = Unpooled.buffer(10)
+
+        when:
+        composer.getBytes(0, 9, dest)
+
+        then:
+        dest.toString(0, 9, StandardCharsets.US_ASCII) == "something"
+    }
+
     def "should get byte"() {
         setup:
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[]))
