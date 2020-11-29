@@ -8,11 +8,13 @@ import io.netty.buffer.Unpooled
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.Executor
 
 class DoubleFieldTest extends Specification {
     private static final String VALUE_THATS_SUPPOSED_TO_BE_IGNORED = "!"
     private Field field
     private ByteBuf underlyingBuf = Unpooled.buffer(20, 20)
+    private Executor executor = Mock()
 
     void setup() {
         field = new Field(10, new FieldCodec())
@@ -131,7 +133,7 @@ class DoubleFieldTest extends Specification {
         def buf = Unpooled.buffer(10, 10)
 
         when:
-        def result = field.appendByteBufWithValue(buf, TestSpec.INSTANCE)
+        def result = field.appendByteBufWithValue(buf, TestSpec.INSTANCE, executor)
 
         then:
         buf.toString(StandardCharsets.US_ASCII) == "1.472"

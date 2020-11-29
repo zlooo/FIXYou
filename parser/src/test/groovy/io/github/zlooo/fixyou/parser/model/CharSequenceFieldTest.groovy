@@ -8,11 +8,13 @@ import io.netty.buffer.Unpooled
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.Executor
 
 class CharSequenceFieldTest extends Specification {
 
     private Field field
     private ByteBuf underlyingBuf = Unpooled.buffer(30, 30)
+    private Executor executor = Mock()
 
     void setup() {
         field = new Field(1, new FieldCodec());
@@ -104,7 +106,7 @@ class CharSequenceFieldTest extends Specification {
         def buf = Unpooled.buffer(20, 20)
 
         when:
-        def result = field.appendByteBufWithValue(buf, TestSpec.INSTANCE)
+        def result = field.appendByteBufWithValue(buf, TestSpec.INSTANCE, executor)
 
         then:
         buf.toString(StandardCharsets.US_ASCII) == "textToWrite"

@@ -9,12 +9,6 @@ class FieldTest extends Specification {
 
     private Field field = new Field(1, new FieldCodec())
 
-    def "should encode field number on creation"() {
-        expect:
-        new String(field.encodedFieldNumber, StandardCharsets.US_ASCII) == "1="
-        field.number == 1
-    }
-
     def "should set indexes"() {
         when:
         field.setIndexes(3, 6)

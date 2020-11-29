@@ -9,12 +9,14 @@ import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
 import java.time.Instant
+import java.util.concurrent.Executor
 
 class TimestampFieldTest extends Specification {
 
     private Field field
     private long millis = Instant.parse("2020-06-08T22:45:16.666Z").toEpochMilli()
     private ByteBuf underlyingBuf = Unpooled.buffer(30, 30)
+    private Executor executor = Mock()
 
     void setup() {
         field = new Field(1, new FieldCodec())
@@ -78,7 +80,7 @@ class TimestampFieldTest extends Specification {
         def buf = Unpooled.buffer(30, 30)
 
         when:
-        def result = field.appendByteBufWithValue(buf, TestSpec.INSTANCE)
+        def result = field.appendByteBufWithValue(buf, TestSpec.INSTANCE, executor)
 
         then:
         buf.toString(StandardCharsets.US_ASCII) == "20260606-22:45:16.666"

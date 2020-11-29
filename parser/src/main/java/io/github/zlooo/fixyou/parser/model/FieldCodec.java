@@ -5,16 +5,22 @@ import io.github.zlooo.fixyou.commons.utils.DateUtils;
 import io.github.zlooo.fixyou.commons.utils.FieldUtils;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
+import io.github.zlooo.fixyou.parser.cache.FieldNumberCache;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.github.zlooo.fixyou.utils.AsciiCodes;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.AsciiString;
 import io.netty.util.ReferenceCountUtil;
+import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.concurrent.Executor;
 
+@RequiredArgsConstructor
 public class FieldCodec {
+
+    private final FieldNumberCache fieldNumberCache;
 
     boolean getBooleanValue(FieldValue fieldValue, Field field) {
         if (!fieldValue.isParsed() && field.isIndicesSet()) {
@@ -173,7 +179,7 @@ public class FieldCodec {
         fieldValue.setValueTypeSet(FieldType.TIMESTAMP);
     }
 
-    int appendByteBufWithValue(ByteBuf out, FieldValue fieldValue, Field field, FixSpec fixSpec) {
+    int appendByteBufWithValue(ByteBuf out, FieldValue fieldValue, Field field, FixSpec fixSpec, Executor executor) {
         final int returnValue;
         switch (fieldValue.getValueTypeSet()) {
             case BOOLEAN:
@@ -189,7 +195,7 @@ public class FieldCodec {
                 returnValue = appendByteBufWithBytesValue(out, fieldValue);
                 break;
             case GROUP:
-                returnValue = appendByteBufWithGroupValue(out, fieldValue, field, fixSpec);
+                returnValue = appendByteBufWithGroupValue(out, fieldValue, field, fixSpec, executor);
                 break;
             default:
                 throw new FieldValueNotSetException(field);
@@ -217,7 +223,7 @@ public class FieldCodec {
         return fieldValue.getSumOfBytes();
     }
 
-    private int appendByteBufWithGroupValue(ByteBuf out, FieldValue fieldValue, Field field, FixSpec fixSpec) {
+    private int appendByteBufWithGroupValue(ByteBuf out, FieldValue fieldValue, Field field, FixSpec fixSpec, Executor executor) {
         final int repetitionCounter = fieldValue.getRepetitionCounter();
         int sumOfBytes = FieldUtils.writeEncoded(repetitionCounter, out) + FixMessage.FIELD_SEPARATOR;
         out.writeByte(FixMessage.FIELD_SEPARATOR);
@@ -227,8 +233,10 @@ public class FieldCodec {
             for (int j = 0; j < groupFieldsOrder.length; j++) {
                 final Field repetitionField = repetition.getExistingGroupFieldOrNull(ArrayUtils.getElementAt(groupFieldsOrder, j));
                 if (repetitionField != null && repetitionField.isValueSet()) {
-                    sumOfBytes += repetitionField.appendFieldNumber(out);
-                    sumOfBytes += repetitionField.appendByteBufWithValue(out, fixSpec) + FixMessage.FIELD_SEPARATOR;
+                    final FieldNumberCache.ByteBufWithSum encodedFieldNumber = fieldNumberCache.getEncodedFieldNumber(repetitionField.getNumber(), executor);
+                    out.writeBytes(encodedFieldNumber.getByteBuf().readerIndex(0));
+                    sumOfBytes += encodedFieldNumber.getSumOfBytes();
+                    sumOfBytes += repetitionField.appendByteBufWithValue(out, fixSpec, executor) + FixMessage.FIELD_SEPARATOR;
                     out.writeByte(FixMessage.FIELD_SEPARATOR);
                 }
             }

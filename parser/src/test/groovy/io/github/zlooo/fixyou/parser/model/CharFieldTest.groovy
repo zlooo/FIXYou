@@ -8,11 +8,13 @@ import io.netty.util.AsciiString
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.Executor
 
 class CharFieldTest extends Specification {
 
     private Field field
     private ByteBuf underlyingBuf = Unpooled.buffer(10, 10)
+    private Executor executor = Mock()
 
     void setup() {
         field = new Field(1, new FieldCodec())
@@ -77,7 +79,7 @@ class CharFieldTest extends Specification {
         def buf = Unpooled.buffer(1, 1)
 
         when:
-        def result = field.appendByteBufWithValue(buf, TestSpec.INSTANCE)
+        def result = field.appendByteBufWithValue(buf, TestSpec.INSTANCE, executor)
 
         then:
         buf.toString(StandardCharsets.US_ASCII) == "Z"

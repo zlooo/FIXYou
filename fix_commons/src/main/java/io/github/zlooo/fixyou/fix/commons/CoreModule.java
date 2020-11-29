@@ -3,6 +3,7 @@ package io.github.zlooo.fixyou.fix.commons;
 import dagger.Module;
 import dagger.Provides;
 import io.github.zlooo.fixyou.fix.commons.config.validator.ConfigValidatorModule;
+import io.github.zlooo.fixyou.parser.cache.FieldNumberCache;
 import io.github.zlooo.fixyou.parser.model.FieldCodec;
 
 import javax.annotation.Nullable;
@@ -23,7 +24,12 @@ public interface CoreModule {
     }
 
     @Provides
-    static FieldCodec provideFieldCodec() {
-        return new FieldCodec();
+    static FieldNumberCache provideFieldNumberCache() {
+        return new FieldNumberCache();
+    }
+
+    @Provides
+    static FieldCodec provideFieldCodec(FieldNumberCache fieldNumberCache) {
+        return new FieldCodec(fieldNumberCache);
     }
 }

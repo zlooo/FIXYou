@@ -2,6 +2,7 @@ package io.github.zlooo.fixyou.parser.model;
 
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.parser.FixSpec50SP2;
+import io.github.zlooo.fixyou.parser.cache.FieldNumberCache;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
@@ -11,7 +12,7 @@ public class FieldCodecPerformanceTest {
 
     private static final FixSpec FIX_50SP2_SPEC = new FixSpec50SP2();
     private static final int[] FIX_50SP2_FIELDS_ORDER = FIX_50SP2_SPEC.getFieldsOrder();
-    private static final FieldCodec FIELD_CODEC = new FieldCodec();
+    private static final FieldCodec FIELD_CODEC = new FieldCodec(new FieldNumberCache());
 
     @Benchmark
     @BenchmarkMode({Mode.Throughput})

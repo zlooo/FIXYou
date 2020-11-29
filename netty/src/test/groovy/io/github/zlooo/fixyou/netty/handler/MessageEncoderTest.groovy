@@ -1,8 +1,10 @@
 package io.github.zlooo.fixyou.netty.handler
 
 import io.github.zlooo.fixyou.FixConstants
+import io.github.zlooo.fixyou.commons.utils.FieldUtils
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
+import io.github.zlooo.fixyou.parser.cache.FieldNumberCache
 import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
@@ -19,8 +21,17 @@ import java.nio.charset.StandardCharsets
 class MessageEncoderTest extends Specification {
 
     private static final int CHECK_SUM_MODULO = 256
-    private MessageEncoder messageEncoder = new MessageEncoder()
-    private FixMessage fixMessage = new FixMessage(new FieldCodec())
+    private FieldNumberCache fieldNumberCache = Mock {
+        getEncodedFieldNumber(_, _) >> { args ->
+            ByteBuf byteBuf = Unpooled.buffer(5)
+            def sum = FieldUtils.writeEncoded(args[0], byteBuf)
+            sum += FixMessage.FIELD_VALUE_SEPARATOR
+            byteBuf.writeByte(FixMessage.FIELD_VALUE_SEPARATOR)
+            return new FieldNumberCache.ByteBufWithSum(byteBuf, sum)
+        }
+    }
+    private MessageEncoder messageEncoder = new MessageEncoder(fieldNumberCache)
+    private FixMessage fixMessage = new FixMessage(new FieldCodec(fieldNumberCache))
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionAttribute = Mock()

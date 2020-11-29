@@ -2,17 +2,31 @@ package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.DefaultConfiguration
 import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.github.zlooo.fixyou.commons.utils.FieldUtils
 import io.github.zlooo.fixyou.parser.TestSpec
 import io.github.zlooo.fixyou.parser.TestUtils
+import io.github.zlooo.fixyou.parser.cache.FieldNumberCache
+import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import org.assertj.core.api.Assertions
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.Executor
 
 class GroupFieldTest extends Specification {
 
-    private Field groupField = new Field(TestSpec.USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER, new FieldCodec())
+    private FieldNumberCache fieldNumberCache = Mock {
+        getEncodedFieldNumber(_, _) >> { args ->
+            ByteBuf byteBuf = Unpooled.buffer(5)
+            def sum = FieldUtils.writeEncoded(args[0], byteBuf)
+            sum += FixMessage.FIELD_VALUE_SEPARATOR
+            byteBuf.writeByte(FixMessage.FIELD_VALUE_SEPARATOR)
+            return new FieldNumberCache.ByteBufWithSum(byteBuf, sum)
+        }
+    }
+    private Field groupField = new Field(TestSpec.USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER, new FieldCodec(fieldNumberCache))
+    private Executor executor = Mock()
 
     def "should create a group field"() {
         setup:
@@ -166,7 +180,7 @@ class GroupFieldTest extends Specification {
         def buffer = Unpooled.buffer(100, 100)
 
         when:
-        def result = groupField.appendByteBufWithValue(buffer, TestSpec.INSTANCE)
+        def result = groupField.appendByteBufWithValue(buffer, TestSpec.INSTANCE, executor)
 
         then:
         buffer.toString(StandardCharsets.US_ASCII) == "1\u00011=666\u00012=Y"
@@ -185,7 +199,7 @@ class GroupFieldTest extends Specification {
         def buffer = Unpooled.buffer(300, 300)
 
         when:
-        def result = groupField.appendByteBufWithValue(buffer, TestSpec.INSTANCE)
+        def result = groupField.appendByteBufWithValue(buffer, TestSpec.INSTANCE, executor)
 
         then:
         buffer.toString(StandardCharsets.US_ASCII) == "3\u00011=666\u00012=Y\u00011=666\u00011=666"

@@ -6,12 +6,12 @@ import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.netty.buffer.ByteBuf;
-import io.netty.util.AsciiString;
-import io.netty.util.internal.PlatformDependent;
 import lombok.*;
 
+import java.util.concurrent.Executor;
+
 @EqualsAndHashCode
-@ToString(exclude = {"encodedFieldNumber", "fieldData", "fieldCodec"})
+@ToString(exclude = {"fieldData", "fieldCodec"})
 public class Field implements Closeable, BooleanField, CharField, CharSequenceField, DoubleField, LongField, TimestampField, GroupField {
 
     @Getter
@@ -25,11 +25,6 @@ public class Field implements Closeable, BooleanField, CharField, CharSequenceFi
     private int endIndex;
     @Getter(AccessLevel.PACKAGE)
     private boolean indicesSet;
-    @Getter(value = AccessLevel.PROTECTED)
-    private final byte[] encodedFieldNumber;
-    private final int encodedFieldNumberSumOfBytes;
-    @Getter
-    private final int encodedFieldNumberLength;
     private final FieldValue fieldValue;
     private final FieldCodec fieldCodec;
 
@@ -37,20 +32,6 @@ public class Field implements Closeable, BooleanField, CharField, CharSequenceFi
         this.number = number;
         this.fieldCodec = fieldCodec;
         this.fieldValue = createFieldValue();
-        final char[] fieldNumberAsCharArray = Integer.toString(number).toCharArray(); //we're doing it just on startup so we can afford it
-        final int encodedFieldNumberCapacity = fieldNumberAsCharArray.length + 1;
-        encodedFieldNumber = new byte[encodedFieldNumberCapacity];
-        int tempSumOfBytes = 0;
-        for (int i = 0; i < fieldNumberAsCharArray.length; i++) {
-            final byte encodedChar = AsciiString.c2b(ArrayUtils.getElementAt(fieldNumberAsCharArray, i));
-            tempSumOfBytes += encodedChar;
-            PlatformDependent.putByte(encodedFieldNumber, i, encodedChar);
-        }
-        tempSumOfBytes += FixMessage.FIELD_VALUE_SEPARATOR;
-        PlatformDependent.putByte(encodedFieldNumber, encodedFieldNumberCapacity - 1, FixMessage.FIELD_VALUE_SEPARATOR);
-        encodedFieldNumberSumOfBytes = tempSumOfBytes;
-        encodedFieldNumberLength = encodedFieldNumber.length;
-
     }
 
     protected FieldValue createFieldValue() {
@@ -87,11 +68,6 @@ public class Field implements Closeable, BooleanField, CharField, CharSequenceFi
     @Override
     public void close() {
         fieldValue.close();
-    }
-
-    public int appendFieldNumber(ByteBuf out) {
-        out.writeBytes(encodedFieldNumber);
-        return encodedFieldNumberSumOfBytes;
     }
 
     @Override
@@ -174,8 +150,15 @@ public class Field implements Closeable, BooleanField, CharField, CharSequenceFi
         this.fieldCodec.setTimestampValue(newValue, fieldValue);
     }
 
-    public int appendByteBufWithValue(ByteBuf out, FixSpec fixSpec) {
-        return fieldCodec.appendByteBufWithValue(out, fieldValue, this, fixSpec);
+    /**
+     * Encodes data of this field and appends it to give buffer. In case of group field(fix repeating group) provided Executor could be used to populate {@link io.github.zlooo.fixyou.parser.cache.FieldNumberCache}
+     * @param out buffer that will receive encoded data
+     * @param fixSpec spec used by current session
+     * @param executor executor that might be used to populate {@link io.github.zlooo.fixyou.parser.cache.FieldNumberCache} if some field number is not there
+     * @return
+     */
+    public int appendByteBufWithValue(ByteBuf out, FixSpec fixSpec, Executor executor) {
+        return fieldCodec.appendByteBufWithValue(out, fieldValue, this, fixSpec, executor);
     }
 
     @Override
