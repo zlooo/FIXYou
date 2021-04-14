@@ -2,7 +2,7 @@ language: java
 install: true
 
 os: linux
-dist: focal
+dist: bionic
 jdk: openjdk8
 
 before_cache:
