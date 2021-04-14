@@ -19,10 +19,17 @@ import javax.annotation.Nonnull;
 public class ReusableCharArray extends AbstractReferenceCounted implements CharSequence { //TODO get rid of this class!!!!
 
     private char[] state;
+    private int length;
 
     @Nonnull
     public ReusableCharArray setCharArray(@Nonnull char[] array) {
+        return setCharArray(array, array.length);
+    }
+
+    @Nonnull
+    public ReusableCharArray setCharArray(@Nonnull char[] array, int charSequenceLength) {
         state = array;
+        this.length = charSequenceLength;
         return this;
     }
 
@@ -33,7 +40,7 @@ public class ReusableCharArray extends AbstractReferenceCounted implements CharS
 
     @Override
     public int length() {
-        return state.length;
+        return length;
     }
 
     @Override

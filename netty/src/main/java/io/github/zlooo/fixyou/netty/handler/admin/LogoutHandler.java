@@ -26,7 +26,7 @@ class LogoutHandler implements AdministrativeMessageHandler {
         log.info("Logout request for session {} received, closing connection", sessionState.getSessionId());
         if (!sessionState.isLogoutSent()) {
             sessionState.setLogoutSent(true);
-            fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue(FixConstants.LOGOUT);
+            fixMessage.setCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER, FixConstants.LOGOUT);
             ctx.writeAndFlush(fixMessage.retain()).addListener(ChannelFutureListener.CLOSE);
         } else {
             ctx.channel().close();

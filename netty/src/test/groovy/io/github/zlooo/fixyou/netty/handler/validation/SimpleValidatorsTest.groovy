@@ -2,8 +2,8 @@ package io.github.zlooo.fixyou.netty.handler.validation
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.fix.commons.RejectReasons
-import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
 import io.netty.channel.ChannelFuture
 import io.netty.channel.ChannelFutureListener
 import io.netty.channel.ChannelHandlerContext
@@ -52,19 +52,22 @@ class SimpleValidatorsTest extends Specification {
         then:
         1 * channelHandlerContext.writeAndFlush(fixMessage) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
-        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue.toString() == String.valueOf(FixConstants.REJECT)
-        fixMessage.getField(FixConstants.SESSION_REJECT_REASON_FIELD_NUMBER).longValue == RejectReasons.REQUIRED_TAG_MISSING
-        fixMessage.getField(FixConstants.REFERENCED_TAG_ID_FIELD_NUMBER).longValue == FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER
+        fixMessage.getCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).toString() == String.valueOf(FixConstants.REJECT)
+        fixMessage.getLongValue(FixConstants.SESSION_REJECT_REASON_FIELD_NUMBER) == RejectReasons.REQUIRED_TAG_MISSING
+        fixMessage.getLongValue(FixConstants.REFERENCED_TAG_ID_FIELD_NUMBER) == FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER
         0 * _
+
+        cleanup:
+        fixMessage?.close()
     }
 
     private static FixMessage createFixMessage(LocalDateTime origSendingTime, Boolean possDupFlag) {
-        def fixMessage = new FixMessage(new FieldCodec())
+        def fixMessage = new NotPoolableFixMessage()
         if (origSendingTime != null) {
-            fixMessage.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).setTimestampValue(origSendingTime.toInstant(ZoneOffset.UTC).toEpochMilli())
+            fixMessage.setTimestampValue(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER, origSendingTime.toInstant(ZoneOffset.UTC).toEpochMilli())
         }
         if (possDupFlag != null) {
-            fixMessage.getField(FixConstants.POSSIBLE_DUPLICATE_FLAG_FIELD_NUMBER).setBooleanValue(possDupFlag)
+            fixMessage.setBooleanValue(FixConstants.POSSIBLE_DUPLICATE_FLAG_FIELD_NUMBER, possDupFlag)
         }
         return fixMessage
     }

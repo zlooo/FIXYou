@@ -1,11 +1,12 @@
 package io.github.zlooo.fixyou.commons.utils;
 
+import io.github.zlooo.fixyou.utils.ArrayUtils;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public final class NumberConstants {
 
-    public static final long[] POWERS_OF_TEN = {1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000, 1_000_000_000};
+    public static final long[] POWERS_OF_TEN = generatePowersOfTen(20);
 
     static final char[] DIGIT_TENS = {
             '0', '0', '0', '0', '0', '0', '0', '0', '0', '0',
@@ -41,4 +42,19 @@ public final class NumberConstants {
             'o', 'p', 'q', 'r', 's', 't',
             'u', 'v', 'w', 'x', 'y', 'z',
     };
+
+    private static final int TEN = 10;
+
+    private static long[] generatePowersOfTen(int size) {
+        if (size <= 0) {
+            return ArrayUtils.EMPTY_LONG_ARRAY;
+        } else {
+            final long[] result = new long[size];
+            result[0] = 1;
+            for (int i = 1; i < result.length; i++) {
+                result[i] = result[i - 1] * TEN;
+            }
+            return result;
+        }
+    }
 }

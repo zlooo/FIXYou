@@ -2,11 +2,10 @@ package io.github.zlooo.fixyou.parser
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.commons.ByteBufComposer
-import io.github.zlooo.fixyou.model.FieldType
-import io.github.zlooo.fixyou.parser.model.Field
-import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
 import io.netty.buffer.Unpooled
+import spock.lang.AutoCleanup
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
@@ -17,13 +16,10 @@ import java.time.ZoneOffset
 class FixMessageParserTest extends Specification {
 
     private static final FixSpec50SP2 fixSpec50SP2 = new FixSpec50SP2()
-    private FixMessage fixMessage = new FixMessage(new FieldCodec())
+    @AutoCleanup
+    private FixMessage fixMessage = new NotPoolableFixMessage()
     private ByteBufComposer byteBufComposer = new ByteBufComposer(10)
     private FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer, fixSpec50SP2, fixMessage)
-
-    void setup() {
-        fixMessage.setMessageByteSource(byteBufComposer)
-    }
 
     void cleanup() {
         byteBufComposer.reset()
@@ -32,13 +28,11 @@ class FixMessageParserTest extends Specification {
     def "should start parsing"() {
         setup:
         fixMessageParser.@storedEndIndexOfLastUnfinishedMessage = 666
-        fixMessage.startIndex = 123
 
         when:
         fixMessageParser.startParsing()
 
         then:
-        fixMessage.startIndex == 0
         fixMessageParser.@storedEndIndexOfLastUnfinishedMessage == 0
     }
 
@@ -54,8 +48,6 @@ class FixMessageParserTest extends Specification {
         fixMessageParser.isDone()
         fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
         assertSimpleNewOrderSingle(fixMessage)
-        fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == simpleNewOrderSingle.length() - 1
     }
 
     def "should discard garbage data from fix message"() {
@@ -70,14 +62,12 @@ class FixMessageParserTest extends Specification {
         fixMessageParser.isDone()
         fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
         assertSimpleNewOrderSingle(fixMessage)
-        fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == simpleNewOrderSingle.length() + "garbage garbage".length() - 1
     }
 
     def "should parse execution report message, message with repeating group(382)"() {
         setup:
-        String message = "8=FIX.4.2\u00019=378\u000135=8\u0001128=XYZ\u000134=5\u000149=CCG\u000156=ABC_DEFG01\u000152=20090323-15:40:35\u000155=CVS\u000137=NF 0542/03232009\u000111=NF 0542/03232009\u000117=NF 0542/03232009001001001" +
-                         "\u000120=0\u000139=2\u0001150=2\u000154=1\u000138=100\u000140=1\u000159=0\u000131=25.4800\u000132=100\u000114=0\u00016=0\u0001151=0\u000160=20090323-15:40:30\u000158=Fill\u000130=N\u000176=0034\u0001207=N\u0001" +
+        String message = "8=FIX.4.2\u00019=378\u000135=8\u0001128=XYZ\u000134=5\u000149=CCG\u000156=ABC_DEFG01\u000152=20210323-15:40:35\u000155=CVS\u000137=NF 0542/03232009\u000111=NF 0542/03232009\u000117=NF 0542/03232009001001001" +
+                         "\u000120=0\u000139=2\u0001150=2\u000154=1\u000138=100\u000140=1\u000159=0\u000131=25.4800\u000132=100\u000114=0\u00016=0\u0001151=0\u000160=20210323-15:40:30\u000158=Fill\u000130=N\u000176=0034\u0001207=N\u0001" +
                          "47=A\u0001382=1\u0001375=TOD\u0001337=0000\u0001437=100\u0001438=20090330-23:40:35\u000129=1\u000163=0\u000110=080\u0001"
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
 
@@ -88,58 +78,53 @@ class FixMessageParserTest extends Specification {
         then:
         fixMessageParser.isDone()
         fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
-        fixMessage.getField(8).charSequenceValue.toString() == "FIX.4.2"
-        fixMessage.getField(9).longValue == 378
-        fixMessage.getField(35).charSequenceValue.toString() == "8"
-        fixMessage.getField(34).longValue == 5
-        fixMessage.getField(49).charSequenceValue.toString() == "CCG"
-        fixMessage.getField(56).charSequenceValue.toString() == "ABC_DEFG01"
-        fixMessage.getField(52).timestampValue == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090323-15:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
-        fixMessage.getField(55).charSequenceValue.toString() == "CVS"
-        fixMessage.getField(37).charSequenceValue.toString() == "NF 0542/03232009"
-        fixMessage.getField(11).charSequenceValue.toString() == "NF 0542/03232009"
-        fixMessage.getField(17).charSequenceValue.toString() == "NF 0542/03232009001001001"
-        fixMessage.getField(39).charValue == "2" as char
-        fixMessage.getField(150).charValue == "2" as char
-        fixMessage.getField(54).charValue == "1" as char
-        fixMessage.getField(38).doubleUnscaledValue == 100
-        fixMessage.getField(38).scale == 0
-        fixMessage.getField(40).charValue == "1" as char
-        fixMessage.getField(59).charValue == "0" as char
-        fixMessage.getField(31).doubleUnscaledValue == 254800
-        fixMessage.getField(31).scale == 4
-        fixMessage.getField(32).doubleUnscaledValue == 100
-        fixMessage.getField(32).scale == 0
-        fixMessage.getField(14).doubleUnscaledValue == 0
-        fixMessage.getField(14).scale == 0
-        fixMessage.getField(6).doubleUnscaledValue == 0
-        fixMessage.getField(6).scale == 0
-        fixMessage.getField(151).doubleUnscaledValue == 0
-        fixMessage.getField(151).scale == 0
-        fixMessage.getField(60).timestampValue == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090323-15:40:30", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
-        fixMessage.getField(58).charSequenceValue.toString() == "Fill"
-        fixMessage.getField(30).charSequenceValue.toString() == "N"
-        fixMessage.getField(207).charSequenceValue.toString() == "N"
-        def repeatingGroupField = fixMessage.getField(382)
-        repeatingGroupField.longValue == 1
-        repeatingGroupField.@fieldValue.valueTypeSet == FieldType.GROUP
-        repeatingGroupField.@fieldValue.repetitionCounter == 1
-        repeatingGroupField.getFieldForGivenRepetition(0, 375).charSequenceValue.toString() == "TOD"
-        repeatingGroupField.getFieldForGivenRepetition(0, 337).charSequenceValue.toString() == "0000"
-        repeatingGroupField.getFieldForGivenRepetition(0, 437).doubleUnscaledValue == 100
-        repeatingGroupField.getFieldForGivenRepetition(0, 437).scale == 0
-        repeatingGroupField.getFieldForGivenRepetition(0, 438).timestampValue == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090330-23:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
-        fixMessage.getField(29).charValue == "1" as char
-        fixMessage.getField(63).charSequenceValue.toString() == "0"
-        fixMessage.getField(10).charSequenceValue.toString() == "080"
-        fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == message.length() - 1
+        fixMessage.getCharSequenceValue(8).toString() == "FIX.4.2"
+        fixMessage.getLongValue(9) == 378
+        fixMessage.getCharSequenceValue(35).toString() == "8"
+        fixMessage.getLongValue(34) == 5
+        fixMessage.getCharSequenceValue(49).toString() == "CCG"
+        fixMessage.getCharSequenceValue(56).toString() == "ABC_DEFG01"
+        fixMessage.getTimestampValue(52) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        fixMessage.getCharSequenceValue(55).toString() == "CVS"
+        fixMessage.getCharSequenceValue(37).toString() == "NF 0542/03232009"
+        fixMessage.getCharSequenceValue(11).toString() == "NF 0542/03232009"
+        fixMessage.getCharSequenceValue(17).toString() == "NF 0542/03232009001001001"
+        fixMessage.getCharValue(39) == "2" as char
+        fixMessage.getCharValue(150) == "2" as char
+        fixMessage.getCharValue(54) == "1" as char
+        fixMessage.getDoubleUnscaledValue(38) == 100
+        fixMessage.getScale(38) == 0 as short
+        fixMessage.getCharValue(40) == "1" as char
+        fixMessage.getCharValue(59) == "0" as char
+        fixMessage.getDoubleUnscaledValue(31) == 254800
+        fixMessage.getScale(31) == 4 as short
+        fixMessage.getDoubleUnscaledValue(32) == 100
+        fixMessage.getScale(32) == 0 as short
+        fixMessage.getDoubleUnscaledValue(14) == 0
+        fixMessage.getScale(14) == 0 as short
+        fixMessage.getDoubleUnscaledValue(6) == 0
+        fixMessage.getScale(6) == 0 as short
+        fixMessage.getDoubleUnscaledValue(151) == 0
+        fixMessage.getScale(151) == 0 as short
+        fixMessage.getTimestampValue(60) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:30", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        fixMessage.getCharSequenceValue(58).toString() == "Fill"
+        fixMessage.getCharSequenceValue(30).toString() == "N"
+        fixMessage.getCharSequenceValue(207).toString() == "N"
+        fixMessage.getLongValue(382) == 1
+        fixMessage.getCharSequenceValue(375, 382, 0 as byte, 0 as byte).toString() == "TOD"
+        fixMessage.getCharSequenceValue(337, 382, 0 as byte, 0 as byte).toString() == "0000"
+        fixMessage.getDoubleUnscaledValue(437, 382, 0 as byte, 0 as byte) == 100
+        fixMessage.getScale(437, 382, 0 as byte, 0 as byte) == 0
+        fixMessage.getTimestampValue(438, 382, 0 as byte, 0 as byte) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210330-23:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        fixMessage.getCharValue(29) == "1" as char
+        fixMessage.getCharSequenceValue(63).toString() == "0"
+        fixMessage.getCharSequenceValue(10).toString() == "080"
     }
 
     def "should parse execution report message, message with multiple occurrences of repeating group(382)"() {
         setup:
-        String message = "8=FIX.4.2\u00019=378\u000135=8\u0001128=XYZ\u000134=5\u000149=CCG\u000156=ABC_DEFG01\u000152=20090323-15:40:35\u000155=CVS\u000137=NF 0542/03232009\u000111=NF 0542/03232009\u000117=NF 0542/03232009001001001" +
-                         "\u000120=0\u000139=2\u0001150=2\u000154=1\u000138=100\u000140=1\u000159=0\u000131=25.4800\u000132=100\u000114=0\u00016=0\u0001151=0\u000160=20090323-15:40:30\u000158=Fill\u000130=N\u000176=0034\u0001207=N\u0001" +
+        String message = "8=FIX.4.2\u00019=378\u000135=8\u0001128=XYZ\u000134=5\u000149=CCG\u000156=ABC_DEFG01\u000152=20210323-15:40:35\u000155=CVS\u000137=NF 0542/03232009\u000111=NF 0542/03232009\u000117=NF 0542/03232009001001001" +
+                         "\u000120=0\u000139=2\u0001150=2\u000154=1\u000138=100\u000140=1\u000159=0\u000131=25.4800\u000132=100\u000114=0\u00016=0\u0001151=0\u000160=20210323-15:40:30\u000158=Fill\u000130=N\u000176=0034\u0001207=N\u0001" +
                          "47=A\u0001382=2\u0001375=TOD\u0001337=0000\u0001437=100\u0001438=20090330-23:40:35\u0001375=TOD2\u0001337=0001\u0001437=101\u0001438=20090330-23:40:36\u000129=1\u000163=0\u000110=080\u0001"
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
 
@@ -150,62 +135,57 @@ class FixMessageParserTest extends Specification {
         then:
         fixMessageParser.isDone()
         fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
-        fixMessage.getField(8).charSequenceValue.toString() == "FIX.4.2"
-        fixMessage.getField(9).longValue == 378
-        fixMessage.getField(35).charSequenceValue.toString() == "8"
-        fixMessage.getField(34).longValue == 5
-        fixMessage.getField(49).charSequenceValue.toString() == "CCG"
-        fixMessage.getField(56).charSequenceValue.toString() == "ABC_DEFG01"
-        fixMessage.getField(52).timestampValue == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090323-15:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
-        fixMessage.getField(55).charSequenceValue.toString() == "CVS"
-        fixMessage.getField(37).charSequenceValue.toString() == "NF 0542/03232009"
-        fixMessage.getField(11).charSequenceValue.toString() == "NF 0542/03232009"
-        fixMessage.getField(17).charSequenceValue.toString() == "NF 0542/03232009001001001"
-        fixMessage.getField(39).charValue == "2" as char
-        fixMessage.getField(150).charValue == "2" as char
-        fixMessage.getField(54).charValue == "1" as char
-        fixMessage.getField(38).doubleUnscaledValue == 100
-        fixMessage.getField(38).scale == 0
-        fixMessage.getField(40).charValue == "1" as char
-        fixMessage.getField(59).charValue == "0" as char
-        fixMessage.getField(31).doubleUnscaledValue == 254800
-        fixMessage.getField(31).scale == 4
-        fixMessage.getField(32).doubleUnscaledValue == 100
-        fixMessage.getField(32).scale == 0
-        fixMessage.getField(14).doubleUnscaledValue == 0
-        fixMessage.getField(14).scale == 0
-        fixMessage.getField(6).doubleUnscaledValue == 0
-        fixMessage.getField(6).scale == 0
-        fixMessage.getField(151).doubleUnscaledValue == 0
-        fixMessage.getField(151).scale == 0
-        fixMessage.getField(60).timestampValue == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090323-15:40:30", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
-        fixMessage.getField(58).charSequenceValue.toString() == "Fill"
-        fixMessage.getField(30).charSequenceValue.toString() == "N"
-        fixMessage.getField(207).charSequenceValue.toString() == "N"
-        def repeatingGroupField = fixMessage.getField(382)
-        repeatingGroupField.longValue == 2
-        repeatingGroupField.@fieldValue.valueTypeSet == FieldType.GROUP
-        repeatingGroupField.@fieldValue.repetitionCounter == 2
-        repeatingGroupField.getFieldForGivenRepetition(0, 375).charSequenceValue.toString() == "TOD"
-        repeatingGroupField.getFieldForGivenRepetition(0, 337).charSequenceValue.toString() == "0000"
-        repeatingGroupField.getFieldForGivenRepetition(0, 437).doubleUnscaledValue == 100
-        repeatingGroupField.getFieldForGivenRepetition(0, 437).scale == 0
-        repeatingGroupField.getFieldForGivenRepetition(0, 438).timestampValue == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090330-23:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
-        repeatingGroupField.getFieldForGivenRepetition(1, 375).charSequenceValue.toString() == "TOD2"
-        repeatingGroupField.getFieldForGivenRepetition(1, 337).charSequenceValue.toString() == "0001"
-        repeatingGroupField.getFieldForGivenRepetition(1, 437).doubleUnscaledValue == 101
-        repeatingGroupField.getFieldForGivenRepetition(1, 437).scale == 0
-        repeatingGroupField.getFieldForGivenRepetition(1, 438).timestampValue == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090330-23:40:36", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
-        fixMessage.getField(29).charValue == "1" as char
-        fixMessage.getField(63).charSequenceValue.toString() == "0"
-        fixMessage.getField(10).charSequenceValue.toString() == "080"
-        fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == message.length() - 1
+        fixMessage.getCharSequenceValue(8).toString() == "FIX.4.2"
+        fixMessage.getLongValue(9) == 378
+        fixMessage.getCharSequenceValue(35).toString() == "8"
+        fixMessage.getLongValue(34) == 5
+        fixMessage.getCharSequenceValue(49).toString() == "CCG"
+        fixMessage.getCharSequenceValue(56).toString() == "ABC_DEFG01"
+        fixMessage.getTimestampValue(52) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        fixMessage.getCharSequenceValue(55).toString() == "CVS"
+        fixMessage.getCharSequenceValue(37).toString() == "NF 0542/03232009"
+        fixMessage.getCharSequenceValue(11).toString() == "NF 0542/03232009"
+        fixMessage.getCharSequenceValue(17).toString() == "NF 0542/03232009001001001"
+        fixMessage.getCharValue(39) == "2" as char
+        fixMessage.getCharValue(150) == "2" as char
+        fixMessage.getCharValue(54) == "1" as char
+        fixMessage.getDoubleUnscaledValue(38) == 100
+        fixMessage.getScale(38) == 0
+        fixMessage.getCharValue(40) == "1" as char
+        fixMessage.getCharValue(59) == "0" as char
+        fixMessage.getDoubleUnscaledValue(31) == 254800
+        fixMessage.getScale(31) == 4
+        fixMessage.getDoubleUnscaledValue(32) == 100
+        fixMessage.getScale(32) == 0
+        fixMessage.getDoubleUnscaledValue(14) == 0
+        fixMessage.getScale(14) == 0
+        fixMessage.getDoubleUnscaledValue(6) == 0
+        fixMessage.getScale(6) == 0
+        fixMessage.getDoubleUnscaledValue(151) == 0
+        fixMessage.getScale(151) == 0
+        fixMessage.getTimestampValue(60) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:30", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        fixMessage.getCharSequenceValue(58).toString() == "Fill"
+        fixMessage.getCharSequenceValue(30).toString() == "N"
+        fixMessage.getCharSequenceValue(207).toString() == "N"
+        fixMessage.getLongValue(382) == 2
+        fixMessage.getCharSequenceValue(375, 382, 0 as byte, 0 as byte).toString() == "TOD"
+        fixMessage.getCharSequenceValue(337, 382, 0 as byte, 0 as byte).toString() == "0000"
+        fixMessage.getDoubleUnscaledValue(437, 382, 0 as byte, 0 as byte) == 100
+        fixMessage.getScale(437, 382, 0 as byte, 0 as byte) == 0
+        fixMessage.getTimestampValue(438, 382, 0 as byte, 0 as byte) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210330-23:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        fixMessage.getCharSequenceValue(375, 382, 1 as byte, 0 as byte).toString() == "TOD2"
+        fixMessage.getCharSequenceValue(337, 382, 1 as byte, 0 as byte).toString() == "0001"
+        fixMessage.getDoubleUnscaledValue(437, 382, 1 as byte, 0 as byte) == 101
+        fixMessage.getScale(437, 382, 1 as byte, 0 as byte) == 0
+        fixMessage.getTimestampValue(438, 382, 1 as byte, 0 as byte) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210330-23:40:36", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        fixMessage.getCharValue(29) == "1" as char
+        fixMessage.getCharSequenceValue(63).toString() == "0"
+        fixMessage.getCharSequenceValue(10).toString() == "080"
     }
 
     def "should parse fake confirmation message, message with nested repeating groups"() {
         setup:
-        String message = "8=FIX.4.4\u00019=378\u000135=AK\u000134=5\u000149=CCG\u000156=ABC_DEFG01\u000152=20090323-15:40:35\u000185=2\u0001787=C\u0001781=2\u0001782=ID1\u0001782=ID2\u0001787=D\u0001781=2\u0001782=ID3\u0001782=ID4" +
+        String message = "8=FIX.4.4\u00019=378\u000135=AK\u000134=5\u000149=CCG\u000156=ABC_DEFG01\u000152=20210323-15:40:35\u000185=2\u0001787=C\u0001781=2\u0001782=ID1\u0001782=ID2\u0001787=D\u0001781=2\u0001782=ID3\u0001782=ID4" +
                          "\u000110=080\u0001"
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
 
@@ -216,33 +196,22 @@ class FixMessageParserTest extends Specification {
         then:
         fixMessageParser.isDone()
         fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
-        fixMessage.getField(8).charSequenceValue.toString() == "FIX.4.4"
-        fixMessage.getField(9).longValue == 378
-        fixMessage.getField(35).charSequenceValue.toString() == "AK"
-        fixMessage.getField(34).longValue == 5
-        fixMessage.getField(49).charSequenceValue.toString() == "CCG"
-        fixMessage.getField(56).charSequenceValue.toString() == "ABC_DEFG01"
-        fixMessage.getField(52).timestampValue == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090323-15:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
-        def dlvyInstGroup = fixMessage.getField(85)
-        dlvyInstGroup.longValue == 2
-        dlvyInstGroup.@fieldValue.valueTypeSet == FieldType.GROUP
-        dlvyInstGroup.@fieldValue.repetitionCounter == 2
-        dlvyInstGroup.getFieldForGivenRepetition(0, 787).charValue == 'C' as char
-        def settlPartiesGroup1 = dlvyInstGroup.getFieldForGivenRepetition(0, 781)
-        settlPartiesGroup1.longValue == 2
-        settlPartiesGroup1.@fieldValue.valueTypeSet == FieldType.GROUP
-        settlPartiesGroup1.@fieldValue.repetitionCounter == 2
-        settlPartiesGroup1.getFieldForGivenRepetition(0, 782).charSequenceValue.toString() == 'ID1'
-        settlPartiesGroup1.getFieldForGivenRepetition(1, 782).charSequenceValue.toString() == 'ID2'
-        dlvyInstGroup.getFieldForGivenRepetition(1, 787).charValue == 'D' as char
-        def settlPartiesGroup2 = dlvyInstGroup.getFieldForGivenRepetition(1, 781)
-        settlPartiesGroup2.longValue == 2
-        settlPartiesGroup2.@fieldValue.valueTypeSet == FieldType.GROUP
-        settlPartiesGroup2.@fieldValue.repetitionCounter == 2
-        settlPartiesGroup2.getFieldForGivenRepetition(0, 782).charSequenceValue.toString() == 'ID3'
-        settlPartiesGroup2.getFieldForGivenRepetition(1, 782).charSequenceValue.toString() == 'ID4'
-        fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == message.length() - 1
+        fixMessage.getCharSequenceValue(8).toString() == "FIX.4.4"
+        fixMessage.getLongValue(9) == 378
+        fixMessage.getCharSequenceValue(35).toString() == "AK"
+        fixMessage.getLongValue(34) == 5
+        fixMessage.getCharSequenceValue(49).toString() == "CCG"
+        fixMessage.getCharSequenceValue(56).toString() == "ABC_DEFG01"
+        fixMessage.getLongValue(52) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        fixMessage.getLongValue(85) == 2
+        fixMessage.getCharValue(787, 85, 0 as byte, 0 as byte) == 'C' as char
+        fixMessage.getLongValue(781, 85, 0 as byte, 0 as byte) == 2
+        fixMessage.getCharSequenceValue(782, 781, 0 as byte, 0 as byte).toString() == 'ID1'
+        fixMessage.getCharSequenceValue(782, 781, 1 as byte, 0 as byte).toString() == 'ID2'
+        fixMessage.getCharValue(787, 85, 1 as byte, 0 as byte) == 'D' as char
+        fixMessage.getLongValue(781, 85, 1 as byte, 0 as byte) == 2
+        fixMessage.getCharSequenceValue(782, 781, 0 as byte, 1 as byte).toString() == 'ID3'
+        fixMessage.getCharSequenceValue(782, 781, 1 as byte, 1 as byte).toString() == 'ID4'
     }
 
     def "should check if can continue parsing"() {
@@ -264,7 +233,7 @@ class FixMessageParserTest extends Specification {
 
     def "should parse unfinished message"() {
         setup:
-        String message = "8=FIX.4.4\u00019=378\u000135=AK\u000134=5\u000149=CCG\u000156=ABC_DEFG01\u000152=20090323-15:40:"
+        String message = "8=FIX.4.4\u00019=378\u000135=AK\u000134=5\u000149=CCG\u000156=ABC_DEFG01\u000152=20210323-15:40:"
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
 
         when:
@@ -274,21 +243,19 @@ class FixMessageParserTest extends Specification {
         then:
         !fixMessageParser.isDone()
         fixMessageParser.storedEndIndexOfLastUnfinishedMessage == message.length() - 1
-        fixMessage.getField(8).charSequenceValue.toString() == "FIX.4.4"
-        fixMessage.getField(9).longValue == 378
-        fixMessage.getField(35).charSequenceValue.toString() == "AK"
-        fixMessage.getField(34).longValue == 5
-        fixMessage.getField(49).charSequenceValue.toString() == "CCG"
-        fixMessage.getField(56).charSequenceValue.toString() == "ABC_DEFG01"
-        !fixMessage.getField(52).isValueSet()
+        fixMessage.getCharSequenceValue(8).toString() == "FIX.4.4"
+        fixMessage.getLongValue(9) == 378
+        fixMessage.getCharSequenceValue(35).toString() == "AK"
+        fixMessage.getLongValue(34) == 5
+        fixMessage.getCharSequenceValue(49).toString() == "CCG"
+        fixMessage.getCharSequenceValue(56).toString() == "ABC_DEFG01"
+        !fixMessage.isValueSet(52)
         !fixMessageParser.canContinueParsing()
-        fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == FixMessage.NOT_SET
     }
 
     def "should parse unfinished message that ends with SOH"() {
         setup:
-        String message = "8=FIX.4.4\u00019=378\u000135=AK\u000134=5\u000149=CCG\u000156=ABC_DEFG01\u000152=20090323-15:40:35\u0001"
+        String message = "8=FIX.4.4\u00019=378\u000135=AK\u000134=5\u000149=CCG\u000156=ABC_DEFG01\u000152=20210323-15:40:35\u0001"
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
 
         when:
@@ -298,16 +265,14 @@ class FixMessageParserTest extends Specification {
         then:
         !fixMessageParser.isDone()
         fixMessageParser.storedEndIndexOfLastUnfinishedMessage == message.length() - 1
-        fixMessage.getField(8).charSequenceValue.toString() == "FIX.4.4"
-        fixMessage.getField(9).longValue == 378
-        fixMessage.getField(35).charSequenceValue.toString() == "AK"
-        fixMessage.getField(34).longValue == 5
-        fixMessage.getField(49).charSequenceValue.toString() == "CCG"
-        fixMessage.getField(56).charSequenceValue.toString() == "ABC_DEFG01"
-        fixMessage.getField(52).timestampValue == Instant.parse("2009-03-23T15:40:35Z").toEpochMilli()
+        fixMessage.getCharSequenceValue(8).toString() == "FIX.4.4"
+        fixMessage.getLongValue(9) == 378
+        fixMessage.getCharSequenceValue(35).toString() == "AK"
+        fixMessage.getLongValue(34) == 5
+        fixMessage.getCharSequenceValue(49).toString() == "CCG"
+        fixMessage.getCharSequenceValue(56).toString() == "ABC_DEFG01"
+        fixMessage.getTimestampValue(52) == Instant.parse("2021-03-23T15:40:35Z").toEpochMilli()
         !fixMessageParser.canContinueParsing()
-        fixMessage.getStartIndex() == 0
-        fixMessage.getEndIndex() == FixMessage.NOT_SET
     }
 
     def "should parse simple new order single fragmented with garbage"() {
@@ -337,10 +302,9 @@ class FixMessageParserTest extends Specification {
 
     def "should reset parser"() {
         setup:
-        fixMessage.retain()
         fixMessageParser.@storedEndIndexOfLastUnfinishedMessage = 666
         fixMessageParser.@parsingRepeatingGroup = true
-        fixMessageParser.@groupFieldsStack.add(new Field(TestSpec.USABLE_CHILD_PAIR_SPEC_FIELD_NUMBER, new FieldCodec()))
+        fixMessageParser.@groupIndexNumberStack.addFirst(123)
 
         when:
         fixMessageParser.reset()
@@ -350,35 +314,35 @@ class FixMessageParserTest extends Specification {
         fixMessageParser.@fixMessage.is(fixMessage)
         fixMessageParser.@storedEndIndexOfLastUnfinishedMessage == 0
         !fixMessageParser.@parsingRepeatingGroup
-        fixMessageParser.@groupFieldsStack.isEmpty()
-        fixMessage.refCnt() == 1 //1 because of retain at the beginning, basically we're checking that reset() does not release fixMessage
+        fixMessageParser.@groupIndexNumberStack.isEmpty()
+        fixMessage.refCnt() == 1 //1 because NonPoolableFixMessage does retain() in constructor, basically we're checking that reset() does not release fixMessage
     }
 
-    private final static String simpleNewOrderSingle = "8=FIX.4.2\u00019=145\u000135=D\u000134=4\u000149=ABC_DEFG01\u000152=20090323-15:40:29\u000156=CCG\u0001115=XYZ\u000111=NF " +
-                                                       "0542/03232009\u000154=1\u000138=100\u000155=CVS\u000140=1\u000159=0\u000147=A\u000160=20090323-15:40:29\u000121=1\u0001207=N\u000110=139\u0001"
+    private final static String simpleNewOrderSingle = "8=FIX.4.2\u00019=145\u000135=D\u000134=4\u000149=ABC_DEFG01\u000152=20210323-15:40:29\u000156=CCG\u0001115=XYZ\u000111=NF " +
+                                                       "0542/03232009\u000154=1\u000138=100\u000155=CVS\u000140=1\u000159=0\u000147=A\u000160=20210323-15:40:29\u000121=1\u0001207=N\u000110=139\u0001"
 
-    private final static String simpleNewOrderSingleWithGarbage = "garbae8=FIX.4.2\u00019=145\u000135=D\u000134=4\u000149=ABC_DEFG01\u000152=20090323-15:40:29\u000156=CCG\u0001115=XYZ\u000111=NF " +
-                                                                  "0542/03232009\u000154=1\u000138=100\u000155=CVS\u000140=1\u000159=0\u000147=A\u000160=20090323-15:40:29\u000121=1\u0001207=N\u000110=139\u0001garbage"
+    private final static String simpleNewOrderSingleWithGarbage = "garbae8=FIX.4.2\u00019=145\u000135=D\u000134=4\u000149=ABC_DEFG01\u000152=20210323-15:40:29\u000156=CCG\u0001115=XYZ\u000111=NF " +
+                                                                  "0542/03232009\u000154=1\u000138=100\u000155=CVS\u000140=1\u000159=0\u000147=A\u000160=20210323-15:40:29\u000121=1\u0001207=N\u000110=139\u0001garbage"
 
     private static void assertSimpleNewOrderSingle(FixMessage fixMessage) {
-        assert fixMessage.getField(8).charSequenceValue.toString() == "FIX.4.2"
-        assert fixMessage.getField(9).longValue == 145
-        assert fixMessage.getField(35).charSequenceValue.toString() == "D"
-        assert fixMessage.getField(34).longValue == 4
-        assert fixMessage.getField(49).charSequenceValue.toString() == "ABC_DEFG01"
-        assert fixMessage.getField(52).timestampValue == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090323-15:40:29", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
-        assert fixMessage.getField(56).charSequenceValue.toString() == "CCG"
-        assert fixMessage.getField(115).charSequenceValue.toString() == "XYZ"
-        assert fixMessage.getField(11).charSequenceValue.toString() == "NF 0542/03232009"
-        assert fixMessage.getField(54).charValue == "1" as char
-        assert fixMessage.getField(38).doubleUnscaledValue == 100
-        assert fixMessage.getField(38).scale == 0
-        assert fixMessage.getField(55).charSequenceValue.toString() == "CVS"
-        assert fixMessage.getField(40).charValue == "1" as char
-        assert fixMessage.getField(59).charValue == "0" as char
-        assert fixMessage.getField(60).timestampValue == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20090323-15:40:29", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
-        assert fixMessage.getField(21).charValue == "1" as char
-        assert fixMessage.getField(207).charSequenceValue.toString() == "N"
-        assert fixMessage.getField(10).charSequenceValue.toString() == "139"
+        assert fixMessage.getCharSequenceValue(8).toString() == "FIX.4.2"
+        assert fixMessage.getLongValue(9) == 145
+        assert fixMessage.getCharSequenceValue(35).toString() == "D"
+        assert fixMessage.getLongValue(34) == 4
+        assert fixMessage.getCharSequenceValue(49).toString() == "ABC_DEFG01"
+        assert fixMessage.getTimestampValue(52) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:29", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        assert fixMessage.getCharSequenceValue(56).toString() == "CCG"
+        assert fixMessage.getCharSequenceValue(115).toString() == "XYZ"
+        assert fixMessage.getCharSequenceValue(11).toString() == "NF 0542/03232009"
+        assert fixMessage.getCharValue(54) == "1" as char
+        assert fixMessage.getDoubleUnscaledValue(38) == 100
+        assert fixMessage.getScale(38) == 0 as short
+        assert fixMessage.getCharSequenceValue(55).toString() == "CVS"
+        assert fixMessage.getCharValue(40) == "1" as char
+        assert fixMessage.getCharValue(59) == "0" as char
+        assert fixMessage.getTimestampValue(60) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:29", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        assert fixMessage.getCharValue(21) == "1" as char
+        assert fixMessage.getCharSequenceValue(207).toString() == "N"
+        assert fixMessage.getCharSequenceValue(10).toString() == "139"
     }
 }

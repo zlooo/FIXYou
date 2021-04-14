@@ -1,12 +1,15 @@
 package io.github.zlooo.fixyou.commons.pool;
 
 import io.github.zlooo.fixyou.commons.utils.ReflectionUtils;
+import lombok.AccessLevel;
+import lombok.experimental.FieldNameConstants;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Array;
 import java.util.function.Supplier;
 
 @Slf4j
+@FieldNameConstants(level = AccessLevel.PRIVATE)
 abstract class AbstractArrayBackedObjectPool<T extends AbstractPoolableObject> implements ObjectPool<T> {
 
     protected static final String GET_OBJECT_LOG = "Grabbing object {}@{} from pool {}. Object resides in {}";
@@ -53,8 +56,8 @@ abstract class AbstractArrayBackedObjectPool<T extends AbstractPoolableObject> i
                 pooledObject.setPool(this);
                 newObjectArray[i] = pooledObject;
             }
-            ReflectionUtils.setFinalField(this, "mask", newSize - 1);
-            ReflectionUtils.setFinalField(this, "objectArray", newObjectArray);
+            ReflectionUtils.setFinalField(this, Fields.mask, newSize - 1);
+            ReflectionUtils.setFinalField(this, Fields.objectArray, newObjectArray);
             if (objectPutPosition == currentSize) {
                 objectPutPosition = newSize;
             }

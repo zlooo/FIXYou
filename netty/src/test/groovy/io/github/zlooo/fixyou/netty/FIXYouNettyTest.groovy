@@ -14,7 +14,7 @@ class FIXYouNettyTest extends Specification {
 
     def "should not log out session that's not started"() {
         when:
-        FIXYouNetty.logoutSession(engine, new SessionID("beginString".chars, 11, "sender".chars, 6, "target".chars, 6)).get()
+        FIXYouNetty.logoutSession(engine, new SessionID("beginString", "sender", "target")).get()
 
         then:
         thrown(FIXYouException)

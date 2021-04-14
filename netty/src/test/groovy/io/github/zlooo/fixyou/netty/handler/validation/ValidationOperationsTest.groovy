@@ -2,8 +2,8 @@ package io.github.zlooo.fixyou.netty.handler.validation
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.model.ApplicationVersionID
-import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
 import spock.lang.Specification
 
 import java.time.Instant
@@ -17,6 +17,9 @@ class ValidationOperationsTest extends Specification {
     def "should check sending time"() {
         expect:
         ValidationOperations.checkOrigSendingTime(fixMessage) == result
+
+        cleanup:
+        fixMessage?.close()
 
         where:
         fixMessage                                                                 | result
@@ -33,6 +36,9 @@ class ValidationOperationsTest extends Specification {
     def "should validate logon message"() {
         expect:
         ValidationOperations.isValidLogonMessage(message) == result
+
+        cleanup:
+        message?.close()
 
         where:
         message                                                  | result
@@ -52,39 +58,39 @@ class ValidationOperationsTest extends Specification {
     }
 
     private static FixMessage createFixMessage(LocalDateTime origSendingTime, LocalDateTime sendingTime) {
-        def fixMessage = new FixMessage(new FieldCodec())
+        def fixMessage = new NotPoolableFixMessage()
         if (origSendingTime != null) {
-            fixMessage.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).setTimestampValue(origSendingTime.toInstant(ZoneOffset.UTC).toEpochMilli())
+            fixMessage.setTimestampValue(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER, origSendingTime.toInstant(ZoneOffset.UTC).toEpochMilli())
         }
         if (sendingTime != null) {
-            fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).setTimestampValue(sendingTime.toInstant(ZoneOffset.UTC).toEpochMilli())
+            fixMessage.setTimestampValue(FixConstants.SENDING_TIME_FIELD_NUMBER, sendingTime.toInstant(ZoneOffset.UTC).toEpochMilli())
         }
         return fixMessage
     }
 
     private static FixMessage logon(int fieldToReset = -1) {
-        FixMessage logon = new FixMessage(new FieldCodec())
-        logon.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).charSequenceValue = "beginString".toCharArray()
-        logon.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).charSequenceValue = "senderCompID".toCharArray()
-        logon.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).charSequenceValue = "targetCompID".toCharArray()
-        logon.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER).longValue = 666L
-        logon.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 666L
-        logon.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue = FixConstants.LOGON
-        logon.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).timestampValue = Instant.now().toEpochMilli()
-        logon.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).longValue = 0L
-        logon.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).longValue = 15L
-        logon.getField(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).charSequenceValue = ApplicationVersionID.FIX50SP2.value
+        FixMessage logon = new NotPoolableFixMessage()
+        logon.setCharSequenceValue(FixConstants.BEGIN_STRING_FIELD_NUMBER, "beginString")
+        logon.setCharSequenceValue(FixConstants.SENDER_COMP_ID_FIELD_NUMBER, "senderCompID")
+        logon.setCharSequenceValue(FixConstants.TARGET_COMP_ID_FIELD_NUMBER, "targetCompID")
+        logon.setLongValue(FixConstants.BODY_LENGTH_FIELD_NUMBER, 666L)
+        logon.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 666L)
+        logon.setCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER, FixConstants.LOGON)
+        logon.setTimestampValue(FixConstants.SENDING_TIME_FIELD_NUMBER, Instant.now().toEpochMilli())
+        logon.setLongValue(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER, 0L)
+        logon.setLongValue(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER, 15L)
+        logon.setCharSequenceValue(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER, ApplicationVersionID.FIX50SP2.value)
         if (fieldToReset > 0) {
-            logon.getField(fieldToReset).reset()
+            logon.removeField(fieldToReset)
         }
         return logon
     }
 
     private static FixMessage logonWithResetSeqNum(boolean setSequenceToOne) {
         def logonMessage = logon()
-        logonMessage.getField(FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER).booleanValue = true
+        logonMessage.setBooleanValue(FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER, true)
         if (setSequenceToOne) {
-            logonMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 1L
+            logonMessage.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 1L)
         }
         return logonMessage
     }

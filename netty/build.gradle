@@ -1,3 +1,7 @@
+jmh {
+    duplicateClassesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 dependencies {
     api project(":api")
     api project(":fix_commons")
@@ -5,8 +9,8 @@ dependencies {
     implementation project(":commons")
     implementation group: 'io.netty', name: 'netty-handler', version: "$nettyVersion"
     implementation group: 'javax.inject', name: 'javax.inject', version: "$javaxInjectVersion"
-    implementation group: 'org.agrona', name: 'agrona', version: "$agronaVersion"
     implementation group: 'com.lmax', name: 'disruptor', version: "$disruptorVersion"
+    implementation group: 'com.github.vsonnier', name: 'hppcrt', version: "$hppcrtVersion"
 
     integrationTestImplementation group: 'org.quickfixj', name: 'quickfixj-core', version: "$quickfixVersion"
     integrationTestImplementation group: 'org.quickfixj', name: 'quickfixj-messages-all', version: "$quickfixVersion"

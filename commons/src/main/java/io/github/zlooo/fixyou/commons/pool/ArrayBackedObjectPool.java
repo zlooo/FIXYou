@@ -64,7 +64,7 @@ public class ArrayBackedObjectPool<T extends AbstractPoolableObject> extends Abs
         while (objectPutPosition != (localTakePointer = objGetPosition)) {
             final int index = localTakePointer & mask;
             final T pooledObject = objectArray[index];
-            if (pooledObject != null && UnsafeAccessor.UNSAFE.compareAndSwapObject(objectArray, (index << tailAdjustment) + baseAddress, pooledObject, null)) {
+            if (pooledObject != null && UnsafeAccessor.UNSAFE.compareAndSwapObject(objectArray, ((long) index << tailAdjustment) + baseAddress, pooledObject, null)) {
                 objGetPosition = localTakePointer + 1;
                 if (pooledObject.getState().compareAndSet(AbstractPoolableObject.AVAILABLE_STATE, AbstractPoolableObject.IN_USE_STATE)) {
                     pooledObject.retain();
@@ -81,7 +81,7 @@ public class ArrayBackedObjectPool<T extends AbstractPoolableObject> extends Abs
         if (objectToBeReturned.getState().compareAndSet(AbstractPoolableObject.IN_USE_STATE, AbstractPoolableObject.AVAILABLE_STATE)) {
             log.debug(RETURN_OBJECT_LOG, objectToBeReturned, objectToBeReturned.hashCode(), this);
             final int localPosition = objectPutPosition;
-            final long index = ((localPosition & mask) << tailAdjustment) + baseAddress;
+            final long index = ((long) (localPosition & mask) << tailAdjustment) + baseAddress;
             UnsafeAccessor.UNSAFE.putOrderedObject(objectArray, index, objectToBeReturned);
             objectPutPosition = localPosition + 1;
         } else if (objectToBeReturned.getState().get() != AbstractPoolableObject.AVAILABLE_STATE) {

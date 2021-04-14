@@ -1,8 +1,8 @@
 package io.github.zlooo.fixyou.netty.handler.admin
 
 import io.github.zlooo.fixyou.FixConstants
-import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
 import io.netty.channel.ChannelFuture
 import io.netty.channel.ChannelFutureListener
 import io.netty.channel.ChannelHandlerContext
@@ -15,8 +15,8 @@ class TestRequestHandlerTest extends Specification {
 
     def "should send heartbeat request as response for test request"() {
         setup:
-        FixMessage testRequest = new FixMessage(new FieldCodec())
-        testRequest.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER).charSequenceValue = "testRequestID".toCharArray()
+        FixMessage testRequest = new NotPoolableFixMessage()
+        testRequest.setCharSequenceValue(FixConstants.TEST_REQ_ID_FIELD_NUMBER, "testRequestID")
         ChannelFuture channelFuture = Mock()
 
         when:
@@ -25,9 +25,12 @@ class TestRequestHandlerTest extends Specification {
         then:
         1 * channelHandlerContext.writeAndFlush(testRequest) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
-        testRequest.refCnt() == 1
-        testRequest.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue.toString() == String.valueOf(FixConstants.HEARTBEAT)
-        testRequest.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER).charSequenceValue.toString() == "testRequestID"
+        testRequest.refCnt() == 1 +1 //+1 because testRequest is being reused as reply
+        testRequest.getCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).chars == FixConstants.HEARTBEAT
+        testRequest.getCharSequenceValue(FixConstants.TEST_REQ_ID_FIELD_NUMBER).toString() == "testRequestID"
         0 * _
+
+        cleanup:
+        testRequest?.close()
     }
 }

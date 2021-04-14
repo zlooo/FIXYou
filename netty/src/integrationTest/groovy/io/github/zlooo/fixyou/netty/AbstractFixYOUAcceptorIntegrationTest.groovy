@@ -5,6 +5,7 @@ import io.github.zlooo.fixyou.Resettable
 import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
+import io.github.zlooo.fixyou.commons.pool.ObjectPool
 import io.github.zlooo.fixyou.netty.handler.NettyResettablesNames
 import io.github.zlooo.fixyou.netty.test.framework.*
 import io.github.zlooo.fixyou.parser.model.FixMessage
@@ -37,16 +38,16 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
     protected static final String qualifier = "secondSession"
     private static final char[] CHECKSUM_TAG_INDICATOR = ['1', '0', '='] as char[]
     protected SessionID sessionID = new SessionID("FIXT.1.1", targetCompId, senderCompId)
-    protected fixYouSessionId = new io.github.zlooo.fixyou.session.SessionID("FIXT.1.1".toCharArray(), 8, senderCompId.toCharArray(), senderCompId.length(), targetCompId.toCharArray(), targetCompId.length())
+    protected fixYouSessionId = new io.github.zlooo.fixyou.session.SessionID("FIXT.1.1", senderCompId, targetCompId)
     protected TestSessionSateListener sessionSateListener = new TestSessionSateListener()
     protected FIXYouNettyAcceptor engine
     protected Initiator initiator
     protected TestQuickfixApplication testQuickfixApplication = new TestQuickfixApplication()
     protected int acceptorPort
-    protected TestFixMessageListener testFixMessageListener = new TestFixMessageListener()
-    protected PollingConditions pollingConditions = new PollingConditions(timeout: 30)
+    protected final TestFixMessageListener testFixMessageListener = new TestFixMessageListener()
+    protected final PollingConditions pollingConditions = new PollingConditions(timeout: 30)
     private EventLoopGroup group
-    protected List<String> receivedMessages = Collections.synchronizedList(new ArrayList())
+    protected final List<String> receivedMessages = Collections.synchronizedList(new ArrayList())
 
     void setup() {
         LOGGER.info("Setup for test {}", getSpecificationContext().getCurrentFeature().getName())
@@ -151,34 +152,38 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
         LOGGER.debug("Started and got a session logged in")
     }
 
-    protected Collection<FixMessage> getInUseFixMessages() {
-        def objectPool = engine.fixYouNettyComponent.fixMessageObjectPool()
+    protected Collection<FixMessage> getInUseObjectsFromPool(ObjectPool objectPool, String poolName) {
         if (objectPool.@objectArray.contains(null)) {
-            Assert.fail("Array in FixMessage object pool contains nulls, this means something has not been returned to the pool, which is baaaaaaaad")
+            Assert.fail("Array in $poolName object pool contains nulls, this means something has not been returned to the pool, which is baaaaaaaad")
         }
-        def inUseMessages = objectPool.@objectArray.findAll { it.getState().get() == AbstractPoolableObject.IN_USE_STATE }
+        def inUseObjects = objectPool.@objectArray.findAll { it.getState().get() == AbstractPoolableObject.IN_USE_STATE }
         if (objectPool instanceof DefaultObjectPool) {
             if (objectPool.@firstObject.getState()?.get() == AbstractPoolableObject.IN_USE_STATE) {
-                inUseMessages.add(objectPool.@firstObject)
+                inUseObjects.add(objectPool.@firstObject)
             }
             if (objectPool.@secondObject.getState()?.get() == AbstractPoolableObject.IN_USE_STATE) {
-                inUseMessages.add(objectPool.@secondObject)
+                inUseObjects.add(objectPool.@secondObject)
             }
         }
-        return inUseMessages
+        return inUseObjects
     }
 
     void cleanup() {
         LOGGER.info("Cleanup after test {}", getSpecificationContext().getCurrentFeature().getName())
-        def inUseFixMessages = getInUseFixMessages()
-        if (!inUseFixMessages.isEmpty()) {
-            Assert.fail("Not all FixMessages have been returned to the pool!!!! In use messages " + inUseFixMessages)
+        def inUseObjects = getInUseObjectsFromPool(engine.fixYouNettyComponent.fixMessageObjectPool(), "FixMessage")
+        if (!inUseObjects.isEmpty()) {
+            Assert.fail("Not all FixMessages have been returned to the pool!!!! In use messages " + inUseObjects)
+        }
+        inUseObjects = getInUseObjectsFromPool(engine.fixYouNettyComponent.retransmissionSubscriberPool(), "RetransmissionSubscriber")
+        if (!inUseObjects.isEmpty()) {
+            Assert.fail("Not all RetransmissionSubscribers have been returned to the pool!!!! In use subscribers " + inUseObjects)
         }
         asssertComposerState(messageDecoder().@byteBufComposer)
         group?.shutdownGracefully()?.sync()
         engine?.stop()?.get()
         initiator?.stop(true)
-        receivedMessages?.clear()
+        receivedMessages.clear()
+        testFixMessageListener.messagesReceived.forEach(msg->msg.close())
         LOGGER.info("Cleanup done")
     }
 

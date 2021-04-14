@@ -1,14 +1,8 @@
-plugins {
-    id "me.champeau.gradle.jmh" version "0.5.0"
-}
-
 dependencies {
     api project(":api")
     api group: 'io.netty', name: 'netty-buffer', version: "$nettyVersion"
     implementation project(":commons")
-    implementation group: 'org.agrona', name: 'agrona', version: "$agronaVersion"
-    testImplementation group: 'org.springframework', name: 'spring-test', version: "$springVersion"
+    implementation group: 'com.github.vsonnier', name: 'hppcrt', version: "$hppcrtVersion"
     jmhImplementation group: 'net.openhft', name: 'transfix', version: "$transfixVersion"
     jmhImplementation group: 'org.apache.commons', name: 'commons-lang3', version: "$commonsLangVersion"
-    jmhAnnotationProcessor group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: "$jmhVersion"
 }

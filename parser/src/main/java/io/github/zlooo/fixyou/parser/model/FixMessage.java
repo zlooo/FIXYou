@@ -1,169 +1,541 @@
 package io.github.zlooo.fixyou.parser.model;
 
+import com.carrotsearch.hppcrt.IntCollection;
+import com.carrotsearch.hppcrt.IntLongMap;
+import com.carrotsearch.hppcrt.LongLongMap;
+import com.carrotsearch.hppcrt.cursors.IntLongCursor;
+import com.carrotsearch.hppcrt.cursors.LongLongCursor;
+import com.carrotsearch.hppcrt.maps.IntLongHashMap;
+import com.carrotsearch.hppcrt.maps.LongLongHashMap;
 import io.github.zlooo.fixyou.DefaultConfiguration;
-import io.github.zlooo.fixyou.commons.ByteBufComposer;
+import io.github.zlooo.fixyou.FIXYouException;
+import io.github.zlooo.fixyou.Resettable;
+import io.github.zlooo.fixyou.commons.memory.MemoryConstants;
+import io.github.zlooo.fixyou.commons.memory.Region;
 import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject;
+import io.github.zlooo.fixyou.commons.pool.ObjectPool;
+import io.github.zlooo.fixyou.commons.utils.ReflectionUtils;
+import io.github.zlooo.fixyou.model.FixSpec;
+import io.github.zlooo.fixyou.parser.StandardHeaderAndFooterOnlyFixSpec;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.github.zlooo.fixyou.utils.AsciiCodes;
-import lombok.Getter;
-import lombok.Setter;
+import io.github.zlooo.fixyou.utils.UnsafeAccessor;
+import lombok.experimental.FieldNameConstants;
+import sun.misc.Unsafe;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.Arrays;
+import java.util.BitSet;
 
-@Getter
-public class FixMessage extends AbstractPoolableObject {
+/**
+ * Represents, surprise, surprise, fix message, I bet you did not see that coming ;)<br/>
+ * <br/>
+ * <h3>Limitations</h3>
+ * <li>Nested repeating groups - only 1 level of nesting is supported for now</li>
+ * <li>Nested repeating groups should repeat the same number of times in each parent group repetition. For example let's take following message fragment 85=2 787=C 781=2 782=ID1 782=ID2 787=D 781=2 782=ID3 782=ID4. Note that group 781
+ * which is nested in 85 has 2 repetitions in both 85 group repetitions</li>
+ */
+@FieldNameConstants
+public class FixMessage extends AbstractPoolableObject implements Resettable {
 
     public static final byte FIELD_SEPARATOR = AsciiCodes.SOH;
     public static final byte FIELD_VALUE_SEPARATOR = AsciiCodes.EQUALS;
-    public static final int NOT_SET = -1;
-    private static final Field PLACEHOLDER = new PlaceholderField();
-    private static final double LOAD_FACTOR = 1.2;
+    private static final Unsafe UNSAFE = UnsafeAccessor.UNSAFE;
+    private static final long NO_VALUE = -1;
+    private static final String NO_REGIONS_IN_POOL_MSG_TEMPLATE = "No regions available in pool ";
+    private static final String REGION_SIZE_ERROR_MSG_TEMPLATE = "Field size cannot be greater than region size! Requested field size %d, region size %d";
 
-    private final FieldCodec fieldCodec;
-    private Field[] allFields;
-    private Field[] actualFields;
-    private int actualFieldsLength;
-    private ByteBufComposer messageByteSource;
-    @Setter
-    private int startIndex = NOT_SET;
-    @Setter
-    private int endIndex = NOT_SET;
+    private final ObjectPool<Region> regionPool;
+    private final Region[] regions = new Region[DefaultConfiguration.INITIAL_REGION_ARRAY_SIZE];
+    private final int regionSize;
+    private int regionsIndex;
+    private final IntLongMap fieldNumberToAddress = new IntLongHashMap(DefaultConfiguration.INITIAL_FIELDS_IN_MSG_NUMBER);
+    private final BitSet fieldsSet = new BitSet(DefaultConfiguration.INITIAL_FIELDS_IN_MSG_NUMBER);
+    private final LongLongMap repeatingGroupAddresses = new LongLongHashMap();
+    private final DirectCharSequence directCharSequence = new DirectCharSequence();
 
-    public FixMessage(@Nonnull FieldCodec fieldCodec) {
-        this.fieldCodec = fieldCodec;
-        allFields = new Field[DefaultConfiguration.DEFAULT_MAX_FIELD_NUMBER + 1];
-        actualFields = new Field[DefaultConfiguration.DEFAULT_MAX_FIELD_NUMBER];
-        Arrays.fill(allFields, PLACEHOLDER);
+    public FixMessage(ObjectPool<Region> regionPool) {
+        this.regionPool = regionPool;
+        fieldNumberToAddress.setDefaultValue(NO_VALUE);
+        repeatingGroupAddresses.setDefaultValue(NO_VALUE);
+        final Region region = regionPool.tryGetAndRetain();
+        regionSize = region.getSize();
+        ArrayUtils.putElementAt(regions, 0, region);
     }
 
-    public void setMessageByteSource(ByteBufComposer newMessageByteSource) {
-        this.messageByteSource = newMessageByteSource;
-        for (int i = 0; i < actualFieldsLength; i++) {
-            ArrayUtils.getElementAt(actualFields, i).setFieldData(newMessageByteSource);
+    public boolean getBooleanValue(int fieldNumber) {
+        return UNSAFE.getByte(fieldNumberToAddress.get(fieldNumber)) == 1;
+    }
+
+    public boolean getBooleanValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
+        return UNSAFE.getByte(repeatingGroupAddresses.get(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber))) == 1;
+    }
+
+    public void setBooleanValue(int fieldNumber, boolean newValue) {
+        UNSAFE.putByte(fieldAddress(fieldNumber, FieldConstants.BOOLEAN_FIELD_SIZE), newValue ? (byte) 1 : (byte) 0);
+        fieldsSet.set(fieldNumber);
+    }
+
+    public void setBooleanValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, boolean newValue) {
+        final boolean newRepeatingGroup = saveIndexIfGreater(groupNumber, repetitionIndex);
+        UNSAFE.putByte(fieldAddress(fieldNumber, groupNumber, repetitionIndex, parentRepetitionIndex, FieldConstants.BOOLEAN_FIELD_SIZE), newValue ? (byte) 1 : (byte) 0);
+        if (newRepeatingGroup) {
+            fieldsSet.set(groupNumber);
         }
     }
 
-    @Nullable
-    public Field getField(int number) {
-        ensureArraysLengthIsSufficient(number);
-        return getFieldNoArrayLengthCheck(number);
+    public char getCharValue(int fieldNumber) {
+        return UNSAFE.getChar(fieldNumberToAddress.get(fieldNumber));
     }
 
-    private Field getFieldNoArrayLengthCheck(int number) {
-        Field field = ArrayUtils.getElementAt(allFields, number);
-        if (field == PLACEHOLDER) {
-            field = new Field(number, fieldCodec);
-            allFields[number] = field;
-            actualFields[actualFieldsLength++] = field;
-            field.setFieldData(messageByteSource);
+    public char getCharValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
+        return UNSAFE.getChar(repeatingGroupAddresses.get(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber)));
+    }
+
+    public void setCharValue(int fieldNumber, char newValue) {
+        UNSAFE.putChar(fieldAddress(fieldNumber, FieldConstants.CHAR_FIELD_SIZE), newValue);
+        fieldsSet.set(fieldNumber);
+    }
+
+    public void setCharValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, char newValue) {
+        final boolean newRepeatingGroup = saveIndexIfGreater(groupNumber, repetitionIndex);
+        UNSAFE.putChar(fieldAddress(fieldNumber, groupNumber, repetitionIndex, parentRepetitionIndex, FieldConstants.CHAR_FIELD_SIZE), newValue);
+        if (newRepeatingGroup) {
+            fieldsSet.set(groupNumber);
         }
-        return field;
     }
 
-    public Field getFieldOrPlaceholder(int index) {
-        if (allFields.length - 1 < index) {
-            return PLACEHOLDER;
+    /**
+     * Returns value as {@link CharSequence}.
+     * However remember that returned {@link CharSequence} is just a view, actual data is stored in one of this message's {@link Region}. So if you get this {@link CharSequence} and then return
+     * {@link FixMessage} object to pool you might and probably will get weird data as this {@link CharSequence} will point to region of memory that could be already used by different {@link FixMessage} storing different data, possibly
+     * even different type. Same if you want to reuse this {@link FixMessage} after calling {@link #reset()}, ie get some field's data, do reset and store this data again in clean message.
+     * Also note this {@link CharSequence} is shared for whole message. Subsequent calls of this method will return the same instance of {@link CharSequence}, ie {@link #getCharSequenceValue(int)} == {@link #getCharSequenceValue(int)}
+     *
+     * @param fieldNumber you want to get data for
+     * @return field's data as {@link CharSequence}
+     */
+    public CharSequence getCharSequenceValue(int fieldNumber) {
+        directCharSequence.startAddress = fieldNumberToAddress.get(fieldNumber);
+        return directCharSequence;
+    }
+
+    /**
+     * Variant of {@link #getCharSequenceValue(int)} that gets data from a field that's part of repeating group.
+     *
+     * @param fieldNumber     you want to get data for
+     * @param repetitionIndex index of a repetition that you want to get data for, 0 based
+     * @return field's data as {@link CharSequence}
+     * @see #getCharSequenceValue(int)
+     */
+    public CharSequence getCharSequenceValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
+        directCharSequence.startAddress = repeatingGroupAddresses.get(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber));
+        return directCharSequence;
+    }
+
+    public char getCharSequenceLength(int fieldNumber) {
+        return UNSAFE.getChar(fieldNumberToAddress.get(fieldNumber));
+    }
+
+    public char getCharSequenceLength(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
+        return UNSAFE.getChar(repeatingGroupAddresses.get(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber)));
+    }
+
+    public void setCharSequenceValue(int fieldNumber, CharSequence newValue) {
+        final int numberOfChars = newValue.length();
+        final long fieldAddress = fieldAddressWithLengthCheck(fieldNumber, (short) (numberOfChars * MemoryConstants.CHAR_SIZE + FieldConstants.CHAR_SEQUENCE_LENGTH_SIZE));
+        doSetCharSequenceData(newValue, numberOfChars, fieldAddress);
+        fieldsSet.set(fieldNumber);
+    }
+
+    public void setCharSequenceValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, CharSequence newValue) {
+        final int numberOfChars = newValue.length();
+        final boolean newRepeatingGroup = saveIndexIfGreater(groupNumber, repetitionIndex);
+        final long fieldAddress = fieldAddressWithLengthCheck(fieldNumber, groupNumber, repetitionIndex, parentRepetitionIndex, (short) (numberOfChars * MemoryConstants.CHAR_SIZE + FieldConstants.CHAR_SEQUENCE_LENGTH_SIZE));
+        doSetCharSequenceData(newValue, numberOfChars, fieldAddress);
+        if (newRepeatingGroup) {
+            fieldsSet.set(groupNumber);
+        }
+    }
+
+    public void setCharSequenceValue(int fieldNumber, char[] newValue) {
+        setCharSequenceValue(fieldNumber, newValue, newValue.length);
+    }
+
+    public void setCharSequenceValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, char[] newValue) {
+        setCharSequenceValue(fieldNumber, groupNumber, repetitionIndex, parentRepetitionIndex, newValue, newValue.length);
+    }
+
+    public void setCharSequenceValue(int fieldNumber, char[] newValue, int newValueLength) {
+        final long fieldAddress = fieldAddressWithLengthCheck(fieldNumber, (short) (newValueLength * MemoryConstants.CHAR_SIZE + FieldConstants.CHAR_SEQUENCE_LENGTH_SIZE));
+        doSetCharSequenceData(newValue, newValueLength, fieldAddress);
+        fieldsSet.set(fieldNumber);
+    }
+
+    public void setCharSequenceValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, char[] newValue, int newValueLength) {
+        final boolean newRepeatingGroup = saveIndexIfGreater(groupNumber, repetitionIndex);
+        final long fieldAddress = fieldAddressWithLengthCheck(fieldNumber, groupNumber, repetitionIndex, parentRepetitionIndex, (short) (newValueLength * MemoryConstants.CHAR_SIZE + FieldConstants.CHAR_SEQUENCE_LENGTH_SIZE));
+        doSetCharSequenceData(newValue, newValueLength, fieldAddress);
+        if (newRepeatingGroup) {
+            fieldsSet.set(groupNumber);
+        }
+    }
+
+    public long getDoubleUnscaledValue(int fieldNumber) {
+        return UNSAFE.getLong(fieldNumberToAddress.get(fieldNumber));
+    }
+
+    public long getDoubleUnscaledValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
+        return UNSAFE.getLong(repeatingGroupAddresses.get(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber)));
+    }
+
+    public short getScale(int fieldNumber) {
+        return UNSAFE.getShort(fieldNumberToAddress.get(fieldNumber) + MemoryConstants.LONG_SIZE);
+    }
+
+    public short getScale(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
+        return UNSAFE.getShort(repeatingGroupAddresses.get(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber)) + MemoryConstants.LONG_SIZE);
+    }
+
+    public void setDoubleValue(int fieldNumber, long newValue, short newScale) {
+        final long fieldAddress = fieldAddress(fieldNumber, FieldConstants.DOUBLE_FIELD_SIZE);
+        doSetDoubleValue(newValue, newScale, fieldAddress);
+        fieldsSet.set(fieldNumber);
+    }
+
+    public void setDoubleValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, long newValue, short newScale) {
+        final boolean newRepeatingGroup = saveIndexIfGreater(groupNumber, repetitionIndex);
+        final long fieldAddress = fieldAddress(fieldNumber, groupNumber, repetitionIndex, parentRepetitionIndex, FieldConstants.DOUBLE_FIELD_SIZE);
+        doSetDoubleValue(newValue, newScale, fieldAddress);
+        if (newRepeatingGroup) {
+            fieldsSet.set(groupNumber);
+        }
+    }
+
+    public long getLongValue(int fieldNumber) {
+        return UNSAFE.getLong(fieldNumberToAddress.get(fieldNumber));
+    }
+
+    public long getLongValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
+        return UNSAFE.getLong(repeatingGroupAddresses.get(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber)));
+    }
+
+    public void setLongValue(int fieldNumber, long newValue) {
+        UNSAFE.putLong(fieldAddress(fieldNumber, MemoryConstants.LONG_SIZE), newValue);
+        fieldsSet.set(fieldNumber);
+    }
+
+    public void setLongValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, long newValue) {
+        final boolean newRepeatingGroup = saveIndexIfGreater(groupNumber, repetitionIndex);
+        UNSAFE.putLong(fieldAddress(fieldNumber, groupNumber, repetitionIndex, parentRepetitionIndex, MemoryConstants.LONG_SIZE), newValue);
+        if (newRepeatingGroup) {
+            fieldsSet.set(groupNumber);
+        }
+    }
+
+    public long getTimestampValue(int fieldNumber) {
+        return UNSAFE.getLong(fieldNumberToAddress.get(fieldNumber));
+    }
+
+    public long getTimestampValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
+        return UNSAFE.getLong(repeatingGroupAddresses.get(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber)));
+    }
+
+    public void setTimestampValue(int fieldNumber, long newValue) {
+        UNSAFE.putLong(fieldAddress(fieldNumber, MemoryConstants.LONG_SIZE), newValue);
+        fieldsSet.set(fieldNumber);
+    }
+
+    public void setTimestampValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, long newValue) {
+        final boolean newRepeatingGroup = saveIndexIfGreater(groupNumber, repetitionIndex);
+        UNSAFE.putLong(fieldAddress(fieldNumber, groupNumber, repetitionIndex, parentRepetitionIndex, MemoryConstants.LONG_SIZE), newValue);
+        if (newRepeatingGroup) {
+            fieldsSet.set(groupNumber);
+        }
+    }
+
+    private long fieldAddress(int fieldNumber, short fieldSize) {
+        long fieldAddress = fieldNumberToAddress.get(fieldNumber);
+        if (fieldAddress == NO_VALUE) {
+            fieldAddress = assignNewAddress(fieldSize);
+            fieldNumberToAddress.put(fieldNumber, fieldAddress);
+        }
+        return fieldAddress;
+    }
+
+    private long fieldAddress(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, short fieldSize) {
+        final long repeatingGroupKey = FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber);
+        long fieldAddress = repeatingGroupAddresses.get(repeatingGroupKey);
+        if (fieldAddress == NO_VALUE) {
+            fieldAddress = assignNewAddress(fieldSize);
+            repeatingGroupAddresses.put(repeatingGroupKey, fieldAddress);
+        }
+        return fieldAddress;
+    }
+
+    private long fieldAddressWithLengthCheck(int fieldNumber, short fieldSize) {
+        if (fieldSize > regionSize) {
+            throw new IllegalArgumentException(String.format(REGION_SIZE_ERROR_MSG_TEMPLATE, fieldSize, regionSize));
+        }
+        long fieldAddress = fieldNumberToAddress.get(fieldNumber);
+        if (fieldAddress == NO_VALUE) {
+            fieldAddress = assignNewAddress(fieldSize);
+            fieldNumberToAddress.put(fieldNumber, fieldAddress);
         } else {
-            return ArrayUtils.getElementAt(allFields, index);
-        }
-    }
-
-    private void ensureArraysLengthIsSufficient(int index) {
-        if (allFields.length - 1 < index) {
-            final Field[] newAllFieldsArray = new Field[(int) (Math.max(allFields.length * LOAD_FACTOR, index + 1))];
-            final Field[] newActualFieldsArray = new Field[newAllFieldsArray.length];
-            System.arraycopy(allFields, 0, newAllFieldsArray, 0, allFields.length);
-            for (int i = allFields.length; i < newAllFieldsArray.length; i++) {
-                newAllFieldsArray[i] = PLACEHOLDER;
-            }
-            System.arraycopy(actualFields, 0, newActualFieldsArray, 0, actualFieldsLength);
-            allFields = newAllFieldsArray;
-            actualFields = newActualFieldsArray;
-        }
-    }
-
-    @Override
-    public String toString() {
-        return toString(false);
-    }
-
-    public String toString(boolean wholeMessage) {
-        return FixMessageToString.toString(this, wholeMessage);
-    }
-
-    public void resetAllDataFieldsAndReleaseByteSource() {
-        for (int i = 0; i < actualFieldsLength; i++) {
-            final Field field = ArrayUtils.getElementAt(actualFields, i);
-            if (field.isValueSet()) {
-                field.reset();
+            final int currentLength = UNSAFE.getChar(fieldAddress);
+            if (fieldSize > currentLength) {
+                fieldAddress = assignNewAddress(fieldSize);
+                fieldNumberToAddress.put(fieldNumber, fieldAddress);
             }
         }
-        releaseByteSource();
-        startIndex = NOT_SET;
-        endIndex = NOT_SET;
+        return fieldAddress;
     }
 
-    public void releaseByteSource() {
-        if (messageByteSource != null && holdsData()) {
-            messageByteSource.releaseData(startIndex, endIndex);
+    private long fieldAddressWithLengthCheck(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, short fieldSize) {
+        if (fieldSize > regionSize) {
+            throw new IllegalArgumentException(String.format(REGION_SIZE_ERROR_MSG_TEMPLATE, fieldSize, regionSize));
+        }
+        final long repeatingGroupKey = FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber);
+        long fieldAddress = repeatingGroupAddresses.get(repeatingGroupKey);
+        if (fieldAddress == NO_VALUE) {
+            fieldAddress = assignNewAddress(fieldSize);
+            repeatingGroupAddresses.put(repeatingGroupKey, fieldAddress);
+        } else {
+            final int currentLength = UNSAFE.getChar(fieldAddress);
+            if (fieldSize > currentLength) {
+                fieldAddress = assignNewAddress(fieldSize);
+                repeatingGroupAddresses.put(repeatingGroupKey, fieldAddress);
+            }
+        }
+        return fieldAddress;
+    }
+
+    private long assignNewAddress(short fieldSize) {
+        long fieldAddress;
+        final Region region = currentRegion();
+        fieldAddress = region.append(fieldSize);
+        if (fieldAddress == Region.NO_SPACE_AVAILABLE) {
+            fieldAddress = nextRegion().append(fieldSize);
+        }
+        return fieldAddress;
+    }
+
+    private static void doSetCharSequenceData(CharSequence newValue, int numberOfChars, long fieldAddress) {
+        UNSAFE.putChar(fieldAddress, (char) numberOfChars);
+        final long dataStartingAddress = fieldAddress + FieldConstants.CHAR_SEQUENCE_LENGTH_SIZE;
+        for (int i = 0; i < numberOfChars; i++) {
+            UNSAFE.putChar(dataStartingAddress + (long) i * MemoryConstants.CHAR_SIZE, newValue.charAt(i));
         }
     }
 
-    private boolean holdsData() {
-        return startIndex != NOT_SET && endIndex != NOT_SET;
+    private static void doSetCharSequenceData(char[] newValue, int numberOfChars, long fieldAddress) {
+        UNSAFE.putChar(fieldAddress, (char) numberOfChars);
+        final long dataStartingAddress = fieldAddress + FieldConstants.CHAR_SEQUENCE_LENGTH_SIZE;
+        for (int i = 0; i < numberOfChars; i++) {
+            UNSAFE.putChar(dataStartingAddress + (long) i * MemoryConstants.CHAR_SIZE, ArrayUtils.getElementAt(newValue, i));
+        }
+    }
+
+    private static void doSetDoubleValue(long newValue, short newScale, long fieldAddress) {
+        UNSAFE.putLong(fieldAddress, newValue);
+        UNSAFE.putShort(fieldAddress + MemoryConstants.LONG_SIZE, newScale);
+    }
+
+    @Nonnull
+    private Region currentRegion() {
+        Region region = ArrayUtils.getElementAt(regions, regionsIndex);
+        if (region == null) {
+            region = newRegion();
+        }
+        return region;
+    }
+
+    @Nonnull
+    private Region newRegion() {
+        final Region region = regionPool.tryGetAndRetain();
+        if (region == null) {
+            throw new FIXYouException(NO_REGIONS_IN_POOL_MSG_TEMPLATE + regionPool);
+        } else {
+            ensureRegionsLength(regionsIndex + 1);
+            ArrayUtils.putElementAt(regions, regionsIndex, region);
+        }
+        return region;
+    }
+
+    @Nonnull
+    private Region nextRegion() {
+        regionsIndex++;
+        final Region region = ArrayUtils.getElementAt(regions, regionsIndex);
+        if (region == null) {
+            return newRegion();
+        } else {
+            return region;
+        }
+    }
+
+    private void ensureRegionsLength(int requiredLength) {
+        if (regions.length < requiredLength) {
+            final Region[] newRegions = new Region[requiredLength];
+            System.arraycopy(regions, 0, newRegions, 0, regions.length);
+            for (int i = regions.length; i < requiredLength; i++) {
+                final Region newRegion = regionPool.tryGetAndRetain();
+                if (newRegion == null) {
+                    throw new FIXYouException(NO_REGIONS_IN_POOL_MSG_TEMPLATE + regionPool);
+                }
+                ArrayUtils.putElementAt(newRegions, i, newRegion);
+            }
+            ReflectionUtils.setFinalField(this, Fields.regions, newRegions);
+        }
     }
 
     @Override
     protected void deallocate() {
-        resetAllDataFieldsAndReleaseByteSource();
+        reset();
         super.deallocate();
     }
 
     @Override
-    public void close() {
-        for (int i = 0; i < actualFieldsLength; i++) {
-            ArrayUtils.getElementAt(actualFields, i).close();
-        }
-    }
-
-    public void copyDataFrom(FixMessage sourceMessage, boolean unsetSourceStartEndIndices) {
-        messageByteSource = sourceMessage.messageByteSource;
-        startIndex = sourceMessage.startIndex;
-        endIndex = sourceMessage.endIndex;
-        ensureArraysLengthIsSufficient(sourceMessage.allFields.length);
-        for (int i = 0; i < sourceMessage.actualFieldsLength; i++) {
-            final Field field = ArrayUtils.getElementAt(sourceMessage.actualFields, i);
-            if (field.isValueSet()) {
-                getFieldNoArrayLengthCheck(field.getNumber()).copyDataFrom(field);
+    public void reset() {
+        regionsIndex = 0;
+        fieldsSet.clear();
+        fieldNumberToAddress.clear();
+        repeatingGroupAddresses.clear();
+        for (int i = 0; i < regions.length; i++) {
+            final Region region = ArrayUtils.getElementAt(regions, i);
+            if (region != null) {
+                region.reset();
             }
         }
-        if (unsetSourceStartEndIndices) {
-            sourceMessage.setStartIndex(FixMessage.NOT_SET);
-            sourceMessage.setEndIndex(FixMessage.NOT_SET);
+    }
+
+    @Override
+    public void close() {
+        for (int i = 0; i < regions.length; i++) {
+            final Region region = ArrayUtils.getElementAt(regions, i);
+            if (region != null) {
+                region.reset();
+                regionPool.returnObject(region);
+            }
         }
     }
 
-    private static final class PlaceholderField extends Field {
+    public boolean isValueSet(int fieldNumber) {
+        return fieldsSet.get(fieldNumber);
+    }
 
-        public PlaceholderField() {
-            super(NOT_SET, null);
+    public boolean isValueSet(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
+        return repeatingGroupAddresses.containsKey(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber));
+    }
+
+    @Override
+    public String toString() {
+        return toString(false, StandardHeaderAndFooterOnlyFixSpec.INSTANCE);
+    }
+
+    public String toString(boolean wholeMessage, FixSpec fixSpec) {
+        return FixMessageToString.toString(this, wholeMessage, fixSpec);
+    }
+
+    public void copyDataFrom(FixMessage source) { //TODO maybe this method can be optimized?
+        this.regionsIndex = source.regionsIndex;
+        final int numberOfRegions = regionsIndex + 1;
+        ensureRegionsLength(numberOfRegions);
+        final long[] regionsStartAddresses = new long[numberOfRegions];
+        copyRegionDataAndSaveStartAddresses(source, numberOfRegions, regionsStartAddresses);
+
+        for (final IntLongCursor fieldNumberToAddressCursor : source.fieldNumberToAddress) {
+            long regionStartingAddress = 0;
+            int regionIndex = 0;
+            for (; regionIndex < numberOfRegions; regionIndex++) {
+                regionStartingAddress = ArrayUtils.getElementAt(regionsStartAddresses, regionIndex);
+                if (regionStartingAddress <= fieldNumberToAddressCursor.value && (fieldNumberToAddressCursor.value - regionStartingAddress) < regionSize) {
+                    break;
+                }
+            }
+            fieldNumberToAddress.put(fieldNumberToAddressCursor.key, fieldNumberToAddressCursor.value - regionStartingAddress + ArrayUtils.getElementAt(regions, regionIndex).getStartingAddress());
         }
 
-        @Override
-        public boolean isValueSet() {
+        for (final LongLongCursor fieldNumberToAddressCursor : source.repeatingGroupAddresses) {
+            long regionStartingAddress = 0;
+            int regionIndex = 0;
+            for (; regionIndex < numberOfRegions; regionIndex++) {
+                regionStartingAddress = ArrayUtils.getElementAt(regionsStartAddresses, regionIndex);
+                if (regionStartingAddress <= fieldNumberToAddressCursor.value && (fieldNumberToAddressCursor.value - regionStartingAddress) < regionSize) {
+                    break;
+                }
+            }
+            repeatingGroupAddresses.put(fieldNumberToAddressCursor.key, fieldNumberToAddressCursor.value - regionStartingAddress + ArrayUtils.getElementAt(regions, regionIndex).getStartingAddress());
+        }
+    }
+
+    private void copyRegionDataAndSaveStartAddresses(FixMessage source, int numberOfRegions, long[] regionsStartAddresses) {
+        for (int i = 0; i < numberOfRegions; i++) {
+            final Region sourceRegion = ArrayUtils.getElementAt(source.regions, i);
+            Region region = ArrayUtils.getElementAt(regions, i);
+            if (region == null) {
+                region = regionPool.tryGetAndRetain();
+                if (region == null) {
+                    throw new FIXYouException(NO_REGIONS_IN_POOL_MSG_TEMPLATE + regionPool);
+                } else {
+                    ArrayUtils.putElementAt(regions, i, region);
+                }
+            }
+            region.copyDataFrom(sourceRegion);
+            ArrayUtils.putElementAt(regionsStartAddresses, i, sourceRegion.getStartingAddress());
+        }
+    }
+
+    private boolean saveIndexIfGreater(int groupNumber, byte index) {
+        long groupNumberValueAddress = fieldNumberToAddress.get(groupNumber);
+        final long newNumberOfRepetitions = index + 1;
+        if (groupNumberValueAddress != NO_VALUE) {
+            final long currentNumberOfRepetitions = UNSAFE.getLong(groupNumberValueAddress);
+            if (newNumberOfRepetitions > currentNumberOfRepetitions) {
+                UNSAFE.putLong(groupNumberValueAddress, newNumberOfRepetitions);
+            }
             return false;
+        } else {
+            groupNumberValueAddress = assignNewAddress(MemoryConstants.LONG_SIZE);
+            fieldNumberToAddress.put(groupNumber, groupNumberValueAddress);
+            UNSAFE.putLong(groupNumberValueAddress, newNumberOfRepetitions);
+            return true;
+        }
+    }
+
+    public void removeField(int fieldNumber) {
+        fieldsSet.clear(fieldNumber);
+        fieldNumberToAddress.remove(fieldNumber);
+    }
+
+    public IntCollection setFields() {
+        return fieldNumberToAddress.keys();
+    }
+
+    private static final class DirectCharSequence implements CharSequence { //TODO write optimized equals
+
+        private long startAddress;
+
+        @Override
+        public int length() {
+            return UNSAFE.getChar(startAddress);
         }
 
         @Override
-        protected FieldValue createFieldValue() {
-            return null; //we do nto want to create any value for this field
+        public char charAt(int index) {
+            return UNSAFE.getChar(startAddress + FieldConstants.CHAR_SEQUENCE_LENGTH_SIZE + ((long) MemoryConstants.CHAR_SIZE * index));
         }
 
         @Override
-        public void close() {
-            //nothing to do we do not want to close placeholder field, EVER
+        public CharSequence subSequence(int start, int end) {
+            throw new UnsupportedOperationException("DirectCharSequence does not support SubSequence method");
+        }
+
+        @Override
+        public String toString() {
+            if (startAddress > 0) {
+                return new String(codePoints().toArray(), 0, length());
+            } else {
+                return "N/A";
+            }
         }
     }
 }

@@ -29,7 +29,7 @@ class MessageStoreHandler extends ChannelOutboundHandlerAdapter implements Reset
         final NettyHandlerAwareSessionState sessionState = NettyHandlerAwareSessionState.getForChannelContext(ctx);
         if (sessionState != null && msg instanceof FixMessage) {
             final FixMessage fixMessage = (FixMessage) msg;
-            messageStore.storeMessage(sessionState.getSessionId(), fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).getLongValue(), fixMessage);
+            messageStore.storeMessage(sessionState.getSessionId(), fixMessage.getLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER), fixMessage);
         } else {
             log.warn("Either session cannot be found or handler is in wrong place(expecting to get FixMessage but got {})", msg);
         }

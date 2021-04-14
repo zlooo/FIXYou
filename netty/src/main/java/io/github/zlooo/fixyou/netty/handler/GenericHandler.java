@@ -30,7 +30,7 @@ class GenericHandler extends ChannelDuplexHandler { //TODO remember about unit t
         if (msg instanceof FixMessage) {
             final FixMessage fixMessage = (FixMessage) msg;
             final NettyHandlerAwareSessionState sessionState = NettyHandlerAwareSessionState.getForChannelContext(ctx);
-            final CharSequence messageType = fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getCharSequenceValue();
+            final CharSequence messageType = fixMessage.getCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER);
             if ((sessionState == null || !sessionState.getConnected().get()) && !ArrayUtils.equals(FixConstants.LOGON, messageType)) {
                 final Channel channel = ctx.channel();
                 log.error("First message received but it's not logon request, disconnecting channel {}", channel);
@@ -51,9 +51,9 @@ class GenericHandler extends ChannelDuplexHandler { //TODO remember about unit t
             checkIfFieldsArePresent(fixMessage, FixConstants.MESSAGE_TYPE_FIELD_NUMBER, FixConstants.SENDER_COMP_ID_FIELD_NUMBER, FixConstants.TARGET_COMP_ID_FIELD_NUMBER,
                                     FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER);
             final long timestamp = clock.millis();
-            fixMessage.getField(FixConstants.SENDING_TIME_FIELD_NUMBER).setTimestampValue(timestamp);
+            fixMessage.setTimestampValue(FixConstants.SENDING_TIME_FIELD_NUMBER, timestamp);
             if (shouldSetOrigSendingTime(fixMessage)) {
-                fixMessage.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER).setTimestampValue(timestamp);
+                fixMessage.setTimestampValue(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER, timestamp);
             }
         }
         super.write(ctx, msg, promise);
@@ -72,7 +72,7 @@ class GenericHandler extends ChannelDuplexHandler { //TODO remember about unit t
 
     private void checkIfFieldsArePresent(FixMessage fixMessage, int... numbersToCheck) {
         for (final int numberToCheck : numbersToCheck) {
-            if (!fixMessage.getField(numberToCheck).isValueSet()) {
+            if (!fixMessage.isValueSet(numberToCheck)) {
                 throw new RequiredFieldMissingException(numberToCheck, fixMessage);
             }
         }

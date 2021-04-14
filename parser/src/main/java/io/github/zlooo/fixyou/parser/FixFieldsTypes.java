@@ -13,7 +13,7 @@ public class FixFieldsTypes {
     public static final FieldType GAP_FILL_FLAG = FieldType.BOOLEAN;
     public static final FieldType REFERENCED_TAG_ID = FieldType.LONG;
     public static final FieldType TEXT = FieldType.CHAR_ARRAY;
-    public static final FieldType POSS_DUP_FLAG = FieldType.BOOLEAN;
+    public static final FieldType POSSIBLE_DUPLICATE_FLAG = FieldType.BOOLEAN;
     public static final FieldType CHECK_SUM = FieldType.LONG;
     public static final FieldType BEGIN_SEQUENCE_NUMBER = FieldType.LONG;
     public static final FieldType END_SEQUENCE_NUMBER = FieldType.LONG;
@@ -29,6 +29,11 @@ public class FixFieldsTypes {
     public static final FieldType PASSWORD = FieldType.CHAR_ARRAY;
     public static final FieldType DEFAULT_APP_VERSION_ID = FieldType.CHAR_ARRAY;
     public static final FieldType APPL_VERSION_ID = FieldType.CHAR_ARRAY;
-    public static final FieldType RESET_SEQ_NUMBER_FLAG = FieldType.BOOLEAN;
+    public static final FieldType RESET_SEQUENCE_NUMBER_FLAG = FieldType.BOOLEAN;
     public static final FieldType TEST_REQ_ID = FieldType.CHAR_ARRAY;
+    public static final FieldType ORIG_SENDING_TIME = FieldType.TIMESTAMP;
+    public static final FieldType CLORD_ID = FieldType.CHAR_ARRAY;
+    public static final FieldType ORD_TYPE = FieldType.CHAR;
+    public static final FieldType SIDE = FieldType.CHAR;
+    public static final FieldType TRANSACT_TIME = FieldType.TIMESTAMP;
 }

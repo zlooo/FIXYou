@@ -3,7 +3,6 @@ package io.github.zlooo.fixyou.netty.handler.admin;
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
-import io.github.zlooo.fixyou.parser.model.Field;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
@@ -29,8 +28,8 @@ class TestRequestHandler implements AdministrativeMessageHandler {
         if (log.isDebugEnabled()) {
             log.debug("Test request received for session " + NettyHandlerAwareSessionState.getForChannelContext(ctx).getSessionId() + ", responding with heartbeat");
         }
-        final Field testReqID = fixMessage.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER);
-        ctx.writeAndFlush(FixMessageUtils.toHeartbeatMessage(fixMessage, testReqID.getCharArrayValue(), testReqID.getLength()).retain()).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+        final CharSequence testReqID = fixMessage.getCharSequenceValue(FixConstants.TEST_REQ_ID_FIELD_NUMBER).toString(); //TODO that's weak :/, I don't need to know value, I just want to transfer it to message I'll be sending
+        ctx.writeAndFlush(FixMessageUtils.toHeartbeatMessage(fixMessage, testReqID).retain()).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
     }
 
     @Override

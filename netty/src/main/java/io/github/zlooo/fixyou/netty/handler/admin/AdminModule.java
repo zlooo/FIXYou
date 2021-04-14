@@ -17,6 +17,7 @@ public interface AdminModule {
 
     @Provides
     @ElementsIntoSet
+    @Singleton
     static Set<AdministrativeMessageHandler> provideHandlers(LogonHandler logonHandler, ResendRequestHandler resendRequestHandler, SequenceResetGapFillModeHandler sequenceResetGapFillModeHandler, LogoutHandler logoutHandler,
                                                              HeartbeatHandler heartbeatHandler, TestRequestHandler testRequestHandler, RejectHandler rejectHandler) {
         final Set<AdministrativeMessageHandler> elements = new HashSet<>();

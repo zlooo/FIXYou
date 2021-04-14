@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.commons.utils;
 
 import io.github.zlooo.fixyou.commons.ReusableCharArray;
+import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.github.zlooo.fixyou.utils.AsciiCodes;
 import io.netty.buffer.ByteBuf;
 import lombok.experimental.UtilityClass;
@@ -26,13 +27,13 @@ public final class FieldUtils {
         }
         int powerOfTenIndex = 0;
         for (; powerOfTenIndex < NumberConstants.POWERS_OF_TEN.length; powerOfTenIndex++) {
-            if (NumberConstants.POWERS_OF_TEN[powerOfTenIndex] > value) {
+            if (ArrayUtils.getElementAt(NumberConstants.POWERS_OF_TEN, powerOfTenIndex) > value) {
                 powerOfTenIndex--;
                 break;
             }
         }
         for (; powerOfTenIndex >= 0; powerOfTenIndex--) {
-            final long currentTenPowerValue = NumberConstants.POWERS_OF_TEN[powerOfTenIndex];
+            final long currentTenPowerValue = ArrayUtils.getElementAt(NumberConstants.POWERS_OF_TEN, powerOfTenIndex);
             final long digit = value / currentTenPowerValue;
             final int digitInAscii = AsciiCodes.ZERO + (int) digit;
             sumOfBytes += digitInAscii;
@@ -53,7 +54,7 @@ public final class FieldUtils {
         }
         int powerOfTenIndex = 0;
         for (; powerOfTenIndex < NumberConstants.POWERS_OF_TEN.length; powerOfTenIndex++) {
-            if (NumberConstants.POWERS_OF_TEN[powerOfTenIndex] > value) {
+            if (ArrayUtils.getElementAt(NumberConstants.POWERS_OF_TEN, powerOfTenIndex) > value) {
                 break;
             }
         }
@@ -71,7 +72,7 @@ public final class FieldUtils {
             destinationBuffer.writeByte(AsciiCodes.MINUS);
         }
         for (powerOfTenIndex--; powerOfTenIndex >= 0; powerOfTenIndex--) {
-            final long currentTenPowerValue = NumberConstants.POWERS_OF_TEN[powerOfTenIndex];
+            final long currentTenPowerValue = ArrayUtils.getElementAt(NumberConstants.POWERS_OF_TEN, powerOfTenIndex);
             final long digit = value / currentTenPowerValue;
             final int digitInAscii = AsciiCodes.ZERO + (int) digit;
             sumOfBytes += digitInAscii;

@@ -4,8 +4,8 @@ import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
-import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID
 import io.netty.channel.ChannelFuture
@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit
 class MutableIdleStateHandlerTest extends Specification {
 
     private SessionConfig sessionConfig = new SessionConfig()
-    private SessionID sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
+    private SessionID sessionID = new SessionID("", "", "")
     private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
     private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(sessionConfig, sessionID, TestSpec.INSTANCE)
     private MutableIdleStateHandler idleStateHandler = new MutableIdleStateHandler(sessionState, fixMessageObjectPool, 1, 2, 3)
@@ -48,7 +48,7 @@ class MutableIdleStateHandlerTest extends Specification {
 
     def "should send heartbeat when write timeout occurs"() {
         setup:
-        FixMessage fixMessage = new FixMessage(new FieldCodec())
+        FixMessage fixMessage = new NotPoolableFixMessage()
 
         when:
         idleStateHandler.channelIdle(channelHandlerContext, IdleStateEvent.WRITER_IDLE_STATE_EVENT)
@@ -57,14 +57,17 @@ class MutableIdleStateHandlerTest extends Specification {
         1 * fixMessageObjectPool.getAndRetain() >> fixMessage
         1 * channelHandlerContext.writeAndFlush(fixMessage) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
-        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue.toString() == String.valueOf(FixConstants.HEARTBEAT)
-        !fixMessage.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER).isValueSet()
+        fixMessage.getCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).toString() == String.valueOf(FixConstants.HEARTBEAT)
+        !fixMessage.isValueSet(FixConstants.TEST_REQ_ID_FIELD_NUMBER)
         0 * _
+
+        cleanup:
+        fixMessage?.close()
     }
 
     def "should send test request when first read timeout occurs"() {
         setup:
-        FixMessage fixMessage = new FixMessage(new FieldCodec())
+        FixMessage fixMessage = new NotPoolableFixMessage()
 
         when:
         idleStateHandler.channelIdle(channelHandlerContext, IdleStateEvent.FIRST_READER_IDLE_STATE_EVENT)
@@ -73,9 +76,12 @@ class MutableIdleStateHandlerTest extends Specification {
         1 * fixMessageObjectPool.getAndRetain() >> fixMessage
         1 * channelHandlerContext.writeAndFlush(fixMessage) >> channelFuture
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
-        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue.toString() == String.valueOf(FixConstants.TEST_REQUEST)
-        fixMessage.getField(FixConstants.TEST_REQ_ID_FIELD_NUMBER).charSequenceValue.toString() == 'test'
+        fixMessage.getCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).toString() == String.valueOf(FixConstants.TEST_REQUEST)
+        fixMessage.getCharSequenceValue(FixConstants.TEST_REQ_ID_FIELD_NUMBER).toString() == 'test'
         0 * _
+
+        cleanup:
+        fixMessage?.close()
     }
 
     def "should close connection when second read timeout occurs"() {

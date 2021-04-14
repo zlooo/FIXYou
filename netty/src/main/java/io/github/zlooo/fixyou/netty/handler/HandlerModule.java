@@ -8,7 +8,6 @@ import io.github.zlooo.fixyou.commons.utils.ListUtils;
 import io.github.zlooo.fixyou.fix.commons.FixMessageListener;
 import io.github.zlooo.fixyou.netty.handler.validation.SessionAwareValidators;
 import io.github.zlooo.fixyou.netty.handler.validation.SimpleValidators;
-import io.github.zlooo.fixyou.parser.model.FieldCodec;
 import io.netty.channel.ChannelHandler;
 
 import javax.inject.Named;
@@ -38,7 +37,7 @@ public interface HandlerModule {
     @Provides
     @Singleton
     @NamedHandler(Handlers.LISTENER_INVOKER)
-    static ChannelHandler provideFixMessageListenerInvoker(FixMessageListener fixMessageListener, FIXYouConfiguration configuration, FieldCodec fieldCodec) {
-        return new FixMessageListenerInvokingHandler(fixMessageListener, configuration, fieldCodec);
+    static ChannelHandler provideFixMessageListenerInvoker(FixMessageListener fixMessageListener, FIXYouConfiguration configuration, @Named("regionPool") ObjectPool regionPool) {
+        return new FixMessageListenerInvokingHandler(fixMessageListener, configuration, regionPool);
     }
 }

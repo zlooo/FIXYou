@@ -30,6 +30,7 @@ public class ByteBufComposer implements Resettable {
     private static final ByteProcessor SOH_FINDER = new ByteProcessor.IndexOfProcessor((byte) 1);
     @ToString.Exclude
     private final Component[] components;
+    private final IntIntAVLTree startIndexToComponentIndex;
     private final int mask;
     private int arrayIndex;
     private int readerIndex;
@@ -49,12 +50,14 @@ public class ByteBufComposer implements Resettable {
         for (int i = 0; i < components.length; i++) {
             components[i] = new Component();
         }
+        this.startIndexToComponentIndex = new IntIntAVLTree(currentSize);
         mask = currentSize - 1;
     }
 
     public boolean addByteBuf(ByteBuf byteBuf) {
         final Component previousComponent = ArrayUtils.getElementAt(components, toArrayIndex(arrayIndex - 1));
-        final Component component = ArrayUtils.getElementAt(components, toArrayIndex(arrayIndex++));
+        final int currentComponentArrayIndex = toArrayIndex(arrayIndex++);
+        final Component component = ArrayUtils.getElementAt(components, currentComponentArrayIndex);
         if (component.buffer != null) {
             return false;
         }
@@ -64,6 +67,7 @@ public class ByteBufComposer implements Resettable {
             component.startIndex = 0;
             storedStartIndex = 0;
         }
+        startIndexToComponentIndex.put(component.startIndex, currentComponentArrayIndex);
         component.offset = component.startIndex;
         component.endIndex = component.startIndex + byteBuf.readableBytes() - 1;
         storedEndIndex = component.endIndex;
@@ -80,7 +84,7 @@ public class ByteBufComposer implements Resettable {
         if (coversWholeBuffer(startIndexInclusive, endIndexInclusive)) {
             reset();
         } else {
-            int componentArrayIndex = findReaderComponentIndex(startIndexInclusive); //here we're making sure that startIndexInclusive is between this component's start and end index
+            int componentArrayIndex = findReaderComponentIndex(Math.max(startIndexInclusive, storedStartIndex)); //here we're making sure that startIndexInclusive is between this component's start and end index
             Component component;
             for (; ; ) {
                 component = ArrayUtils.getElementAt(components, toArrayIndex(componentArrayIndex++));
@@ -95,9 +99,12 @@ public class ByteBufComposer implements Resettable {
                 }
                 if (endEqualsOrExceedsComponentsEnd && startEqualsOrPrecedesComponentsStart) {
                     component.reset();
+                    startIndexToComponentIndex.remove(component.startIndex);
                 } else {
                     if (startEqualsOrPrecedesComponentsStart) {
+                        final int componentIndex = startIndexToComponentIndex.remove(component.startIndex);
                         component.startIndex = endIndexInclusive + 1;
+                        startIndexToComponentIndex.put(component.startIndex, componentIndex);
                     } else {
                         component.endIndex = startIndexInclusive - 1;
                     }
@@ -180,10 +187,10 @@ public class ByteBufComposer implements Resettable {
     }
 
     private int findReaderComponentIndex(int index) {
-        for (int i = 0; i < components.length; i++) {
-            final Component component = ArrayUtils.getElementAt(components, i);
-            if (component.endIndex >= index && component.startIndex <= index) {
-                return i;
+        final int floorValue = startIndexToComponentIndex.floorValue(index);
+        if (floorValue != IntIntAVLTree.INVALID_IDX) {
+            if (ArrayUtils.getElementAt(components, floorValue).getEndIndex() >= index) {
+                return floorValue;
             }
         }
         throw new IndexOutOfBoundsException(IOOBE_MESSAGE + index, this);
@@ -211,6 +218,7 @@ public class ByteBufComposer implements Resettable {
         readerIndex = 0;
         storedStartIndex = INITIAL_VALUE;
         storedEndIndex = INITIAL_VALUE;
+        startIndexToComponentIndex.clear();
     }
 
     public int readerIndex() {
@@ -263,15 +271,12 @@ public class ByteBufComposer implements Resettable {
 
     @Data
     @ToString
-    private static final class Component implements Resettable {
+    static final class Component implements Resettable {
         private int startIndex = INITIAL_VALUE;
         private int endIndex = INITIAL_VALUE;
         private int offset;
         @ToString.Exclude
         private ByteBuf buffer;
-
-        public Component() {
-        }
 
         @Override
         public void reset() {

@@ -1,13 +1,11 @@
 package io.github.zlooo.fixyou.netty.utils
 
-import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.Handlers
 import io.github.zlooo.fixyou.netty.handler.MutableIdleStateHandler
 import io.github.zlooo.fixyou.netty.handler.NettyResettablesNames
 import io.github.zlooo.fixyou.netty.handler.SessionAwareChannelInboundHandler
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
-import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID
 import io.github.zlooo.fixyou.session.ValidationConfig
@@ -22,7 +20,7 @@ import java.util.concurrent.TimeUnit
 
 class PipelineUtilsTest extends Specification {
 
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)), new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0),
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)), new SessionID("", "", ""),
                                                                                            TestSpec.INSTANCE)
     private ChannelHandler messageDecoder = Mock()
     private ChannelHandler genericDecoder = Mock()

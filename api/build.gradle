@@ -1,3 +1,4 @@
 dependencies {
     api group: 'io.netty', name: 'netty-buffer', version: "$nettyVersion"
+    api group: 'com.github.vsonnier', name: 'hppcrt', version: "$hppcrtVersion"
 }

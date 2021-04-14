@@ -7,9 +7,9 @@ import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.session.LongSubscriber;
 import io.github.zlooo.fixyou.session.MessageStore;
 import io.github.zlooo.fixyou.session.SessionID;
+import io.netty.util.collection.LongObjectHashMap;
+import io.netty.util.collection.LongObjectMap;
 import lombok.extern.slf4j.Slf4j;
-import org.agrona.collections.Hashing;
-import org.agrona.collections.Long2ObjectHashMap;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,9 +21,9 @@ import java.util.function.Function;
 @Slf4j
 public class MemoryMessageStore implements MessageStore<FixMessage> {
 
-    private static final Function<SessionID, Long2ObjectHashMap<FixMessage>> MESSAGES_MAP_CREATOR = sessionID -> new Long2ObjectHashMap<>(DefaultConfiguration.QUEUED_MESSAGES_MAP_SIZE, Hashing.DEFAULT_LOAD_FACTOR);
+    private static final Function<SessionID, LongObjectMap<FixMessage>> MESSAGES_MAP_CREATOR = sessionID -> new LongObjectHashMap<>(DefaultConfiguration.QUEUED_MESSAGES_MAP_SIZE);
     //TODO performance test it, maybe some other collection is better suited, especially since it's ordered
-    private final Map<SessionID, Long2ObjectHashMap<FixMessage>> sessionToMessagesMap = new HashMap<>();
+    private final Map<SessionID, LongObjectMap<FixMessage>> sessionToMessagesMap = new HashMap<>();
 
     @Override
     public void storeMessage(SessionID sessionID, long sequenceNumber, FixMessage message) {
@@ -34,7 +34,7 @@ public class MemoryMessageStore implements MessageStore<FixMessage> {
 
     @Override
     public void getMessages(SessionID sessionID, long from, long to, LongSubscriber<FixMessage> messageSubscriber) {
-        final Long2ObjectHashMap<FixMessage> messages = sessionToMessagesMap.get(sessionID);
+        final LongObjectMap<FixMessage> messages = sessionToMessagesMap.get(sessionID);
         try {
             messageSubscriber.onSubscribe();
             if (messages != null && !messages.isEmpty()) {
@@ -53,7 +53,7 @@ public class MemoryMessageStore implements MessageStore<FixMessage> {
 
     @Override
     public void reset(SessionID sessionID) {
-        final Long2ObjectHashMap<FixMessage> messages = sessionToMessagesMap.remove(sessionID);
+        final LongObjectMap<FixMessage> messages = sessionToMessagesMap.remove(sessionID);
         messages.values().forEach(AbstractPoolableObject::release);
     }
 }

@@ -1,6 +1,7 @@
 package io.github.zlooo.fixyou.parser;
 
 import io.github.zlooo.fixyou.model.ApplicationVersionID;
+import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 
@@ -9,21 +10,36 @@ import javax.annotation.Nonnull;
 public class FakeFixSpec implements FixSpec {
 
     public static final FakeFixSpec INSTANCE = new FakeFixSpec();
+    private static final FieldType[] EMPTY_FIELD_TYPE = new FieldType[0];
 
+    @Nonnull
     @Override
-    public int[] getFieldsOrder() {
-        return new int[0];
+    public int[] getHeaderFieldsOrder() {
+        return ArrayUtils.EMPTY_INT_ARRAY;
+    }
+
+    @Nonnull
+    @Override
+    public FieldType[] getHeaderFieldTypes() {
+        return EMPTY_FIELD_TYPE;
+    }
+
+    @Nonnull
+    @Override
+    public int[] getBodyFieldsOrder() {
+        return ArrayUtils.EMPTY_INT_ARRAY;
+    }
+
+    @Nonnull
+    @Override
+    public FieldType[] getBodyFieldTypes() {
+        return EMPTY_FIELD_TYPE;
     }
 
     @Nonnull
     @Override
     public char[][] getMessageTypes() {
-        return new char[0][];
-    }
-
-    @Override
-    public int highestFieldNumber() {
-        return 0;
+        return ArrayUtils.EMPTY_TWO_DIM_CHAR;
     }
 
     @Override
@@ -32,7 +48,7 @@ public class FakeFixSpec implements FixSpec {
     }
 
     @Override
-    public int[] getRepeatingGroupFieldNumbers(int groupNumber) {
-        return ArrayUtils.EMPTY_INT_ARRAY;
+    public FieldNumberType[] getRepeatingGroupFieldNumbers(int groupNumber) {
+        return ArrayUtils.EMPTY_FIELD_NUMBER_TYPE;
     }
 }

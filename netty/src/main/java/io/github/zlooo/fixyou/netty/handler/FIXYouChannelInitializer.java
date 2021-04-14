@@ -1,5 +1,6 @@
 package io.github.zlooo.fixyou.netty.handler;
 
+import dagger.Lazy;
 import io.github.zlooo.fixyou.FIXYouConfiguration;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelInitializer;
@@ -24,7 +25,9 @@ public class FIXYouChannelInitializer extends ChannelInitializer<NioSocketChanne
     @Inject
     protected SimplifiedMessageDecoder simplifiedMessageDecoder;
     @Inject
-    protected MessageEncoder messageEncoder;
+    protected Lazy<FixSpecOrderedMessageEncoder> fixSpecOrderedMessageEncoder;
+    @Inject
+    protected Lazy<UnorderedMessageEncoder> unorderedMessageEncoder;
     @Inject
     @NamedHandler(Handlers.LISTENER_INVOKER)
     protected ChannelHandler fixMessageListenerInvokingHandler;
@@ -43,7 +46,7 @@ public class FIXYouChannelInitializer extends ChannelInitializer<NioSocketChanne
             pipeline.addFirst(LOGGING_HANDLER);
         }
         pipeline.addLast(Handlers.GENERIC_DECODER.getName(), simplifiedMessageDecoder)
-                .addLast(Handlers.MESSAGE_ENCODER.getName(), messageEncoder)
+                .addLast(Handlers.MESSAGE_ENCODER.getName(), fixYouConfiguration.isFixSpecOrderedFields() ? fixSpecOrderedMessageEncoder.get() : unorderedMessageEncoder.get())
                 .addLast(Handlers.GENERIC.getName(), genericHandler)
                 .addLast(Handlers.ADMIN_MESSAGES.getName(), adminMessagesHandler)
                 .addLast(Handlers.LISTENER_INVOKER.getName(), fixMessageListenerInvokingHandler);
