@@ -69,4 +69,22 @@ class DateUtilsTest extends Specification {
         "20231203-10:15:30.999" | Instant.parse("2023-12-03T10:15:30.999Z").toEpochMilli()
         "20210831-05:59:20.808" | Instant.parse("2021-08-31T05:59:20.808Z").toEpochMilli()
     }
+
+    def "should reset timestamp parser"() {
+        setup:
+        def timestampParser = new DateUtils.TimestampParser()
+        def freshParser = new DateUtils.TimestampParser()
+        ByteBufComposer byteBufComposer = new ByteBufComposer(1)
+        byteBufComposer.addByteBuf(Unpooled.wrappedBuffer("20210530-10:15:30".getBytes(StandardCharsets.US_ASCII)))
+        DateUtils.parseTimestamp(byteBufComposer, 0, byteBufComposer.storedEndIndex + 1, timestampParser)
+
+        when:
+        timestampParser.reset()
+
+        then:
+        timestampParser.@result == freshParser.@result
+        timestampParser.@temp == freshParser.@temp
+        timestampParser.@counter == freshParser.@counter
+        timestampParser.@isLeapYear == freshParser.@isLeapYear
+    }
 }

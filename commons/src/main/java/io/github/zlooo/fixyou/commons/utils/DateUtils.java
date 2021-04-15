@@ -140,11 +140,11 @@ public class DateUtils {
         private byte counter = 1;
         private boolean isLeapYear = false;
 
-        public void reset(){
+        public void reset() {
             result = BEGINNING_OF_MIN_YEAR;
-            temp=0;
-            counter=1;
-            isLeapYear=false;
+            temp = 0;
+            counter = 1;
+            isLeapYear = false;
         }
 
         //yyyyMMdd-HH:mm:ss.SSS
@@ -166,7 +166,7 @@ public class DateUtils {
                 case 5:
                     isLeapYear = (temp & MOD_4_MASK) == 0;
                     for (int i = MIN_YEAR; i < temp; i++) {
-                        result += (i & MOD_4_MASK)==0 ? MILLIS_IN_LEAP_YEAR : MILLIS_IN_YEAR;
+                        result += (i & MOD_4_MASK) == 0 ? MILLIS_IN_LEAP_YEAR : MILLIS_IN_YEAR;
                     }
                     temp = value - AsciiCodes.ZERO;
                     break;
@@ -206,7 +206,7 @@ public class DateUtils {
                 case 18:
                     break;
                 case 10:
-                    result += (temp-1) * MILLIS_IN_DAY;
+                    result += (temp - 1) * MILLIS_IN_DAY;
                     temp = value - AsciiCodes.ZERO;
                     break;
                 case 13:
