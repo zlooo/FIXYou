@@ -43,11 +43,11 @@ class QueueOutgoingMessagesIntegrationTest extends AbstractFixYOUAcceptorIntegra
         testSub.done
         testSub.throwable == null
         def fixMessage = testSub.messages.get(1L)
-        fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue == 1
-        fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).charSequenceValue.toString() == String.valueOf(fixYouSessionId.beginString)
-        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).charSequenceValue.toString() == String.valueOf(fixYouSessionId.senderCompID)
-        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).charSequenceValue.toString() == String.valueOf(fixYouSessionId.targetCompID)
-        fixMessage.getField(ClOrdID.FIELD).charSequenceValue.toString() == clordid.toString()
+        fixMessage.getLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER) == 1
+        fixMessage.getCharSequenceValue(FixConstants.BEGIN_STRING_FIELD_NUMBER).toString() == String.valueOf(fixYouSessionId.beginString)
+        fixMessage.getCharSequenceValue(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).toString() == String.valueOf(fixYouSessionId.senderCompID)
+        fixMessage.getCharSequenceValue(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).toString() == String.valueOf(fixYouSessionId.targetCompID)
+        fixMessage.getCharSequenceValue(ClOrdID.FIELD).toString() == clordid.toString()
 
         cleanup:
         messageStore.@sessionToMessagesMap.get(fixYouSessionId).values().forEach({ msg -> msg.release() }) //message store retains messages, but since this is end of test we want to release all FixMessages

@@ -17,6 +17,7 @@ public abstract class AbstractPoolableObject implements ReferenceCounted, Closea
     protected boolean exceptionOnReferenceCheckFail = true;
     private final AtomicInteger state = new AtomicInteger(AVAILABLE_STATE);
     private final AtomicInteger referenceCount = new AtomicInteger(0);
+    @ToString.Exclude
     private ObjectPool pool;
 
     @Override

@@ -5,7 +5,7 @@ import spock.lang.Specification
 class ReusableCharArrayTest extends Specification {
 
     private static final String contence = "some string"
-    private ReusableCharArray reusableCharArray = new ReusableCharArray(contence.toCharArray())
+    private ReusableCharArray reusableCharArray = new ReusableCharArray(contence.toCharArray(), contence.size())
 
     def "should return proper length"() {
         expect:

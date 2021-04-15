@@ -2,7 +2,7 @@ package io.github.zlooo.fixyou.session;
 
 import io.github.zlooo.fixyou.Closeable;
 import io.github.zlooo.fixyou.Resettable;
-import io.github.zlooo.fixyou.model.FixSpec;
+import io.github.zlooo.fixyou.model.ExtendedFixSpec;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -16,7 +16,7 @@ public abstract class AbstractSessionState implements Resettable, Closeable {
 
     private final SessionConfig sessionConfig;
     private final SessionID sessionId;
-    private final FixSpec fixSpec;
+    private final ExtendedFixSpec fixSpec;
     private final AtomicBoolean connected = new AtomicBoolean(false);
     private boolean logonSent;
     private boolean logoutSent;

@@ -1,8 +1,12 @@
 package io.github.zlooo.fixyou.netty.handler;
 
+import com.carrotsearch.hppcrt.LongObjectMap;
+import com.carrotsearch.hppcrt.maps.LongObjectHashMap;
+import com.carrotsearch.hppcrt.procedures.ObjectProcedure;
 import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.Resettable;
+import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.fix.commons.LogoutTexts;
 import io.github.zlooo.fixyou.fix.commons.RejectReasons;
@@ -16,8 +20,6 @@ import io.netty.channel.*;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.agrona.collections.Hashing;
-import org.agrona.collections.Long2ObjectHashMap;
 
 @Slf4j
 @Getter
@@ -27,17 +29,18 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
     private static final int DEFAULT_NEXT_EXPECTED_INBOUND_SEQUENCE_NUMBER = 1;
     private static final int DEFAULT_OUTBOUND_SEQUENCE_NUMBER = 0;
 
-    private long nextExpectedInboundSequenceNumber = DEFAULT_NEXT_EXPECTED_INBOUND_SEQUENCE_NUMBER;
-    private long lastOutboundSequenceNumber = DEFAULT_OUTBOUND_SEQUENCE_NUMBER;
     private final NettyHandlerAwareSessionState sessionState;
     private final ObjectPool<FixMessage> fixMessageObjectPool;
     private final SessionID sessionId;
     //TODO performance test it, maybe some other collection is better suited, especially since it's ordered
-    private final Long2ObjectHashMap<FixMessage> sequenceNumberToQueuedFixMessages = new Long2ObjectHashMap<>(DefaultConfiguration.QUEUED_MESSAGES_MAP_SIZE, Hashing.DEFAULT_LOAD_FACTOR);
+    private final LongObjectMap<FixMessage> sequenceNumberToQueuedFixMessages = new LongObjectHashMap<>(DefaultConfiguration.QUEUED_MESSAGES_MAP_SIZE);
+    private long nextExpectedInboundSequenceNumber = DEFAULT_NEXT_EXPECTED_INBOUND_SEQUENCE_NUMBER;
+    private long lastOutboundSequenceNumber = DEFAULT_OUTBOUND_SEQUENCE_NUMBER;
 
     public SessionHandler(NettyHandlerAwareSessionState sessionState, ObjectPool<FixMessage> fixMessageObjectPool) {
         this.sessionState = sessionState;
         this.fixMessageObjectPool = fixMessageObjectPool;
+        this.sequenceNumberToQueuedFixMessages.setDefaultValue(FixMessageUtils.EMPTY_FAKE_MESSAGE);
         sessionId = sessionState.getSessionId();
         loadSequenceNumbers();
         log.debug("Created fix session handler for session {}", sessionId);
@@ -51,7 +54,7 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
     public void reset() {
         nextExpectedInboundSequenceNumber = DEFAULT_NEXT_EXPECTED_INBOUND_SEQUENCE_NUMBER;
         lastOutboundSequenceNumber = DEFAULT_OUTBOUND_SEQUENCE_NUMBER;
-        sequenceNumberToQueuedFixMessages.values().forEach(FixMessage::release);
+        sequenceNumberToQueuedFixMessages.values().forEach((ObjectProcedure<? super FixMessage>) AbstractPoolableObject::release);
         sequenceNumberToQueuedFixMessages.clear();
     }
 
@@ -77,7 +80,7 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
     }
 
     private void checkSequenceNumber(ChannelHandlerContext ctx, FixMessage fixMessage, boolean isSequenceReset) {
-        final long sequenceNumberFromMessage = fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).getLongValue();
+        final long sequenceNumberFromMessage = fixMessage.getLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER);
         if (sequenceNumberFromMessage == nextExpectedInboundSequenceNumber) {
             if (!sequenceNumberToQueuedFixMessages.isEmpty()) {
                 sequenceNumberToQueuedFixMessages.remove(sequenceNumberFromMessage);
@@ -97,11 +100,11 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
     }
 
     private void setNewExpectedSeqNumber(ChannelHandlerContext ctx, FixMessage fixMessage) {
-        final long newSequenceValue = fixMessage.getField(FixConstants.NEW_SEQUENCE_NUMBER_FIELD_NUMBER).getLongValue();
+        final long newSequenceValue = fixMessage.getLongValue(FixConstants.NEW_SEQUENCE_NUMBER_FIELD_NUMBER);
         if (newSequenceValue < nextExpectedInboundSequenceNumber) {
             final FixMessage rejectMessage = FixMessageUtils.toRejectMessage(fixMessage, RejectReasons.VALUE_IS_INCORRECT_FOR_THIS_TAG, FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, RejectReasons.TOO_LOW_NEW_SEQUENCE_NUMBER);
             SessionIDUtils.setSessionIdFields(rejectMessage, sessionId);
-            rejectMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).setLongValue(++lastOutboundSequenceNumber);
+            rejectMessage.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, ++lastOutboundSequenceNumber);
             ctx.writeAndFlush(rejectMessage.retain()).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
         } else {
             log.warn("Sequence reset in reset mode received for session {}, setting new next expected inbound sequence number to {}", sessionId, newSequenceValue);
@@ -117,7 +120,7 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
     private void pushQueuedMessagesIfPresent(ChannelHandlerContext ctx) {
         if (!sequenceNumberToQueuedFixMessages.isEmpty()) { //quick path, 99% cases there won't be anything queued
             FixMessage queuedFixMessage;
-            while ((queuedFixMessage = sequenceNumberToQueuedFixMessages.getOrDefault(nextExpectedInboundSequenceNumber, FixMessageUtils.EMPTY_FAKE_MESSAGE)) != FixMessageUtils.EMPTY_FAKE_MESSAGE) {
+            while ((queuedFixMessage = sequenceNumberToQueuedFixMessages.get(nextExpectedInboundSequenceNumber)) != FixMessageUtils.EMPTY_FAKE_MESSAGE) {
                 try {
                     sequenceNumberToQueuedFixMessages.remove(nextExpectedInboundSequenceNumber);
                     if (!FixMessageUtils.isAdminMessage(queuedFixMessage)) {
@@ -145,14 +148,14 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
                 log.info("Message gap detected in session {}, sending resend request for sequence numbers <{}, {}>", sessionId, cutDownFromInclusive, cutDownToInclusive);
                 final FixMessage resendRequest = FixMessageUtils.toResendRequest(fixMessageObjectPool.getAndRetain(), cutDownFromInclusive, cutDownToInclusive);
                 SessionIDUtils.setSessionIdFields(resendRequest, sessionId);
-                resendRequest.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).setLongValue(++lastOutboundSequenceNumber);
+                resendRequest.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, ++lastOutboundSequenceNumber);
                 ctx.writeAndFlush(resendRequest).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
             } else {
                 log.error("Missing from sequence number({}) is lower than missing to sequence number({}), how can this be?", cutDownFromInclusive, cutDownToInclusive);
             }
         }
         final FixMessage fixMessageToBeQueued = fixMessageObjectPool.getAndRetain();
-        fixMessageToBeQueued.copyDataFrom(fixMessage, true);
+        fixMessageToBeQueued.copyDataFrom(fixMessage);
         sequenceNumberToQueuedFixMessages.put(sequenceNumberFromMessage, fixMessageToBeQueued);
         pushQueuedMessagesIfPresent(ctx);
     }
@@ -168,7 +171,7 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
             log.error("Sequence number for session {} is lower than expected({}) and PossDupFlag is not set, terminating this session", sessionId, expectedSequenceNumber);
             final FixMessage logoutMessage = FixMessageUtils.toLogoutMessage(fixMessage, LogoutTexts.SEQUENCE_NUMBER_LOWER_THAN_EXPECTED);
             SessionIDUtils.setSessionIdFields(logoutMessage, sessionId);
-            logoutMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).setLongValue(++lastOutboundSequenceNumber);
+            logoutMessage.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, ++lastOutboundSequenceNumber);
             ctx.writeAndFlush(logoutMessage.retain())
                .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
                .addListener(FixChannelListeners.LOGOUT_SENT);
@@ -183,7 +186,7 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
             final FixMessage fixMessage = (FixMessage) msg;
             if (!((FixMessageUtils.isSequenceReset(fixMessage) && FixMessageUtils.hasBooleanFieldSet(fixMessage, FixConstants.GAP_FILL_FLAG_FIELD_NUMBER)) ||
                   FixMessageUtils.hasBooleanFieldSet(fixMessage, FixConstants.POSSIBLE_DUPLICATE_FLAG_FIELD_NUMBER))) {
-                fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).setLongValue(++lastOutboundSequenceNumber);
+                fixMessage.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, ++lastOutboundSequenceNumber);
             }
             SessionIDUtils.setSessionIdFields(fixMessage, sessionId);
         }

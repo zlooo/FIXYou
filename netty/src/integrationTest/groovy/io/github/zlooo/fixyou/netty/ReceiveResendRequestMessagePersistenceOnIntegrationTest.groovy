@@ -3,9 +3,7 @@ package io.github.zlooo.fixyou.netty
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.fix.commons.session.MemoryMessageStore
 import io.github.zlooo.fixyou.netty.test.framework.FixMessages
-import io.github.zlooo.fixyou.parser.model.FieldCodec
-import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.session.MessageStore
+import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
 import org.assertj.core.api.Assertions
 import quickfix.Message
@@ -21,7 +19,7 @@ import java.util.function.Function
 @Timeout(30)
 class ReceiveResendRequestMessagePersistenceOnIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 
-    private MessageStore fakeMessageStore
+    private MemoryMessageStore fakeMessageStore
     private UUID clordid1 = UUID.randomUUID()
     private UUID clordid2 = UUID.randomUUID()
     private UUID clordid3 = UUID.randomUUID()
@@ -29,25 +27,25 @@ class ReceiveResendRequestMessagePersistenceOnIntegrationTest extends AbstractFi
     @Override
     protected SessionConfig createConfig() {
         fakeMessageStore = new MemoryMessageStore()
-        def newOrderSingle1 = new FixMessage(new FieldCodec())
+        def newOrderSingle1 = new NotPoolableFixMessage()
         FixMessages.createFIXYouNewOrderSingle(clordid1).accept(newOrderSingle1)
-        newOrderSingle1.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 2L
+        newOrderSingle1.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 2L)
         fakeMessageStore.storeMessage(fixYouSessionId, 2L, newOrderSingle1)
-        def newOrderSingle2 = new FixMessage(new FieldCodec())
+        def newOrderSingle2 = new NotPoolableFixMessage()
         FixMessages.createFIXYouNewOrderSingle(clordid2).accept(newOrderSingle2)
-        newOrderSingle2.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 3L
+        newOrderSingle2.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 3L)
         fakeMessageStore.storeMessage(fixYouSessionId, 3L, newOrderSingle2)
-        def heartbeat1 = new FixMessage(new FieldCodec())
+        def heartbeat1 = new NotPoolableFixMessage()
         FixMessages.createFIXYouHeartbeat().accept(heartbeat1)
-        heartbeat1.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 4L
+        heartbeat1.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 4L)
         fakeMessageStore.storeMessage(fixYouSessionId, 4L, heartbeat1)
-        def heartbeat2 = new FixMessage(new FieldCodec())
+        def heartbeat2 = new NotPoolableFixMessage()
         FixMessages.createFIXYouHeartbeat().accept(heartbeat2)
-        heartbeat2.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 5L
+        heartbeat2.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 5L)
         fakeMessageStore.storeMessage(fixYouSessionId, 5L, heartbeat2)
-        def newOrderSingle3 = new FixMessage(new FieldCodec())
+        def newOrderSingle3 = new NotPoolableFixMessage()
         FixMessages.createFIXYouNewOrderSingle(clordid3).accept(newOrderSingle3)
-        newOrderSingle3.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).longValue = 6L
+        newOrderSingle3.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 6L)
         fakeMessageStore.storeMessage(fixYouSessionId, 6L, newOrderSingle3)
         return super.createConfig().setPersistent(true).setMessageStore(fakeMessageStore)
     }
@@ -82,6 +80,7 @@ class ReceiveResendRequestMessagePersistenceOnIntegrationTest extends AbstractFi
                 containsExactly(clordid1.toString(), clordid2.toString(), clordid3.toString())
 
         cleanup:
-        fakeMessageStore.reset(fixYouSessionId)
+        fakeMessageStore.sessionToMessagesMap.forEach((sessionId, messages) -> messages.values().forEach(msg -> msg.release()))
+        fakeMessageStore.sessionToMessagesMap.forEach((sessionId, messages) -> messages.values().forEach(msg -> msg.close()))
     }
 }

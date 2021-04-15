@@ -88,13 +88,13 @@ class LogonHandler implements AdministrativeMessageHandler {
                         log.info("Reset sequence number flag set, resetting session {}", sessionState.getSessionId());
                         sessionState.reset();
                     }
-                    final SessionAwareChannelInboundHandler sessionHandler = addRequiredHandlersToPipelineIfNeeded(ctx, sessionState, fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getLongValue());
+                    final SessionAwareChannelInboundHandler sessionHandler = addRequiredHandlersToPipelineIfNeeded(ctx, sessionState, fixMessage.getLongValue(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER));
                     if (!sessionState.isLogonSent()) {
                         ctx.writeAndFlush(
                                 FixMessageUtils.toLogonMessage(fixMessageObjectPool.getAndRetain(),
                                                                sessionState.getFixSpec().applicationVersionId().getValue(),
-                                                               fixMessage.getField(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER).getLongValue(),
-                                                               fixMessage.getField(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER).getLongValue(),
+                                                               fixMessage.getLongValue(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER),
+                                                               fixMessage.getLongValue(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER),
                                                                resetSequenceFlagSet))
                            .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE).addListener(FixChannelListeners.LOGON_SENT);
                     } else {

@@ -22,7 +22,7 @@ class RejectHandler implements AdministrativeMessageHandler {
     @Override
     public void handleMessage(FixMessage fixMessage, ChannelHandlerContext ctx) {
         log.warn("Received reject message for session {}, sequence number of rejected message {}. Whole message will be logged on debug level", NettyHandlerAwareSessionState.getForChannelContext(ctx).getSessionId(),
-                 fixMessage.getField(FixConstants.REFERENCED_SEQUENCE_NUMBER_FIELD_NUMBER));
+                 fixMessage.getLongValue(FixConstants.REFERENCED_SEQUENCE_NUMBER_FIELD_NUMBER));
         log.debug("Reject message received {}", fixMessage);
     }
 

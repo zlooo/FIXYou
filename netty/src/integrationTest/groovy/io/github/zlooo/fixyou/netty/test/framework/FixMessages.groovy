@@ -75,18 +75,18 @@ class FixMessages {
     }
 
     static Consumer<FixMessage> createFIXYouNewOrderSingle(UUID clordid) {
-        return { fixMessage ->
-            fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).setCharSequenceValue(NewOrderSingle.MSGTYPE.toCharArray())
-            fixMessage.getField(ClOrdID.FIELD).setCharSequenceValue(clordid.toString().toCharArray())
-            fixMessage.getField(Side.FIELD).setCharValue(Side.BUY)
-            fixMessage.getField(TransactTime.FIELD).setTimestampValue(Instant.now().toEpochMilli())
-            fixMessage.getField(OrdType.FIELD).setCharValue(OrdType.MARKET)
+        return { FixMessage fixMessage ->
+            fixMessage.setCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER, NewOrderSingle.MSGTYPE)
+            fixMessage.setCharSequenceValue(ClOrdID.FIELD, clordid.toString())
+            fixMessage.setCharValue(Side.FIELD, Side.BUY)
+            fixMessage.setTimestampValue(TransactTime.FIELD, Instant.now().toEpochMilli())
+            fixMessage.setCharValue(OrdType.FIELD, OrdType.MARKET)
         }
     }
 
     static Consumer<FixMessage> createFIXYouHeartbeat() {
-        return { fixMessage ->
-            fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue = FixConstants.HEARTBEAT
+        return { FixMessage fixMessage ->
+            fixMessage.setCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER, FixConstants.HEARTBEAT)
             fixMessage.retain()
         }
     }

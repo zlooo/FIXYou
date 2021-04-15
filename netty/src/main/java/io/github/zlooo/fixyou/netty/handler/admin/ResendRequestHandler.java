@@ -32,8 +32,8 @@ class ResendRequestHandler implements AdministrativeMessageHandler {
 
     @Override
     public void handleMessage(FixMessage fixMessage, ChannelHandlerContext ctx) {
-        final long from = fixMessage.getField(FixConstants.BEGIN_SEQUENCE_NUMBER_FIELD_NUMBER).getLongValue();
-        final long to = fixMessage.getField(FixConstants.END_SEQUENCE_NUMBER_FIELD_NUMBER).getLongValue();
+        final long from = fixMessage.getLongValue(FixConstants.BEGIN_SEQUENCE_NUMBER_FIELD_NUMBER);
+        final long to = fixMessage.getLongValue(FixConstants.END_SEQUENCE_NUMBER_FIELD_NUMBER);
         final NettyHandlerAwareSessionState sessionState = NettyHandlerAwareSessionState.getForChannelContext(ctx);
         final SessionID sessionId = sessionState.getSessionId();
         log.info("Resend request received for session {}, from {} to {}", sessionId, from, to);

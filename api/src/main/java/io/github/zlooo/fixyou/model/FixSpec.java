@@ -1,13 +1,22 @@
 package io.github.zlooo.fixyou.model;
 
-import io.github.zlooo.fixyou.utils.ArrayUtils;
+import lombok.Value;
 
 import javax.annotation.Nonnull;
 
 public interface FixSpec {
 
     @Nonnull
-    int[] getFieldsOrder();
+    int[] getHeaderFieldsOrder();
+
+    @Nonnull
+    FieldType[] getHeaderFieldTypes();
+
+    @Nonnull
+    int[] getBodyFieldsOrder();
+
+    @Nonnull
+    FieldType[] getBodyFieldTypes();
 
     @Nonnull
     char[][] getMessageTypes();
@@ -16,9 +25,11 @@ public interface FixSpec {
     ApplicationVersionID applicationVersionId();
 
     @Nonnull
-    int[] getRepeatingGroupFieldNumbers(int groupNumber);
+    FieldNumberType[] getRepeatingGroupFieldNumbers(int groupNumber);
 
-    default int highestFieldNumber(){
-        return ArrayUtils.max(getFieldsOrder());
+    @Value
+    class FieldNumberType{
+        private int number;
+        private FieldType type;
     }
 }

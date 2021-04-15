@@ -8,19 +8,29 @@ class FakeFixSpecTest extends Specification {
 
     private FakeFixSpec fixSpec = new FakeFixSpec()
 
-    def "should get fields in order"() {
+    def "should get header fields in order"() {
         expect:
-        fixSpec.getFieldsOrder().length == 0
+        fixSpec.getHeaderFieldsOrder().length == 0
+    }
+
+    def "should get body fields in order"() {
+        expect:
+        fixSpec.getBodyFieldsOrder().length == 0
+    }
+
+    def "should get header field types"(){
+        expect:
+        fixSpec.getHeaderFieldTypes().length == 0
+    }
+
+    def "should get body field types"(){
+        expect:
+        fixSpec.getBodyFieldTypes().length == 0
     }
 
     def "should get message types"() {
         expect:
         fixSpec.getMessageTypes().length == 0
-    }
-
-    def "should return highest field number"() {
-        expect:
-        fixSpec.highestFieldNumber() == 0
     }
 
     def "should return application version id"() {

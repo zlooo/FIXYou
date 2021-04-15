@@ -1,6 +1,8 @@
 package io.github.zlooo.fixyou.utils
 
 import io.github.zlooo.fixyou.utils.ArrayUtils
+import org.assertj.core.api.Assertions
+import org.assertj.core.data.Index
 import spock.lang.Specification
 
 class ArrayUtilsTest extends Specification {
@@ -96,6 +98,21 @@ class ArrayUtilsTest extends Specification {
         3     | 3
     }
 
+    def "should get element at for long array"() {
+        setup:
+        def array = [0, 1, 2, 3] as long[]
+
+        expect:
+        ArrayUtils.getElementAt(array, index) == expectedResult
+
+        where:
+        index | expectedResult
+        0     | 0
+        1     | 1
+        2     | 2
+        3     | 3
+    }
+
     def "should get element at for char array"() {
         setup:
         def array = ["0" as char, "1" as char, "2" as char, "3" as char] as char[]
@@ -109,5 +126,77 @@ class ArrayUtilsTest extends Specification {
         1     | "1" as char
         2     | "2" as char
         3     | "3" as char
+    }
+
+    def "should put element to object array"() {
+        setup:
+        def array = new String[4]
+
+        when:
+        ArrayUtils.putElementAt(array, index, objectToPut)
+
+        then:
+        Assertions.assertThat(array).contains(objectToPut, Index.atIndex(index)).containsOnly(objectToPut, null)
+
+        where:
+        index | objectToPut
+        0     | "0"
+        1     | "1"
+        2     | "2"
+        3     | "3"
+    }
+
+    def "should put element to byte array"() {
+        setup:
+        def array = new byte[4]
+
+        when:
+        ArrayUtils.putElementAt(array, index, objectToPut)
+
+        then:
+        Assertions.assertThat(array).contains(objectToPut, Index.atIndex(index)).containsOnly(objectToPut, null)
+
+        where:
+        index | objectToPut
+        0     | 1 as byte
+        1     | 2 as byte
+        2     | 3 as byte
+        3     | 4 as byte
+    }
+
+    def "should put element to int array"() {
+        setup:
+        def array = new int[4]
+
+        when:
+        ArrayUtils.putElementAt(array, index, objectToPut)
+
+        then:
+        Assertions.assertThat(array).contains(objectToPut, Index.atIndex(index)).containsOnly(objectToPut, null)
+
+        where:
+        index | objectToPut
+        0     | 1
+        1     | 2
+        2     | 3
+        3     | 4
+    }
+
+    def "should put element to long array"() {
+        setup:
+        def array = new long[4]
+
+        when:
+        ArrayUtils.putElementAt(array, index, objectToPut)
+
+        then:
+        Assertions.assertThat(array).contains(objectToPut, Index.atIndex(index)).containsOnly(objectToPut, null)
+
+        where:
+        index | objectToPut
+        0     | 1L
+        1     | 2L
+        2     | 3L
+        3     | 4L
     }
 }

@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import io.netty.util.ByteProcessor
 import org.assertj.core.api.Assertions
+import org.assertj.core.data.Index
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
@@ -299,6 +300,44 @@ class ByteBufComposerTest extends Specification {
         1          | 10
     }
 
+    def "should allow to release with starting index pointing to already released component"() {
+        setup:
+        def bufferToAdd1 = Unpooled.wrappedBuffer([1, 2] as byte[])
+        def bufferToAdd2 = Unpooled.wrappedBuffer([3, 4, 5] as byte[])
+        def bufferToAdd3 = Unpooled.wrappedBuffer([6, 7, 8] as byte[])
+        composer.addByteBuf(bufferToAdd1)
+        composer.addByteBuf(bufferToAdd2)
+        composer.addByteBuf(bufferToAdd3)
+        composer.releaseData(0, 1)
+
+        when:
+        composer.releaseData(startIndex, endIndex)
+
+        then:
+        composer.storedEndIndex == endIndex >= 7 ? -1 : 7
+        composer.storedStartIndex == endIndex >= 7 ? -1 : endIndex + 1
+        composer.arrayIndex == endIndex >= 7 ? 0 : 3
+        composer.readerIndex == endIndex >= 7 ? -1 : endIndex + 1
+        if (endIndex >= 7) {
+            Assertions.assertThat(composer.components).containsOnly(EMPTY_COMPONENT)
+        } else {
+            def remainingComponent = new ByteBufComposer.Component(startIndex: endIndex + 1, endIndex: 7, buffer: bufferToAdd3, offset: 5)
+            Assertions.assertThat(composer.components).containsOnly(EMPTY_COMPONENT, remainingComponent).contains(remainingComponent, Index.atIndex(2)).containsOnlyOnce(remainingComponent)
+        }
+        bufferToAdd1.refCnt() == 1
+        bufferToAdd2.refCnt() == 1
+        bufferToAdd3.refCnt() == endIndex >= 7 ? 1 : 2
+
+        where:
+        startIndex | endIndex
+        0          | 4
+        0          | 5
+        0          | 10
+        1          | 4
+        1          | 5
+        1          | 10
+    }
+
     def "should not get released part of buffer"() {
         setup:
         def bufferToAdd1 = Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[])
@@ -316,20 +355,20 @@ class ByteBufComposerTest extends Specification {
         thrown(IndexOutOfBoundsException)
     }
 
-    def "should release buffer when release call is split in 2 and spans across multiple buffers"(){
+    def "should release buffer when release call is split in 2 and spans across multiple buffers"() {
         setup:
         def bufferToAdd1 = Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[])
         def bufferToAdd2 = Unpooled.wrappedBuffer([6, 7, 8, 9, 10] as byte[])
         composer.addByteBuf(bufferToAdd1)
         composer.addByteBuf(bufferToAdd2)
-        composer.releaseData(0,1)
+        composer.releaseData(0, 1)
 
         when:
         composer.releaseData(2, 6)
 
         then:
-        composer.storedStartIndex==7
-        composer.storedEndIndex==9
+        composer.storedStartIndex == 7
+        composer.storedEndIndex == 9
         composer.arrayIndex == 2
         composer.readerIndex == 7
         Assertions.assertThat(composer.components).containsOnly(EMPTY_COMPONENT, new ByteBufComposer.Component(startIndex: 7, endIndex: 9, offset: 5, buffer: bufferToAdd2))
@@ -457,7 +496,7 @@ class ByteBufComposerTest extends Specification {
         Assertions.assertThat(dest.array()).containsExactly(resize("def".getBytes(StandardCharsets.US_ASCII), dest.capacity()))
     }
 
-    def "should get bytes from component that's not 100% filled"(){
+    def "should get bytes from component that's not 100% filled"() {
         setup:
         def buf = Unpooled.buffer(100)
         buf.writeBytes("some".getBytes(StandardCharsets.US_ASCII))
@@ -476,6 +515,12 @@ class ByteBufComposerTest extends Specification {
         setup:
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[]))
         composer.addByteBuf(Unpooled.wrappedBuffer([6, 7, 8] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([9, 10, 11, 12] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([13, 14, 15, 16] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([17, 18, 19, 20] as byte[]))
+        composer.releaseData(8, 11)
+        composer.releaseData(12, 12)
+        composer.releaseData(18, 19)
 
         expect:
         composer.getByte(index) == expectedResult
@@ -490,6 +535,11 @@ class ByteBufComposerTest extends Specification {
         5     | 6 as byte
         6     | 7 as byte
         7     | 8 as byte
+        13     | 14 as byte
+        14     | 15 as byte
+        15     | 16 as byte
+        16     | 17 as byte
+        17     | 18 as byte
     }
 
     def "should find index of closest for single buffer"() {
@@ -588,7 +638,7 @@ class ByteBufComposerTest extends Specification {
         (startingIndex..endingIndex).collect { index -> new ByteBufComposer.Component(startIndex: index, endIndex: index, buffer: Unpooled.wrappedBuffer([index] as byte[])) }
     }
 
-    private ByteProcessor iop(byte valueToFind){
+    private ByteProcessor iop(byte valueToFind) {
         return new ByteProcessor.IndexOfProcessor(valueToFind)
     }
 }

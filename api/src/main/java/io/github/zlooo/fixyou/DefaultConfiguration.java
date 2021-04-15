@@ -19,4 +19,8 @@ public class DefaultConfiguration { //TODO move to config module and make this c
     public static final int BYTE_BUF_COMPOSER_DEFAULT_COMPONENT_NUMBER = 10000;
     public static final int DEFAULT_OUT_MESSAGE_BUF_INIT_CAPACITY = 512;
     public static final int DEFAULT_MAX_FIELD_NUMBER = 200; //just a starting point, arrays will resize if needed
+    public static final int INITIAL_FIELDS_IN_MSG_NUMBER = 20;
+    public static final int INITIAL_REGION_ARRAY_SIZE = 5;
+    public static final int REGION_POOL_SIZE = FIX_MESSAGE_POOL_SIZE;
+    public static final short REGION_SIZE = 64 * 4; //cache line * 4
 }

@@ -41,7 +41,7 @@ class InitiatorSessionInitializationIntegrationTest extends Specification {
         acceptorPort = SocketUtils.findAvailableTcpPort()
         engine = FIXYouNetty.
                 create(FIXYouConfiguration.builder().initiator(true).fixMessagePoolSize(4).fixMessageListenerInvokerDisruptorSize(4).build(), new TestFixMessageListener()).
-                registerSession(new io.github.zlooo.fixyou.session.SessionID("FIXT.1.1".toCharArray(), 8, senderCompId.toCharArray(), senderCompId.length(), targetCompId.toCharArray(), targetCompId.length()),
+                registerSession(new io.github.zlooo.fixyou.session.SessionID("FIXT.1.1", senderCompId, targetCompId,),
                                              TestSpec.INSTANCE,
                                              //TODO test spec for now but once we have real one it should be used here instead
                                              new SessionConfig().setPersistent(false).setHost("localhost").setPort(acceptorPort).addSessionStateListener(sessionSateListener))

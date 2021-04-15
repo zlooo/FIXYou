@@ -2,7 +2,6 @@ package io.github.zlooo.fixyou.netty.handler.validation;
 
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
-import io.github.zlooo.fixyou.parser.model.Field;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -12,10 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 public class ValidationOperations {
 
     static boolean checkOrigSendingTime(FixMessage msg) {
-        final Field origSendingTime = msg.getField(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER);
-        if (origSendingTime.isValueSet()) {
-            final Field sendingTime = msg.getField(FixConstants.SENDING_TIME_FIELD_NUMBER);
-            return origSendingTime.getTimestampValue() <= sendingTime.getTimestampValue();
+        if (msg.isValueSet(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER)) {
+            return msg.getTimestampValue(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER) <= msg.getTimestampValue(FixConstants.SENDING_TIME_FIELD_NUMBER);
         }
         return true;
     }
@@ -44,6 +41,6 @@ public class ValidationOperations {
     }
 
     private static boolean hasSequenceNumberResettedIfFlagIsSet(FixMessage fixMessage) {
-        return !FixMessageUtils.hasBooleanFieldSet(fixMessage, FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER) || fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).getLongValue() == 1L;
+        return !FixMessageUtils.hasBooleanFieldSet(fixMessage, FixConstants.RESET_SEQUENCE_NUMBER_FLAG_FIELD_NUMBER) || fixMessage.getLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER) == 1L;
     }
 }

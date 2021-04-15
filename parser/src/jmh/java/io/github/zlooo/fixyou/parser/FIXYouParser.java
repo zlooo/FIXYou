@@ -1,8 +1,8 @@
 package io.github.zlooo.fixyou.parser;
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer;
-import io.github.zlooo.fixyou.parser.model.FieldCodec;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
+import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.openjdk.jmh.annotations.*;
@@ -21,14 +21,14 @@ public class FIXYouParser {
         final ByteBuf byteBufBytes = Unpooled.directBuffer(msgBytes.length);
         byteBufBytes.writeBytes(msgBytes);
         byteBufComposer.addByteBuf(byteBufBytes);
-        fixMessageParser = new FixMessageParser(byteBufComposer, new FixSpec50SP2(), new FixMessage(new FieldCodec()));
+        fixMessageParser = new FixMessageParser(byteBufComposer, new FixSpec50SP2(), new NotPoolableFixMessage());
     }
 
     @TearDown
     public void tearDown() {
         final FixMessage fixMessage = fixMessageParser.getFixMessage();
         if (fixMessage != null) {
-            fixMessage.release();
+            fixMessage.close();
         }
         fixMessageParser.getBytesToParse().releaseData(0, Integer.MAX_VALUE);
     }

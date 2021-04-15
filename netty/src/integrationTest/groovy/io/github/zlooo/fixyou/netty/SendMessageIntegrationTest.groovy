@@ -4,7 +4,6 @@ import io.github.zlooo.fixyou.netty.test.framework.FixMessages
 import org.assertj.core.api.Assertions
 import quickfix.field.ClOrdID
 import quickfix.field.MsgType
-import quickfix.fix50sp2.NewOrderSingle
 
 class SendMessageIntegrationTest extends AbstractFixYOUAcceptorIntegrationTest {
 

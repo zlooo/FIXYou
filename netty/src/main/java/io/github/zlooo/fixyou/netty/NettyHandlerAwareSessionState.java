@@ -1,7 +1,7 @@
 package io.github.zlooo.fixyou.netty;
 
 import io.github.zlooo.fixyou.FixConstants;
-import io.github.zlooo.fixyou.model.FixSpec;
+import io.github.zlooo.fixyou.model.ExtendedFixSpec;
 import io.github.zlooo.fixyou.netty.handler.NettyResettablesNames;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.session.AbstractSessionState;
@@ -31,7 +31,7 @@ public class NettyHandlerAwareSessionState extends AbstractSessionState {
 
     private Channel channel;
 
-    public NettyHandlerAwareSessionState(SessionConfig sessionConfig, SessionID sessionId, FixSpec fixSpec) {
+    public NettyHandlerAwareSessionState(SessionConfig sessionConfig, SessionID sessionId, ExtendedFixSpec fixSpec) {
         super(sessionConfig, sessionId, fixSpec);
     }
 
@@ -55,7 +55,7 @@ public class NettyHandlerAwareSessionState extends AbstractSessionState {
         try {
             ((ChannelOutboundHandler) getResettables().get(NettyResettablesNames.SESSION)).write(notMovingForwardOnReadAndWriteCtx, fixMessage, null);
             if (getSessionConfig().isPersistent()) {
-                getSessionConfig().getMessageStore().storeMessage(getSessionId(), fixMessage.getField(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER).getLongValue(), fixMessage);
+                getSessionConfig().getMessageStore().storeMessage(getSessionId(), fixMessage.getLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER), fixMessage);
             }
             log.debug("Queueing message {}", fixMessage);
         } finally {

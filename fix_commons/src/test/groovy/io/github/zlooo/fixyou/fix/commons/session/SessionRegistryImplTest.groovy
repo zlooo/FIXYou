@@ -2,6 +2,7 @@ package io.github.zlooo.fixyou.fix.commons.session
 
 import io.github.zlooo.fixyou.FIXYouException
 import io.github.zlooo.fixyou.Resettable
+import io.github.zlooo.fixyou.model.ExtendedFixSpec
 import io.github.zlooo.fixyou.model.FixSpec
 import io.github.zlooo.fixyou.session.AbstractSessionState
 import io.github.zlooo.fixyou.session.SessionConfig
@@ -13,9 +14,9 @@ import java.util.function.Function
 
 class SessionRegistryImplTest extends Specification {
 
-    private SessionID existingSessionId = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
+    private SessionID existingSessionId = new SessionID("","","")
     private SessionRegistryImpl sessionRegistry = new SessionRegistryImpl()
-    private TestSessionState existingSessionState = new TestSessionState(new SessionConfig(), existingSessionId, Mock(FixSpec))
+    private TestSessionState existingSessionState = new TestSessionState(new SessionConfig(), existingSessionId, Mock(ExtendedFixSpec))
 
     void setup() {
         sessionRegistry.@sessions.put(existingSessionId, existingSessionState)
@@ -28,7 +29,7 @@ class SessionRegistryImplTest extends Specification {
 
     def "should not find not existing session state"() {
         expect:
-        sessionRegistry.getStateForSession(new SessionID("beginString".toCharArray(), 5, "fakeSender".toCharArray(), 5, "fakeTarget".toCharArray(), 5)) == null
+        sessionRegistry.getStateForSession(new SessionID("beginString", "fakeSender", "fakeTarget")) == null
     }
 
     def "should find state for given session id when required"() {
@@ -38,7 +39,7 @@ class SessionRegistryImplTest extends Specification {
 
     def "should throw exception when cannot find required state"() {
         when:
-        sessionRegistry.getStateForSessionRequired(new SessionID("beginString".toCharArray(), 5, "fakeSender".toCharArray(), 5, "fakeTarget".toCharArray(), 5))
+        sessionRegistry.getStateForSessionRequired(new SessionID("beginString", "fakeSender", "fakeTarget"))
 
         then:
         thrown(FIXYouException)
@@ -74,8 +75,8 @@ class SessionRegistryImplTest extends Specification {
     }
 
     private static final class TestSessionState extends AbstractSessionState {
-        TestSessionState(SessionConfig sessionConfig, SessionID sessionID, FixSpec fixSpec) {
-            super(sessionConfig, sessionID, fixSpec)
+        TestSessionState(SessionConfig sessionConfig, SessionID sessionID, ExtendedFixSpec extendedFixSpec) {
+            super(sessionConfig, sessionID, extendedFixSpec)
         }
     }
 }

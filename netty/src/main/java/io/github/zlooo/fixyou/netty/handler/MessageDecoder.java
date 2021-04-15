@@ -3,10 +3,11 @@ package io.github.zlooo.fixyou.netty.handler;
 import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.Resettable;
 import io.github.zlooo.fixyou.commons.ByteBufComposer;
+import io.github.zlooo.fixyou.commons.memory.Region;
+import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.parser.FixMessageParser;
-import io.github.zlooo.fixyou.parser.model.FieldCodec;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -29,11 +30,12 @@ class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable 
     private final FixMessage fixMessage;
     private final ByteBufComposer byteBufComposer = new ByteBufComposer(DefaultConfiguration.BYTE_BUF_COMPOSER_DEFAULT_COMPONENT_NUMBER);
     private final FixMessageParser fixMessageParser;
+    private final FixSpec fixSpec;
     private State state = State.READY_TO_DECODE;
 
-    public MessageDecoder(FixSpec fixSpec, FieldCodec fieldCodec) {
-        this.fixMessage = new FixMessage(fieldCodec);
-        this.fixMessage.setMessageByteSource(byteBufComposer);
+    public MessageDecoder(FixSpec fixSpec, ObjectPool<Region> regionObjectPool) {
+        this.fixSpec = fixSpec;
+        this.fixMessage = new FixMessage(regionObjectPool);
         this.fixMessageParser = new FixMessageParser(byteBufComposer, fixSpec, fixMessage);
     }
 
@@ -51,7 +53,7 @@ class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable 
                         if (state == State.READY_TO_DECODE) {
                             fixMessageParser.startParsing();
                         }
-                         fixMessageParser.parseFixMsgBytes();
+                        fixMessageParser.parseFixMsgBytes();
                         if (fixMessageParser.isDone()) {
                             messageDecoded(ctx);
                         } else {
@@ -69,10 +71,11 @@ class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable 
 
     private void messageDecoded(ChannelHandlerContext ctx) {
         if (log.isTraceEnabled()) {
-            log.trace("Message after decoding {}", fixMessage.toString(true));
+            log.trace("Message after decoding {}", fixMessage.toString(true, fixSpec));
         }
+        byteBufComposer.releaseData(0, byteBufComposer.readerIndex() - 1);
         ctx.fireChannelRead(fixMessage);
-        fixMessage.resetAllDataFieldsAndReleaseByteSource();
+        fixMessage.reset();
         state = State.READY_TO_DECODE;
     }
 

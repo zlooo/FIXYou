@@ -37,7 +37,7 @@ class AdminMessagesHandler extends SimpleChannelInboundHandler<FixMessage> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, FixMessage fixMessage) throws Exception {
-        final CharSequence messageType = fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).getCharSequenceValue();
+        final CharSequence messageType = fixMessage.getCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER);
         if (isSessionIsEstablished(channelHandlerContext) || ArrayUtils.equals(FixConstants.LOGON, messageType)) {
             final AdministrativeMessageHandler messageHandler = handlerMap.get(messageType);
             if (messageHandler != null) {

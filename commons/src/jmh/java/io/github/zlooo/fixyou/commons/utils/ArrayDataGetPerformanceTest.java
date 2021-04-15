@@ -11,11 +11,11 @@ import java.util.concurrent.ThreadLocalRandom;
 public class ArrayDataGetPerformanceTest {
 
     private static final int ARRAY_SIZE = 10_000_000;
-    private static final int NUMBER_OF_GETS = 1_000_000;
+    private static final int NUMBER_OF_GETS = 10_000_000;
 
     @Benchmark
     @BenchmarkMode(Mode.Throughput)
-    public void normalByteGet(TestState state, Blackhole blackhole) {
+    public void randomNormalByteGet(TestState state, Blackhole blackhole) {
         for (final int index : state.indexesToGet) {
             blackhole.consume(state.byteData[index]);
         }
@@ -23,16 +23,39 @@ public class ArrayDataGetPerformanceTest {
 
     @Benchmark
     @BenchmarkMode(Mode.Throughput)
-    public void platformDependentByteGet(TestState state, Blackhole blackhole) {
+    public void randomPlatformDependentByteGet(TestState state, Blackhole blackhole) {
         for (final int index : state.indexesToGet) {
             blackhole.consume(PlatformDependent.getByte(state.byteData, index));
         }
     }
 
+    @Benchmark
+    @BenchmarkMode(Mode.Throughput)
+    public void sequentialNormalForLoopByteGet(TestState state, Blackhole blackhole) {
+        for (final byte data : state.byteData) {
+            blackhole.consume(data);
+        }
+    }
 
     @Benchmark
     @BenchmarkMode(Mode.Throughput)
-    public void normalReferenceGet(TestState state, Blackhole blackhole) {
+    public void sequentialNormalIndexedByteGet(TestState state, Blackhole blackhole) {
+        for (int i = 0; i < state.byteData.length; i++) {
+            blackhole.consume(state.byteData[i]);
+        }
+    }
+
+    @Benchmark
+    @BenchmarkMode(Mode.Throughput)
+    public void sequentialPlatformDependentByteGet(TestState state, Blackhole blackhole) {
+        for (int i = 0; i < state.byteData.length; i++) {
+            blackhole.consume(PlatformDependent.getByte(state.byteData, i));
+        }
+    }
+
+    @Benchmark
+    @BenchmarkMode(Mode.Throughput)
+    public void randomNormalReferenceGet(TestState state, Blackhole blackhole) {
         for (final int index : state.indexesToGet) {
             blackhole.consume(state.objectData[index]);
         }
@@ -40,9 +63,33 @@ public class ArrayDataGetPerformanceTest {
 
     @Benchmark
     @BenchmarkMode(Mode.Throughput)
-    public void unsafeReferenceGet(TestState state, Blackhole blackhole) {
+    public void randomUnsafeReferenceGet(TestState state, Blackhole blackhole) {
         for (final int index : state.indexesToGet) {
             blackhole.consume(ArrayUtils.getElementAt(state.objectData, index));
+        }
+    }
+
+    @Benchmark
+    @BenchmarkMode(Mode.Throughput)
+    public void sequentialNormalForLoopReferenceGet(TestState state, Blackhole blackhole) {
+        for (final Object object : state.objectData) {
+            blackhole.consume(object);
+        }
+    }
+
+    @Benchmark
+    @BenchmarkMode(Mode.Throughput)
+    public void sequentialNormalIndexedReferenceGet(TestState state, Blackhole blackhole) {
+        for (int i = 0; i < state.objectData.length; i++) {
+            blackhole.consume(state.objectData[i]);
+        }
+    }
+
+    @Benchmark
+    @BenchmarkMode(Mode.Throughput)
+    public void sequentialUnsafeReferenceGet(TestState state, Blackhole blackhole) {
+        for (int i = 0; i < state.objectData.length; i++) {
+            blackhole.consume(ArrayUtils.getElementAt(state.objectData, i));
         }
     }
 

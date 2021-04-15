@@ -3,11 +3,12 @@ package io.github.zlooo.fixyou.netty.handler
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.admin.AdministrativeMessageHandler
-import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.util.Attribute
+import spock.lang.AutoCleanup
 import spock.lang.Specification
 
 class AdminMessagesHandlerTest extends Specification {
@@ -23,15 +24,12 @@ class AdminMessagesHandlerTest extends Specification {
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
     private NettyHandlerAwareSessionState sessionState = Mock()
-    private FixMessage fixMessage = new FixMessage(new FieldCodec())
-
-    void setup() {
-        fixMessage.retain()
-    }
+    @AutoCleanup
+    private FixMessage fixMessage = new NotPoolableFixMessage()
 
     def "should handle message of known type"() {
         setup:
-        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).charSequenceValue = FixConstants.LOGON
+        fixMessage.setCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER, FixConstants.LOGON)
 
         when:
         handler.channelRead(channelHandlerContext, fixMessage)
@@ -46,7 +44,7 @@ class AdminMessagesHandlerTest extends Specification {
 
     def "should handle message of unknown type"() {
         setup:
-        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).booleanValue = FixConstants.SEQUENCE_RESET
+        fixMessage.setCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER, FixConstants.SEQUENCE_RESET)
 
         when:
         handler.channelRead(channelHandlerContext, fixMessage)
@@ -80,7 +78,7 @@ class AdminMessagesHandlerTest extends Specification {
 
     def "should do nothing if session is not established and message is not logon"() {
         setup:
-        fixMessage.getField(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).booleanValue = FixConstants.SEQUENCE_RESET
+        fixMessage.setCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER, FixConstants.SEQUENCE_RESET)
 
         when:
         handler.channelRead(channelHandlerContext, fixMessage)

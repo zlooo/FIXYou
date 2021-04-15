@@ -25,4 +25,10 @@ public class FIXYouConfiguration {
     private int fixMessagePoolSize = DefaultConfiguration.FIX_MESSAGE_POOL_SIZE;
     @Builder.Default
     private int fixMessageListenerInvokerDisruptorSize = DefaultConfiguration.FIX_MESSAGE_LISTENER_INVOKER_DISRUPTOR_SIZE;
+    @Builder.Default
+    private int regionPoolSize = DefaultConfiguration.REGION_POOL_SIZE;
+    @Builder.Default
+    private short regionSize = DefaultConfiguration.REGION_SIZE;
+    @Builder.Default
+    private boolean fixSpecOrderedFields = false;
 }

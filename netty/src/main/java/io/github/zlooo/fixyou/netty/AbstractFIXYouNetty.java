@@ -5,6 +5,7 @@ import io.github.zlooo.fixyou.Engine;
 import io.github.zlooo.fixyou.FIXYouConfiguration;
 import io.github.zlooo.fixyou.FIXYouException;
 import io.github.zlooo.fixyou.fix.commons.config.validator.ConfigValidator;
+import io.github.zlooo.fixyou.model.DefaultExtendedFixSpec;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.netty.handler.FixYouNettyComponent;
 import io.github.zlooo.fixyou.netty.handler.NettyResettablesSupplier;
@@ -56,7 +57,7 @@ abstract class AbstractFIXYouNetty implements Engine {
         }
         final SessionRegistry<NettyHandlerAwareSessionState> sessionRegistry = fixYouNettyComponent.sessionRegistry();
         final NettyResettablesSupplier nettyResettablesSupplier = fixYouNettyComponent.resettableSupplier();
-        sessionRegistry.registerExpectedSession(new NettyHandlerAwareSessionState(sessionConfig, sessionID, fixSpec), nettyResettablesSupplier);
+        sessionRegistry.registerExpectedSession(new NettyHandlerAwareSessionState(sessionConfig, sessionID, new DefaultExtendedFixSpec(fixSpec)), nettyResettablesSupplier);
         return this;
     }
 }

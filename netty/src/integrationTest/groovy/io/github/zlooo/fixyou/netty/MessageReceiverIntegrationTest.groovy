@@ -23,7 +23,7 @@ class MessageReceiverIntegrationTest extends AbstractFixYOUAcceptorIntegrationTe
         }
 
         then:
-        Assertions.assertThat(testFixMessageListener.messagesReceived[0].getField(11).charSequenceValue).isEqualToIgnoringNewLines(clord1)
-        Assertions.assertThat(testFixMessageListener.messagesReceived[1].getField(11).charSequenceValue).isEqualToIgnoringNewLines(clord2)
+        Assertions.assertThat(testFixMessageListener.messagesReceived[0].getCharSequenceValue(11)).isEqualToIgnoringNewLines(clord1)
+        Assertions.assertThat(testFixMessageListener.messagesReceived[1].getCharSequenceValue(11)).isEqualToIgnoringNewLines(clord2)
     }
 }

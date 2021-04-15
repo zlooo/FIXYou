@@ -1,10 +1,9 @@
 package io.github.zlooo.fixyou.fix.commons.session;
 
 import io.github.zlooo.fixyou.FixConstants;
-import io.github.zlooo.fixyou.parser.model.Field;
+import io.github.zlooo.fixyou.commons.utils.Comparators;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.session.SessionID;
-import io.github.zlooo.fixyou.utils.ArrayUtils;
 import lombok.experimental.UtilityClass;
 
 import javax.annotation.Nonnull;
@@ -13,9 +12,9 @@ import javax.annotation.Nonnull;
 public class SessionIDUtils {
 
     public static void setSessionIdFields(FixMessage fixMessage, SessionID sessionID) {
-        fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).setCharSequenceValue(sessionID.getSenderCompID());
-        fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).setCharSequenceValue(sessionID.getTargetCompID());
-        fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER).setCharSequenceValue(sessionID.getBeginString());
+        fixMessage.setCharSequenceValue(FixConstants.SENDER_COMP_ID_FIELD_NUMBER, sessionID.getSenderCompID());
+        fixMessage.setCharSequenceValue(FixConstants.TARGET_COMP_ID_FIELD_NUMBER, sessionID.getTargetCompID());
+        fixMessage.setCharSequenceValue(FixConstants.BEGIN_STRING_FIELD_NUMBER, sessionID.getBeginString());
     }
 
     /**
@@ -26,21 +25,19 @@ public class SessionIDUtils {
      */
     @Nonnull
     public static SessionID buildSessionID(@Nonnull FixMessage fixMessage, boolean flipIDs) {
-        final Field senderCompId = fixMessage.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER);
-        final Field targetCompId = fixMessage.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER);
-        final Field beginString = fixMessage.getField(FixConstants.BEGIN_STRING_FIELD_NUMBER);
+        final CharSequence senderCompId = fixMessage.getCharSequenceValue(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).toString();
+        final CharSequence targetCompId = fixMessage.getCharSequenceValue(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).toString();
+        final CharSequence beginString = fixMessage.getCharSequenceValue(FixConstants.BEGIN_STRING_FIELD_NUMBER).toString();
         if (flipIDs) {
-            return new SessionID(beginString.getCharArrayValue(), beginString.getLength(), targetCompId.getCharArrayValue(), targetCompId.getLength(), senderCompId.getCharArrayValue(), senderCompId.getLength());
+            return new SessionID(beginString, targetCompId, senderCompId);
         } else {
-            return new SessionID(beginString.getCharArrayValue(), beginString.getLength(), senderCompId.getCharArrayValue(), senderCompId.getLength(), targetCompId.getCharArrayValue(), targetCompId.getLength());
+            return new SessionID(beginString, senderCompId, targetCompId);
         }
     }
 
     public static boolean checkCompIDs(FixMessage fixMsg, SessionID sessionId, boolean flipIDs) {
-        final CharSequence senderCompId = fixMsg.getField(FixConstants.SENDER_COMP_ID_FIELD_NUMBER).getCharSequenceValue();
-        final CharSequence targetCompId = fixMsg.getField(FixConstants.TARGET_COMP_ID_FIELD_NUMBER).getCharSequenceValue();
-        final char[] senderComparison;
-        final char[] targetComparison;
+        final CharSequence senderComparison;
+        final CharSequence targetComparison;
         if (flipIDs) {
             senderComparison = sessionId.getTargetCompID();
             targetComparison = sessionId.getSenderCompID();
@@ -48,6 +45,7 @@ public class SessionIDUtils {
             senderComparison = sessionId.getSenderCompID();
             targetComparison = sessionId.getTargetCompID();
         }
-        return ArrayUtils.equals(senderComparison, senderCompId) && ArrayUtils.equals(targetComparison, targetCompId);
+        return Comparators.compare(senderComparison, fixMsg.getCharSequenceValue(FixConstants.SENDER_COMP_ID_FIELD_NUMBER)) == 0 &&
+               Comparators.compare(targetComparison, fixMsg.getCharSequenceValue(FixConstants.TARGET_COMP_ID_FIELD_NUMBER)) == 0;
     }
 }

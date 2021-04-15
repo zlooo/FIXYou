@@ -2,15 +2,19 @@ package io.github.zlooo.fixyou.netty.handler
 
 import com.lmax.disruptor.dsl.Disruptor
 import io.github.zlooo.fixyou.FIXYouConfiguration
+import io.github.zlooo.fixyou.commons.memory.Region
+import io.github.zlooo.fixyou.commons.pool.ObjectPool
 import io.github.zlooo.fixyou.fix.commons.FixMessageListener
 import io.github.zlooo.fixyou.netty.AbstractNettyAwareFixMessageListener
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
-import io.github.zlooo.fixyou.parser.model.FieldCodec
 import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
 import io.github.zlooo.fixyou.session.SessionID
+import io.github.zlooo.fixyou.utils.UnsafeAccessor
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.util.Attribute
+import spock.lang.AutoCleanup
 import spock.lang.Specification
 import spock.util.concurrent.PollingConditions
 
@@ -22,13 +26,14 @@ class FixMessageListenerInvokingHandlerTest extends Specification {
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
     private Attribute<Integer> ordinalNumberAttribute = Mock()
     private NettyHandlerAwareSessionState sessionState = Mock()
-    private SessionID sessionID = new SessionID([] as char[], 0, [] as char[], 0, [] as char[], 0)
-    private FixMessage fixMessage = new FixMessage(new FieldCodec())
-    def fixYouConfiguration = new FIXYouConfiguration.FIXYouConfigurationBuilder().separateIoFromAppThread(false).build()
+    private SessionID sessionID = new SessionID("", "", "")
+    @AutoCleanup
+    private FixMessage fixMessage = new NotPoolableFixMessage()
+    def fixYouConfiguration = FIXYouConfiguration.builder().separateIoFromAppThread(false).build()
 
     def "should invoke fix message listener directly"() {
         setup:
-        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener, fixYouConfiguration, new FieldCodec())
+        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener, fixYouConfiguration, Mock(ObjectPool))
 
         when:
         handler.channelRead(channelHandlerContext, fixMessage)
@@ -40,16 +45,20 @@ class FixMessageListenerInvokingHandlerTest extends Specification {
         1 * sessionStateAttribute.get() >> sessionState
         1 * sessionState.getSessionId() >> sessionID
         1 * fixMessageListener.onFixMessage(sessionID, fixMessage)
-        fixMessage.refCnt() == 0
+        fixMessage.refCnt() == 1 //1 because autorelease is set to false
         0 * _
     }
 
     def "should invoke fix message listener via disruptor"() {
         setup:
         def fixMessageListener = new TestFixMessageListener()
+        def region = new Region(UnsafeAccessor.UNSAFE.allocateMemory(256), 256 as short)
+        def regionPool = Mock(ObjectPool, {
+            4 * tryGetAndRetain() >> region
+        })
         FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener,
-                                                                                          new FIXYouConfiguration.FIXYouConfigurationBuilder().separateIoFromAppThread(true).fixMessageListenerInvokerDisruptorSize(4).build(),
-                                                                                          new FieldCodec())
+                                                                                          FIXYouConfiguration.builder().separateIoFromAppThread(true).fixMessageListenerInvokerDisruptorSize(4).build(),
+                                                                                          regionPool)
         PollingConditions pollingConditions = new PollingConditions()
 
         when:
@@ -67,17 +76,18 @@ class FixMessageListenerInvokingHandlerTest extends Specification {
         1 * sessionStateAttribute.get() >> sessionState
         1 * sessionState.getSessionId() >> sessionID
         fixMessageListener.onFixMessageCalled
-        fixMessage.refCnt() == 0
+        fixMessage.refCnt() == 1 //1 because autorelease is set to false
         0 * _
 
         cleanup:
-        handler.close()
+        handler?.close()
+        UnsafeAccessor.UNSAFE.freeMemory(region?.getStartingAddress())
     }
 
     def "should set channel is listener is instance of AbstractNettyAwareFixMessageListener"() {
         setup:
         TestFixMessageListener fixMessageListener = new TestFixMessageListener()
-        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener, fixYouConfiguration, new FieldCodec())
+        FixMessageListenerInvokingHandler handler = new FixMessageListenerInvokingHandler(fixMessageListener, fixYouConfiguration, Mock(ObjectPool))
 
         when:
         handler.channelActive(channelHandlerContext)
