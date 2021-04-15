@@ -4,6 +4,7 @@ import io.github.zlooo.fixyou.commons.pool.ArrayBackedObjectPool;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.utils.UnsafeAccessor;
 import lombok.ToString;
+import sun.misc.Unsafe;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
