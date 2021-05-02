@@ -1,5 +1,6 @@
 package io.github.zlooo.fixyou.commons
 
+
 import spock.lang.Specification
 
 import java.util.concurrent.ThreadLocalRandom
@@ -9,11 +10,11 @@ class IntIntAVLTreeTest extends Specification {
     private IntIntAVLTree avlTree = new IntIntAVLTree(10)
 
     void setup() {
-        avlTree.put(1, 1)
-        avlTree.put(2, 2)
-        avlTree.put(3, 3)
-        avlTree.put(4, 4)
-        avlTree.put(5, 5)
+                avlTree.put(1, 1)
+                avlTree.put(2, 2)
+                avlTree.put(3, 3)
+                avlTree.put(4, 4)
+                avlTree.put(5, 5)
     }
 
     def "should get data"() {
@@ -75,7 +76,7 @@ class IntIntAVLTreeTest extends Specification {
             int key = random.nextInt(Integer.MAX_VALUE);
             int value = random.nextInt(Integer.MAX_VALUE);
             avlTree.put(key, value);
-            assert check(avlTree)
+            check(avlTree)
             keysToSearch[i] = key
         }
 
@@ -105,7 +106,7 @@ class IntIntAVLTreeTest extends Specification {
         when:
         for (int i = 0; i < keys.length; i++) {
             def removed = avlTree.remove(keys[i])
-            assert check(avlTree)
+            check(avlTree)
             assert removed == values[i]
         }
 
@@ -117,38 +118,38 @@ class IntIntAVLTreeTest extends Specification {
         check(avlTree)
     }
 
-    private static boolean check(IntIntAVLTree avlTree) {
+    private static void check(IntIntAVLTree avlTree) {
         // check root
         if (avlTree.size() == 0 && (avlTree.@rootIndex != IntIntAVLTree.INVALID_IDX)) {
             // invalid root
-            return false
+            assert false: "invalid root"
         }
         if (avlTree.size() && avlTree.@rootIndex >= avlTree.size()) {
             // root out of bounds
-            return false
+            assert false: "root out of bounds"
         }
 
         // check tree
         for (int i = 0; i < avlTree.size(); ++i) {
             if ((avlTree.@children[i].left != IntIntAVLTree.INVALID_IDX) && (!(avlTree.@keys[avlTree.@children[i].left] < avlTree.@keys[i]) || (avlTree.@keys[avlTree.@children[i].left] == avlTree.@keys[i]))) {
                 // wrong key order to the left
-                return false
+                assert false: "wrong key order to the left"
             }
             if ((avlTree.@children[i].right != IntIntAVLTree.INVALID_IDX) && ((avlTree.@keys[avlTree.@children[i].right] < avlTree.@keys[i]) || (avlTree.@keys[avlTree.@children[i].right] == avlTree.@keys[i]))) {
                 // wrong key order to the right
-                return false
+                assert false: "wrong key order to the right"
             }
             final int parent = avlTree.@parentIndexes[i]
             if ((i != avlTree.@rootIndex) && (parent == IntIntAVLTree.INVALID_IDX)) {
                 // no parent
-                return false
+                assert false: "no parent"
             }
             if ((i == avlTree.@rootIndex) && (parent != IntIntAVLTree.INVALID_IDX)) {
                 // invalid root parent
-                return false
+                assert false: "invalid root parent"
             }
         }
         // check passed
-        return true
+        assert true
     }
 }

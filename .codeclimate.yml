@@ -1,0 +1,4 @@
+exclude_patterns:
+  - "**/FixSpec50SP2.java"
+  - "commons/src/main/java/io/github/zlooo/fixyou/commons/utils/DateUtils.java"
+  - "commons/src/main/java/io/github/zlooo/fixyou/commons/IntIntAVLTree.java"

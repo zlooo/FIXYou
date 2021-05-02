@@ -128,6 +128,21 @@ class ArrayUtilsTest extends Specification {
         3     | "3" as char
     }
 
+    def "should get element at for byte array"() {
+        setup:
+        def array = [0, 1, 2, 3] as byte[]
+
+        expect:
+        ArrayUtils.getElementAt(array, index) == expectedResult
+
+        where:
+        index | expectedResult
+        0     | 0 as byte
+        1     | 1 as byte
+        2     | 2 as byte
+        3     | 3 as byte
+    }
+
     def "should put element to object array"() {
         setup:
         def array = new String[4]
@@ -154,7 +169,7 @@ class ArrayUtilsTest extends Specification {
         ArrayUtils.putElementAt(array, index, objectToPut)
 
         then:
-        Assertions.assertThat(array).contains(objectToPut, Index.atIndex(index)).containsOnly(objectToPut, null)
+        Assertions.assertThat(array).contains(objectToPut, Index.atIndex(index)).containsOnly(objectToPut, 0 as byte)
 
         where:
         index | objectToPut
@@ -172,7 +187,7 @@ class ArrayUtilsTest extends Specification {
         ArrayUtils.putElementAt(array, index, objectToPut)
 
         then:
-        Assertions.assertThat(array).contains(objectToPut, Index.atIndex(index)).containsOnly(objectToPut, null)
+        Assertions.assertThat(array).contains(objectToPut, Index.atIndex(index)).containsOnly(objectToPut, 0)
 
         where:
         index | objectToPut
@@ -190,7 +205,7 @@ class ArrayUtilsTest extends Specification {
         ArrayUtils.putElementAt(array, index, objectToPut)
 
         then:
-        Assertions.assertThat(array).contains(objectToPut, Index.atIndex(index)).containsOnly(objectToPut, null)
+        Assertions.assertThat(array).contains(objectToPut, Index.atIndex(index)).containsOnly(objectToPut, 0L)
 
         where:
         index | objectToPut

@@ -121,6 +121,7 @@ subprojects {
 
     checkstyle {
         toolVersion = '8.28'
+        sourceSets = [sourceSets.main]
     }
 
     publishing {
