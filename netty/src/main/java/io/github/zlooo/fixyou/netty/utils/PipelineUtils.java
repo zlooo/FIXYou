@@ -38,7 +38,7 @@ public class PipelineUtils {
         } else {
             sessionHandler = null;
         }
-        if (validationConfig.isValidate() && canHandlerBeAdded(Handlers.AFTER_SESSION_MESSAGE_VALIDATOR, Handlers.SESSION, pipeline, excludes)) {
+        if (canAddValidationHandler(pipeline, validationConfig, excludes, Handlers.AFTER_SESSION_MESSAGE_VALIDATOR, Handlers.SESSION)) {
             pipeline.addAfter(Handlers.SESSION.getName(), Handlers.AFTER_SESSION_MESSAGE_VALIDATOR.getName(), postSessionValidator);
         }
         if (canHandlerBeAdded(Handlers.IDLE_STATE_HANDLER, Handlers.SESSION, pipeline, excludes)) {
@@ -54,12 +54,16 @@ public class PipelineUtils {
         return sessionHandler;
     }
 
+    private static boolean canAddValidationHandler(ChannelPipeline pipeline, ValidationConfig validationConfig, Handlers[] excludes, Handlers handlerToAdd, Handlers baseHandler) {
+        return validationConfig.isValidate() && canHandlerBeAdded(handlerToAdd, baseHandler, pipeline, excludes);
+    }
+
     private static ValidationConfig addHandlersBasedOnGenericHandler(NettyHandlerAwareSessionState sessionState, ChannelHandler preSessionValidator, ChannelPipeline pipeline, Map<String, Resettable> resettables, Handlers[] excludes) {
         if (sessionState.getSessionConfig().isPersistent() && canHandlerBeAdded(Handlers.MESSAGE_STORE_HANDLER, Handlers.GENERIC, pipeline, excludes)) {
             pipeline.addAfter(Handlers.GENERIC.getName(), Handlers.MESSAGE_STORE_HANDLER.getName(), (ChannelHandler) resettables.get(NettyResettablesNames.MESSAGE_STORE_HANDLER));
         }
         final ValidationConfig validationConfig = sessionState.getSessionConfig().getValidationConfig();
-        if (validationConfig.isValidate() && canHandlerBeAdded(Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR, Handlers.GENERIC, pipeline, excludes)) {
+        if (canAddValidationHandler(pipeline, validationConfig, excludes, Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR, Handlers.GENERIC)) {
             pipeline.addBefore(Handlers.GENERIC.getName(), Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR.getName(), preSessionValidator);
         }
         return validationConfig;
