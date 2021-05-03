@@ -40,7 +40,7 @@ abstract class AbstractFIXYouNetty implements Engine {
 
     @Nonnull
     @Override
-    public Future<?> stop() {
+    public Future stop() {
         final io.netty.util.concurrent.Future<?> shutdownGracefully = eventLoopGroup.shutdownGracefully();
         fixYouNettyComponent.retransmissionSubscriberPool().close();
         ((SessionRegistry<NettyHandlerAwareSessionState>) fixYouNettyComponent.sessionRegistry()).getAll().forEach(Closeable::close);

@@ -29,7 +29,6 @@ public class DateUtils {
     private static final long MILLIS_IN_LEAP_YEAR = 31622400000L;
     private static final long BEGINNING_OF_MIN_YEAR = 1609459200000L;
     private static final int MIN_YEAR = 2021;
-    private static final int MOD_2_MASK = 1;
     private static final int MOD_4_MASK = 3;
     private static final int RADIX = 10;
     static final long RADIX_2 = 100;
@@ -79,6 +78,8 @@ public class DateUtils {
                         monthMillis = MILLIS_IN_MONTH_28;
                     }
                     break;
+                default:
+                    throw new IllegalArgumentException(month + "? What a weird month that is");
             }
         }
         int day = 1;
@@ -196,6 +197,8 @@ public class DateUtils {
                                     result += MILLIS_IN_MONTH_28;
                                 }
                                 break;
+                            default:
+                                throw new IllegalArgumentException(temp + "? What a weird month that is");
                         }
                     }
                     temp = value - AsciiCodes.ZERO;
@@ -225,6 +228,9 @@ public class DateUtils {
                     break;
                 case 21:
                     result += ((long) temp * RADIX) + value - AsciiCodes.ZERO;
+                    break;
+                default:
+                    throw new IndexOutOfBoundsException("Index for timestamp is out of range. It can't be larger than 21 and yet it's " + counter);
             }
             return true;
         }

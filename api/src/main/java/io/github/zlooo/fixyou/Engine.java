@@ -13,7 +13,7 @@ public interface Engine {
     Future<Void> start();
 
     @Nonnull
-    Future<?> stop();
+    Future stop();
 
     /**
      * Registers new session

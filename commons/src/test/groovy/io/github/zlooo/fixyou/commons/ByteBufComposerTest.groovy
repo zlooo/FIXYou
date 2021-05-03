@@ -352,7 +352,7 @@ class ByteBufComposerTest extends Specification {
         composer.getByte(6)
 
         then:
-        thrown(IndexOutOfBoundsException)
+        thrown(ByteBufComposerIndexOutOfBoundsException)
     }
 
     def "should release buffer when release call is split in 2 and spans across multiple buffers"() {
@@ -473,7 +473,7 @@ class ByteBufComposerTest extends Specification {
         composer.getBytes(index, length, destination)
 
         then:
-        thrown(IndexOutOfBoundsException)
+        thrown(ByteBufComposerIndexOutOfBoundsException)
 
         where:
         index | length

@@ -25,7 +25,7 @@ class ResendRequestHandler implements AdministrativeMessageHandler {
     private final ObjectPool<FixMessage> fixMessageObjectPool;
 
     @Inject
-    ResendRequestHandler(@Named("retransmissionSubscriberPool") ObjectPool retransmissionSubscriberPool, @Named("fixMessageObjectPool") ObjectPool fixMessageObjectPool) {
+    ResendRequestHandler(@Named("retransmissionSubscriberPool") ObjectPool retransmissionSubscriberPool, @Named("fixMessageObjectPool") ObjectPool<FixMessage> fixMessageObjectPool) {
         this.retransmissionSubscriberPool = retransmissionSubscriberPool;
         this.fixMessageObjectPool = fixMessageObjectPool;
     }

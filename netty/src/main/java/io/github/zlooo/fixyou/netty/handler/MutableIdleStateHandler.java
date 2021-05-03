@@ -273,7 +273,7 @@ public class MutableIdleStateHandler extends ChannelDuplexHandler implements Ses
     /**
      * This method is visible for testing!
      */
-    ScheduledFuture<?> schedule(ChannelHandlerContext ctx, Runnable task, long delay, TimeUnit unit) {
+    ScheduledFuture schedule(ChannelHandlerContext ctx, Runnable task, long delay, TimeUnit unit) {
         if (eventLoop != null) {
             return eventLoop.schedule(task, delay, unit);
         } else {
@@ -303,7 +303,7 @@ public class MutableIdleStateHandler extends ChannelDuplexHandler implements Ses
      * Is called when an {@link IdleStateEvent} should be fired. This implementation calls
      * {@link ChannelHandlerContext#fireUserEventTriggered(Object)}.
      */
-    protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) throws Exception {
+    protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) {
         final IdleState idleState = evt.state();
         switch (idleState) {
             case WRITER_IDLE:

@@ -62,10 +62,8 @@ public abstract class AbstractPoolableObject implements ReferenceCounted, Closea
         if (compareResult == 0) {
             deallocate();
             return true;
-        } else if (compareResult < 0) {
-            if (exceptionOnReferenceCheckFail) {
-                throw new IllegalStateException("Dude you're releasing object that already has reference count = 0, something is not right with your code");
-            }
+        } else if (compareResult < 0 && exceptionOnReferenceCheckFail) {
+            throw new IllegalStateException("Dude you're releasing object that already has reference count = 0, something is not right with your code");
         }
         return false;
     }

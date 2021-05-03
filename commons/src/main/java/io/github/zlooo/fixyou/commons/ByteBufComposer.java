@@ -173,11 +173,11 @@ public class ByteBufComposer implements Resettable {
 
     private void checkIndex(int index, int length) {
         if (index < storedStartIndex || index > storedEndIndex) {
-            throw new IndexOutOfBoundsException(IOOBE_MESSAGE + index, this);
+            throw new ByteBufComposerIndexOutOfBoundsException(IOOBE_MESSAGE + index, this);
         }
         final int requestedEndIndex = index + length - 1;
         if (requestedEndIndex < storedStartIndex || requestedEndIndex > storedEndIndex) {
-            throw new IndexOutOfBoundsException(IOOBE_MESSAGE + requestedEndIndex, this);
+            throw new ByteBufComposerIndexOutOfBoundsException(IOOBE_MESSAGE + requestedEndIndex, this);
         }
     }
 
@@ -188,12 +188,10 @@ public class ByteBufComposer implements Resettable {
 
     private int findReaderComponentIndex(int index) {
         final int floorValue = startIndexToComponentIndex.floorValue(index);
-        if (floorValue != IntIntAVLTree.INVALID_IDX) {
-            if (ArrayUtils.getElementAt(components, floorValue).getEndIndex() >= index) {
-                return floorValue;
-            }
+        if (floorValue != IntIntAVLTree.INVALID_IDX && ArrayUtils.getElementAt(components, floorValue).getEndIndex() >= index) {
+            return floorValue;
         }
-        throw new IndexOutOfBoundsException(IOOBE_MESSAGE + index, this);
+        throw new ByteBufComposerIndexOutOfBoundsException(IOOBE_MESSAGE + index, this);
     }
 
     private int readDataFromComponent(Component component, int index, int maxLength, ByteBuf destination, int destinationIndex) {

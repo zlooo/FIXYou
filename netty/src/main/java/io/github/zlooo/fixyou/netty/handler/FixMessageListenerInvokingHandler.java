@@ -69,7 +69,7 @@ class FixMessageListenerInvokingHandler extends SimpleChannelInboundHandler<FixM
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FixMessage msg) throws Exception {
         if (invokeDirectly) {
-            fixMessageListener.onFixMessage(NettyHandlerAwareSessionState.getSessionID(ctx), msg);
+            fixMessageListener.onFixMessage(NettyHandlerAwareSessionState.getSessionId(ctx), msg);
         } else {
             try {
                 final RingBuffer<Event> ringBuffer = disruptor.getRingBuffer();

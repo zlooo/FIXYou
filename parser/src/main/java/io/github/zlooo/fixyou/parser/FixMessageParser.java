@@ -138,7 +138,7 @@ public class FixMessageParser implements Resettable {
     private void setRepeatingGroupFieldValue(int parsedFieldNumber, int start, int length, FieldType fieldType) {
         int groupIndexNumber = groupIndexNumberStack.getFirst();
         int groupNumber = groupIndexNumber & FixMessageRepeatingGroupUtils.GROUP_NUMBER_MASK;
-        byte parentRepetitionIndex = parentRepetitionIndex();
+        final byte parentRepetitionIndex;
         final IntByteMap groupConstituents = groupFieldsConstituents.get(groupNumber);
         final byte newRepetitionIndex;
         if (groupConstituents.get(parsedFieldNumber) == NO_VALUE) { //field is not part of current repeating group, it's either normal field(not part of repeating group) or part of parent repeating group(in case we've got nested group)

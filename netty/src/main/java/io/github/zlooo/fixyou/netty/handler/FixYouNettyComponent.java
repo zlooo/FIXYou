@@ -9,6 +9,7 @@ import io.github.zlooo.fixyou.fix.commons.FixMessageListener;
 import io.github.zlooo.fixyou.fix.commons.config.validator.ConfigValidator;
 import io.github.zlooo.fixyou.fix.commons.session.SessionModule;
 import io.github.zlooo.fixyou.netty.handler.admin.AdminModule;
+import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.session.SessionRegistry;
 import io.netty.channel.ChannelHandler;
 
@@ -44,7 +45,7 @@ public interface FixYouNettyComponent {
     ObjectPool retransmissionSubscriberPool();
 
     @Named("fixMessageObjectPool")
-    ObjectPool fixMessageObjectPool();
+    ObjectPool<FixMessage> fixMessageObjectPool();
 
     @Component.Builder
     interface Builder {

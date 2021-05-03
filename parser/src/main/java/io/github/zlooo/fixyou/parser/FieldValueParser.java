@@ -12,26 +12,6 @@ public class FieldValueParser {
     public static final char FRACTION_SEPARATOR = '.';
     static final int RADIX = 10;
 
-    static int parseInteger(ByteBufComposer byteBuf, int srcIndex, byte endIndicator, boolean advanceReaderIndex) {
-        int num = 0;
-        boolean negative = false;
-        int index = srcIndex;
-        while (true) {
-            final byte b = byteBuf.getByte(index++);
-            if (b >= AsciiCodes.ZERO && b <= AsciiCodes.NINE) {
-                num = num * RADIX + b - AsciiCodes.ZERO;
-            } else if (b == AsciiCodes.MINUS) {
-                negative = true;
-            } else if (b == endIndicator) {
-                break;
-            }
-        }
-        if (advanceReaderIndex) {
-            byteBuf.readerIndex(index);
-        }
-        return negative ? -num : num;
-    }
-
     static boolean parseBoolean(ByteBufComposer source, int srcIndex) {
         final byte valueToParse = source.getByte(srcIndex);
         switch (valueToParse) {
@@ -74,6 +54,26 @@ public class FieldValueParser {
             unscaledValue *= -1;
         }
         valueConsumer.apply(unscaledValue, scale);
+    }
+
+    static int parseInteger(ByteBufComposer byteBuf, int srcIndex, byte endIndicator, boolean advanceReaderIndex) {
+        int num = 0;
+        boolean negative = false;
+        int index = srcIndex;
+        while (true) {
+            final byte b = byteBuf.getByte(index++);
+            if (b >= AsciiCodes.ZERO && b <= AsciiCodes.NINE) {
+                num = num * RADIX + b - AsciiCodes.ZERO;
+            } else if (b == AsciiCodes.MINUS) {
+                negative = true;
+            } else if (b == endIndicator) {
+                break;
+            }
+        }
+        if (advanceReaderIndex) {
+            byteBuf.readerIndex(index);
+        }
+        return negative ? -num : num;
     }
 
     static long parseLong(ByteBufComposer byteBuf, int srcIndex, byte endIndicator) {
