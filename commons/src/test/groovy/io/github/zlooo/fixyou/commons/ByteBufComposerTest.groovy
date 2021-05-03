@@ -466,7 +466,8 @@ class ByteBufComposerTest extends Specification {
     def "should not get bytes because of wrong index or length requested"() {
         setup:
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[]))
-        composer.addByteBuf(Unpooled.wrappedBuffer([6, 7, 8] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([6, 7, 8, 9, 10] as byte[]))
+        composer.releaseData(0, 1)
         def destination = Unpooled.buffer(10)
 
         when:
@@ -478,9 +479,11 @@ class ByteBufComposerTest extends Specification {
         where:
         index | length
         -1    | 1
-        8     | 1
-        0     | 9
-        0     | 10
+        0     | 1
+        1     | 1
+        10    | 1
+        2     | 9
+        2     | 10
     }
 
     def "should get bytes from partially released buffer"() {
@@ -535,11 +538,11 @@ class ByteBufComposerTest extends Specification {
         5     | 6 as byte
         6     | 7 as byte
         7     | 8 as byte
-        13     | 14 as byte
-        14     | 15 as byte
-        15     | 16 as byte
-        16     | 17 as byte
-        17     | 18 as byte
+        13    | 14 as byte
+        14    | 15 as byte
+        15    | 16 as byte
+        16    | 17 as byte
+        17    | 18 as byte
     }
 
     def "should find index of closest for single buffer"() {

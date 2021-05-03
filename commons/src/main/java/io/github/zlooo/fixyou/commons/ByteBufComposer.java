@@ -176,7 +176,7 @@ public class ByteBufComposer implements Resettable {
             throw new ByteBufComposerIndexOutOfBoundsException(IOOBE_MESSAGE + index, this);
         }
         final int requestedEndIndex = index + length - 1;
-        if (requestedEndIndex < storedStartIndex || requestedEndIndex > storedEndIndex) {
+        if (requestedEndIndex > storedEndIndex) {
             throw new ByteBufComposerIndexOutOfBoundsException(IOOBE_MESSAGE + requestedEndIndex, this);
         }
     }
