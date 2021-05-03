@@ -88,15 +88,20 @@ class DateUtilsTest extends Specification {
         timestampParser.@isLeapYear == freshParser.@isLeapYear
     }
 
-    def "should not parse wrong timestamp"(){
+    def "should not parse wrong timestamp"() {
         setup:
         ByteBufComposer byteBufComposer = new ByteBufComposer(1)
-        byteBufComposer.addByteBuf(Unpooled.wrappedBuffer("20210831-05:59:20.808123".getBytes(StandardCharsets.US_ASCII)))
+        byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(timestamp.getBytes(StandardCharsets.US_ASCII)))
 
         when:
         DateUtils.parseTimestamp(byteBufComposer, 0, byteBufComposer.storedEndIndex + 1, new DateUtils.TimestampParser())
 
         then:
-        thrown(IndexOutOfBoundsException)
+        thrown(exception)
+
+        where:
+        timestamp                  | exception
+        "20210831-05:59:20.808123" | IndexOutOfBoundsException
+        "20213031-05:59:20.808"    | IllegalArgumentException
     }
 }
