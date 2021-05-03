@@ -86,6 +86,10 @@ public final class ArrayUtils {
         return UnsafeAccessor.UNSAFE.getChar(array, Unsafe.ARRAY_CHAR_BASE_OFFSET + ((long) Unsafe.ARRAY_CHAR_INDEX_SCALE * index));
     }
 
+    public static byte getElementAt(byte[] array, int index) {
+        return UnsafeAccessor.UNSAFE.getByte(array, Unsafe.ARRAY_BYTE_BASE_OFFSET + ((long) Unsafe.ARRAY_BYTE_INDEX_SCALE * index));
+    }
+
     public static <T> void putElementAt(T[] array, int index, T object) {
         UnsafeAccessor.UNSAFE.putObject(array, Unsafe.ARRAY_OBJECT_BASE_OFFSET + ((long) Unsafe.ARRAY_OBJECT_INDEX_SCALE * index), object);
     }
@@ -95,7 +99,7 @@ public final class ArrayUtils {
     }
 
     public static void putElementAt(int[] array, int index, int intToSet) {
-        UnsafeAccessor.UNSAFE.putLong(array, Unsafe.ARRAY_INT_BASE_OFFSET + ((long) Unsafe.ARRAY_INT_INDEX_SCALE * index), intToSet);
+        UnsafeAccessor.UNSAFE.putInt(array, Unsafe.ARRAY_INT_BASE_OFFSET + ((long) Unsafe.ARRAY_INT_INDEX_SCALE * index), intToSet);
     }
 
     public static void putElementAt(long[] array, int index, long longToSet) {
