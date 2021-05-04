@@ -51,7 +51,7 @@ public class Region extends AbstractPoolableObject implements Resettable {
     }
 
     public void copyDataFrom(Region source) {
-        final int bytesToCopy = size - (size & MODULO_8_MASK);
+        final long bytesToCopy = (long) size - (size & MODULO_8_MASK);
         UnsafeAccessor.UNSAFE.copyMemory(source.startingAddress, startingAddress, bytesToCopy);
         UnsafeAccessor.UNSAFE.copyMemory(source.startingAddress + bytesToCopy, startingAddress + bytesToCopy, size - bytesToCopy);
     }

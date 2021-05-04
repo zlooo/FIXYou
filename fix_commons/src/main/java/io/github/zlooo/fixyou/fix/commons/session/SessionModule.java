@@ -3,6 +3,7 @@ package io.github.zlooo.fixyou.fix.commons.session;
 import dagger.Module;
 import dagger.Provides;
 import io.github.zlooo.fixyou.FIXYouConfiguration;
+import io.github.zlooo.fixyou.commons.memory.Region;
 import io.github.zlooo.fixyou.commons.pool.ArrayBackedObjectPool;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.parser.model.FixMessage;
@@ -23,7 +24,7 @@ public interface SessionModule {
     @Provides
     @Singleton
     @Named("fixMessageObjectPool")
-    static ObjectPool provideFixMessageObjectPool(FIXYouConfiguration fixYouConfiguration, @Named("regionPool") ObjectPool regionPool) {
+    static ObjectPool<FixMessage> provideFixMessageObjectPool(FIXYouConfiguration fixYouConfiguration, @Named("regionPool") ObjectPool<Region> regionPool) {
         return new ArrayBackedObjectPool<>(fixYouConfiguration.getFixMessagePoolSize(), () -> new FixMessage(regionPool), FixMessage.class, fixYouConfiguration.getFixMessagePoolSize());
     }
 }

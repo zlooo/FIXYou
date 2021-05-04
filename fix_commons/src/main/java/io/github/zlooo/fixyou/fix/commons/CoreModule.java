@@ -3,6 +3,7 @@ package io.github.zlooo.fixyou.fix.commons;
 import dagger.Module;
 import dagger.Provides;
 import io.github.zlooo.fixyou.FIXYouConfiguration;
+import io.github.zlooo.fixyou.commons.memory.Region;
 import io.github.zlooo.fixyou.commons.memory.RegionPool;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.fix.commons.config.validator.ConfigValidatorModule;
@@ -31,7 +32,7 @@ public interface CoreModule {
     @Provides
     @Singleton
     @Named("regionPool")
-    static ObjectPool provideRegionPool(FIXYouConfiguration fixYouConfiguration) {
+    static ObjectPool<Region> provideRegionPool(FIXYouConfiguration fixYouConfiguration) {
         return new RegionPool(fixYouConfiguration.getRegionPoolSize(), fixYouConfiguration.getRegionSize());
     }
 }

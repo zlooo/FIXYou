@@ -45,7 +45,7 @@ public class NettyHandlerAwareSessionState extends AbstractSessionState {
         return channelHandlerContext.channel().attr(ATTRIBUTE_KEY).get();
     }
 
-    public static SessionID getSessionID(ChannelHandlerContext channelHandlerContext) {
+    public static SessionID getSessionId(ChannelHandlerContext channelHandlerContext) {
         return channelHandlerContext.channel().attr(ATTRIBUTE_KEY).get().getSessionId();
     }
 

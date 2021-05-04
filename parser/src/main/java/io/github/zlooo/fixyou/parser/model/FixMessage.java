@@ -38,7 +38,7 @@ import java.util.BitSet;
 public class FixMessage extends AbstractPoolableObject implements Resettable {
 
     public static final byte FIELD_SEPARATOR = AsciiCodes.SOH;
-    public static final byte FIELD_VALUE_SEPARATOR = AsciiCodes.EQUALS;
+    public static final byte FIELD_VALUE_SEPARATOR = AsciiCodes.EQUAL;
     private static final Unsafe UNSAFE = UnsafeAccessor.UNSAFE;
     private static final long NO_VALUE = -1;
     private static final String NO_REGIONS_IN_POOL_MSG_TEMPLATE = "No regions available in pool ";
@@ -486,7 +486,7 @@ public class FixMessage extends AbstractPoolableObject implements Resettable {
 
     private boolean saveIndexIfGreater(int groupNumber, byte index) {
         long groupNumberValueAddress = fieldNumberToAddress.get(groupNumber);
-        final long newNumberOfRepetitions = index + 1;
+        final long newNumberOfRepetitions = (long) index + 1;
         if (groupNumberValueAddress != NO_VALUE) {
             final long currentNumberOfRepetitions = UNSAFE.getLong(groupNumberValueAddress);
             if (newNumberOfRepetitions > currentNumberOfRepetitions) {

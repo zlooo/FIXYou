@@ -48,7 +48,7 @@ class LogonHandler implements AdministrativeMessageHandler {
     LogonHandler(@Nullable Authenticator authenticator, SessionRegistry sessionRegistry,
                  @NamedHandler(Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR) ChannelHandler beforeSessionMessageValidatorHandler,
                  @NamedHandler(Handlers.AFTER_SESSION_MESSAGE_VALIDATOR) ChannelHandler afterSessionMessageValidatorHandler,
-                 @Named("fixMessageObjectPool") ObjectPool fixMessageObjectPool) {
+                 @Named("fixMessageObjectPool") ObjectPool<FixMessage> fixMessageObjectPool) {
         this.authenticator = authenticator;
         this.sessionRegistry = sessionRegistry;
         this.beforeSessionMessageValidatorHandler = beforeSessionMessageValidatorHandler;
@@ -89,17 +89,7 @@ class LogonHandler implements AdministrativeMessageHandler {
                         sessionState.reset();
                     }
                     final SessionAwareChannelInboundHandler sessionHandler = addRequiredHandlersToPipelineIfNeeded(ctx, sessionState, fixMessage.getLongValue(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER));
-                    if (!sessionState.isLogonSent()) {
-                        ctx.writeAndFlush(
-                                FixMessageUtils.toLogonMessage(fixMessageObjectPool.getAndRetain(),
-                                                               sessionState.getFixSpec().applicationVersionId().getValue(),
-                                                               fixMessage.getLongValue(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER),
-                                                               fixMessage.getLongValue(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER),
-                                                               resetSequenceFlagSet))
-                           .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE).addListener(FixChannelListeners.LOGON_SENT);
-                    } else {
-                        log.debug("Logon has already been sent, not sending another one");
-                    }
+                    sendLogonResponseIfNotSentAlready(fixMessage, ctx, sessionState, resetSequenceFlagSet);
                     sessionState.getSessionConfig().getSessionStateListeners().forEach(sessionStateListener -> sessionStateListener.logOn(sessionState));
                     sessionState.setChannel(ctx.channel());
                     return sessionHandler;
@@ -118,6 +108,20 @@ class LogonHandler implements AdministrativeMessageHandler {
             ctx.channel().close();
         }
         return null;
+    }
+
+    private void sendLogonResponseIfNotSentAlready(FixMessage fixMessage, ChannelHandlerContext ctx, NettyHandlerAwareSessionState sessionState, boolean resetSequenceFlagSet) {
+        if (!sessionState.isLogonSent()) {
+            ctx.writeAndFlush(
+                    FixMessageUtils.toLogonMessage(fixMessageObjectPool.getAndRetain(),
+                                                   sessionState.getFixSpec().applicationVersionId().getValue(),
+                                                   fixMessage.getLongValue(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER),
+                                                   fixMessage.getLongValue(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER),
+                                                   resetSequenceFlagSet))
+               .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE).addListener(FixChannelListeners.LOGON_SENT);
+        } else {
+            log.debug("Logon has already been sent, not sending another one");
+        }
     }
 
     @SneakyThrows

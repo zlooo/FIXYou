@@ -26,7 +26,7 @@ public class NettyResettablesSupplier implements Function<NettyHandlerAwareSessi
     private final ObjectPool<Region> regionPool;
 
     @Inject
-    NettyResettablesSupplier(@Named("fixMessageObjectPool") ObjectPool fixMessageObjectPool, @Named("regionPool") ObjectPool regionPool) {
+    NettyResettablesSupplier(@Named("fixMessageObjectPool") ObjectPool<FixMessage> fixMessageObjectPool, @Named("regionPool") ObjectPool<Region> regionPool) {
         this.fixMessageObjectPool = fixMessageObjectPool;
         this.regionPool = regionPool;
     }

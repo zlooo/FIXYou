@@ -71,7 +71,7 @@ public final class ArrayUtils {
      * ArrayDataGetPerformanceTest.normalReferenceGet - score 45,399
      */
     public static <T> T getElementAt(T[] array, int index) {
-        return (T) UnsafeAccessor.UNSAFE.getObject(array, Unsafe.ARRAY_OBJECT_BASE_OFFSET + (Unsafe.ARRAY_OBJECT_INDEX_SCALE * index));
+        return (T) UnsafeAccessor.UNSAFE.getObject(array, Unsafe.ARRAY_OBJECT_BASE_OFFSET + ((long) Unsafe.ARRAY_OBJECT_INDEX_SCALE * index));
     }
 
     public static int getElementAt(int[] array, int index) {
