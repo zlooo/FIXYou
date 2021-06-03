@@ -39,6 +39,7 @@ ext {
 }
 
 allprojects {
+    group 'io.github.zlooo.fixyou'
     repositories {
         mavenCentral()
         mavenLocal()
@@ -53,10 +54,12 @@ subprojects {
     apply plugin: 'maven-publish'
     apply plugin: 'me.champeau.gradle.jmh'
 
-    group 'io.github.zlooo.fixyou'
-
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
+
+    java {
+        withSourcesJar()
+    }
 
     sourceSets {
         integrationTest {
