@@ -53,6 +53,7 @@ subprojects {
     apply plugin: 'jacoco'
     apply plugin: 'maven-publish'
     apply plugin: 'me.champeau.gradle.jmh'
+    apply plugin: 'signing'
 
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
@@ -134,6 +135,10 @@ subprojects {
                 from components.java
             }
         }
+    }
+
+    signing {
+        sign publishing.publications."${project.name}"
     }
 }
 
