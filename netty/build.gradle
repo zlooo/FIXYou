@@ -1,3 +1,5 @@
+description 'Netty module of FixYOU project, contains Netty handlers and support classes. It brings everything together, adds netty specific stuff and we end up with complete FixYOU engine'
+
 jmh {
     duplicateClassesStrategy = DuplicatesStrategy.EXCLUDE
 }

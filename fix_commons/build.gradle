@@ -1,3 +1,5 @@
+description 'Fix commons module of FixYOU project, contains common fix protocol related code used in multiple FixYOU modules'
+
 dependencies {
     api project(":parser")
     api project(":commons")

@@ -66,7 +66,8 @@ public final class ArrayUtils {
     }
 
     /**
-     * Based on results I got from {@link io.github.zlooo.fixyou.commons.utils.ArrayDataGetPerformanceTest} it's faster to use this method than normal array[index]
+     * Based on results I got from <a href="https://github.com/zlooo/FIXYou/blob/master/commons/src/jmh/java/io/github/zlooo/fixyou/commons/utils/ArrayDataGetPerformanceTest.java">jmh test</a>
+     * it's faster to use this method than normal array[index]
      * ArrayDataGetPerformanceTest.unsafeReferenceGet - score 62,150
      * ArrayDataGetPerformanceTest.normalReferenceGet - score 45,399
      */
