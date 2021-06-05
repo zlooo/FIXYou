@@ -11,7 +11,8 @@ import lombok.experimental.UtilityClass;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Yeah, this class looks like shit, but at least it's faster than {@link DateTimeFormatter}. See {@link io.github.zlooo.fixyou.commons.utils.DateUtilsPerformanceTest} for details.
+ * Yeah, this class looks like shit, but at least it's faster than {@link DateTimeFormatter}. See
+ * <a href="https://github.com/zlooo/FIXYou/blob/master/commons/src/jmh/java/io/github/zlooo/fixyou/commons/utils/DateUtilsPerformanceTest.java">DateUtilsPerformanceTest</a> for details.
  * However probably by making it even uglier it'll also be faster ;)
  */
 @UtilityClass

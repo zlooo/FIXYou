@@ -1,3 +1,5 @@
+description 'Parser module of FixYOU project, contains fix message model and parser'
+
 dependencies {
     api project(":api")
     api group: 'io.netty', name: 'netty-buffer', version: "$nettyVersion"

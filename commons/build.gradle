@@ -1,3 +1,5 @@
+description 'Commons module of FixYOU project, contains common code used in multiple FixYOU modules'
+
 dependencies {
     api project(":api")
     api group: 'org.slf4j', name: 'slf4j-api', version: "$slf4jVersion"

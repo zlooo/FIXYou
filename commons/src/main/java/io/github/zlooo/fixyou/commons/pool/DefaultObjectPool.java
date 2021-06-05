@@ -27,7 +27,8 @@ import javax.annotation.Nullable;
 import java.util.function.Supplier;
 
 /**
- * Totally <B>NOT THREAD SAFE</B> object pool tailored for {@link io.github.zlooo.fixyou.parser.model.FixMessage} use case. Basic idea is that we do not need any kind of synchronization/thread safety(netty events in single fix session are
+ * Totally <B>NOT THREAD SAFE</B> object pool tailored for <a href="https://github.com/zlooo/FIXYou/blob/master/parser/src/main/java/io/github/zlooo/fixyou/parser/model/FixMessage.java">io.github.zlooo.fixyou.parser.model.FixMessage</a>
+ * use case. Basic idea is that we do not need any kind of synchronization/thread safety(netty events in single fix session are
  * processed sequentially) and 99% of cases will not need more than 2 objects taken out of pool
  */
 @Slf4j

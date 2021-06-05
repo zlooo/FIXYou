@@ -27,12 +27,14 @@ import javax.annotation.Nonnull;
 import java.util.BitSet;
 
 /**
- * Represents, surprise, surprise, fix message, I bet you did not see that coming ;)<br/>
- * <br/>
+ * Represents, surprise, surprise, fix message, I bet you did not see that coming ;)<br>
+ * <br>
  * <h3>Limitations</h3>
+ * <p><ul>
  * <li>Nested repeating groups - only 1 level of nesting is supported for now</li>
  * <li>Nested repeating groups should repeat the same number of times in each parent group repetition. For example let's take following message fragment 85=2 787=C 781=2 782=ID1 782=ID2 787=D 781=2 782=ID3 782=ID4. Note that group 781
  * which is nested in 85 has 2 repetitions in both 85 group repetitions</li>
+ * </ul><p>
  */
 @FieldNameConstants
 public class FixMessage extends AbstractPoolableObject implements Resettable {
