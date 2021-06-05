@@ -20,7 +20,7 @@ Now you can start an `Engine`. Concept is pretty simmilar to `Connector` in Quic
 ```java
 final Engine engine = FIXYouNetty.create(FIXYouConfiguration.builder().acceptorBindInterface(bindInterface).acceptorListenPort(port).initiator(false).build(), fixMessageListener);
 ```
-or on case of initiator
+or in case of initiator
 ```java
 final Engine engine = FIXYouNetty.create(FIXYouConfiguration.builder().initiator(true).build(), fixMessageListener);
 ```
@@ -36,7 +36,7 @@ Both sessions and dictionaries can be registered after engine is started.
 
 In order to register session you either need id of an already registered dictionary, `dictionaryID` param of `registerSessionAndDictionary` method, or register a new dictionary. Each FIX dictionary has a unique ID  and instance of FixSpec class. I've written a simple tool https://github.com/zlooo/FIXYou-tools/tree/master/fix_spec_generator that can generate implementation of FixSpec interface based on Quickfix xml dictionary.
 
-`fixMessageListener` that's passed when `Engine` is created is a main entry point to your application. The idea is practically identical to Quickfix's `quickfix.Application`. In FIXYou case each time a new FIX message is received onFixMessage method is invoked.
+`fixMessageListener` that's passed when `Engine` is created is a main entry point to your application. The idea is practically identical to Quickfix's `quickfix.Application`. In FIXYou case each time a new non admin FIX message is received onFixMessage method is invoked.
 
 To send fix message from your application use `FIXYouNetty.sendMessage`, for example
 ```java
@@ -47,7 +47,7 @@ First parameter is an `Consumer<FixMessage>` that's supposed to set all fields o
 More details on usage and design can be found on [FIXYou wiki](https://github.com/zlooo/FIXYou/wiki)
 
 ## Performance - Yeah right, performance my ass
-I have to be honest with you I've done only preliminary performance tests, and they only consist of 1 scenario, `newOrderSingleSending` described [here](https://github.com/zlooo/FIXYou-tools#probe-test-scenarios). However, those initial results are pretty encouraging, they say that FIXYou is not slower than Quickfix, and in same cases, can be up to **50% faster**. The best thing is I haven't done any profiling or special code optimizations. In other words it may turn out it's even faster :). More details on this subject, including detailed results, can be found on [FIXYou wiki](https://github.com/zlooo/FIXYou/wiki/Performance-Tests).
+I have to be honest with you I've done only preliminary performance tests, and they only consist of 2 scenarios, `newOrderSingleSending` and `quoteStreaming` described [here](https://github.com/zlooo/FIXYou-tools#probe-test-scenarios). However, those initial results are pretty encouraging, they say that FIXYou is not slower than Quickfix, and in same cases, can be up to **73% faster**. More details on this subject, including detailed results, can be found on [FIXYou wiki](https://github.com/zlooo/FIXYou/wiki/Performance-Tests).
 
 ## Limitations
 As mentioned earlier, FIXYou is still work in progress, so it lacks some features you'd normally expect FIX engine to have. The list includes, but is not limited to:
