@@ -1,4 +1,5 @@
-# FIXYou [![Build Status](https://travis-ci.org/zlooo/FIXYou.svg?branch=master)](https://travis-ci.org/zlooo/FIXYou.svg?branch=master) [![codecov](https://codecov.io/gh/zlooo/FIXYou/branch/master/graph/badge.svg)](https://codecov.io/gh/zlooo/FIXYou) [![Known Vulnerabilities](https://snyk.io/test/github/zlooo/FIXYou/badge.svg?targetFile=build.gradle)](https://snyk.io/test/github/zlooo/FIXYou?targetFile=build.gradle) [![Total alerts](https://img.shields.io/lgtm/alerts/g/zlooo/FIXYou.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/zlooo/FIXYou/alerts/) [![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/zlooo/FIXYou.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/zlooo/FIXYou/context:java)
+# FIXYou [![Build Status](https://travis-ci.org/zlooo/FIXYou.svg?branch=master)](https://travis-ci.org/zlooo/FIXYou.svg?branch=master) [![codecov](https://codecov.io/gh/zlooo/FIXYou/branch/master/graph/badge.svg)](https://codecov.io/gh/zlooo/FIXYou) [![Known Vulnerabilities](https://snyk.io/test/github/zlooo/FIXYou/badge.svg?targetFile=build.gradle)](https://snyk.io/test/github/zlooo/FIXYou?targetFile=build.gradle) [![Total alerts](https://img.shields.io/lgtm/alerts/g/zlooo/FIXYou.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/zlooo/FIXYou/alerts/) [![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/zlooo/FIXYou.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/zlooo/FIXYou/context:java) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.zlooo.fixyou/netty/badge.svg)](https://mvnrepository.com/artifact/io.github.zlooo.fixyou)
+
 
 ## Overview
 FIXYou is yet another fix engine. The purpose of this project is to create an open source fix engine that will be faster than Quickfix, generate less garbage and become the first choice when searching for free, performant fix engine that is suitable for low latency applications.
@@ -6,15 +7,19 @@ FIXYou is yet another fix engine. The purpose of this project is to create an op
 This library is still in its infancy stage. By no means it's production ready, nor is it feature complete. However, please try it out in non-critical applications, test tools etc and let me know what you think. Contact info is at the end of this file.
 
 ## Getting started
-You can find FIXYou on https://mvnrepository.com/
+You can find FIXYou on [https://mvnrepository.com/](https://mvnrepository.com/artifact/io.github.zlooo.fixyou)
 
 Attach netty module as dependency
 * Gradle: 
 
-`implementation`
+`implementation group: 'io.github.zlooo.fixyou', name: 'netty', version: '0.1.0'`
 * Maven:
 ```xml
-<dependency></dependency>
+<dependency>
+    <groupId>io.github.zlooo.fixyou</groupId>
+    <artifactId>netty</artifactId>
+    <version>0.1.0</version>
+</dependency>
 ```
 Now you can start an `Engine`. Concept is pretty simmilar to `Connector` in Quickfix. Create an `Engine` acceptor instance
 ```java
