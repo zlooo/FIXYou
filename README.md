@@ -59,6 +59,7 @@ As mentioned earlier, FIXYou is still work in progress, so it lacks some feature
 * message persistence - only in memory message store implementation is provided. However, you're able to plug in your own implementations
 * session times - currently all sessions are "infinite"
 * message encryption
+* nested repeating groups - currently FIXYou supports only 1 level of nesting. IE a repeating group can have nested repeating group, but 1 more level, repeating group in a repeating group that's also in releating group, is not supported
 * I'm still working on improving documentation. Please let me know if you notice anything missing, and I can assure you that not everything is documented ;)
 
 ## Want to help out?
