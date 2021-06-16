@@ -71,7 +71,7 @@ There are various ways you can help in development of FIXYou.
 5. Let me know what features are important to you, I'll try to implement them
 6. Just let me know you've used it. Knowing that somebody actually tried FIXYou out is a great motivation to keep going
 
-## Contact info [![HitCount](http://hits.dwyl.com/zlooo/FIXYou.svg)](http://hits.dwyl.com/zlooo/FIXYou)
+## Contact info [![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fzlooo%2FFIXYou&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
 zlooo.inc[you know what goes here]gmail.com
 
 ---
