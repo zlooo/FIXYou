@@ -35,6 +35,7 @@ public class FixMessageParser implements Resettable {
     private static final String UNSUPPORTED_FIELD_TYPE = "Unsupported field type ";
     private static final byte GROUP_CONSTITUENTS_INITIAL_VALUE = (byte) -1;
     private static final byte NO_VALUE = (byte) -2;
+    private static final int CHECKSUM_WITH_SEPARATOR_LENGTH = 3;
 
     @Getter
     private final ByteBufComposer bytesToParse;
@@ -53,6 +54,7 @@ public class FixMessageParser implements Resettable {
     private final DateUtils.TimestampParser timestampParser = new DateUtils.TimestampParser();
     //fragmentation handing stuff
     private int storedEndIndexOfLastUnfinishedMessage;
+    private int bodyLengthEndIndex;
 
     public FixMessageParser(ByteBufComposer bytesToParse, FixSpec fixSpec, FixMessage fixMessage) {
         this.bytesToParse = bytesToParse;
@@ -97,6 +99,7 @@ public class FixMessageParser implements Resettable {
             }
         }
         storedEndIndexOfLastUnfinishedMessage = 0;
+        bodyLengthEndIndex = 0;
     }
 
     public void startParsing() {
@@ -109,7 +112,14 @@ public class FixMessageParser implements Resettable {
         while (!bytesToParse.readerIndexBeyondStoredEnd() && ((closestFieldTerminatorIndex = bytesToParse.indexOfClosestSOH()) != ByteBufComposer.NOT_FOUND)) {
             final int parsedFieldNumber = FieldValueParser.parseInteger(bytesToParse, bytesToParse.readerIndex(), FixMessage.FIELD_VALUE_SEPARATOR, true);
             final int start = bytesToParse.readerIndex();
+            final boolean isChecksumField = FixConstants.CHECK_SUM_FIELD_NUMBER == parsedFieldNumber;
+            if (isChecksumField) {
+                fixMessage.setBodyLength(start - bodyLengthEndIndex - CHECKSUM_WITH_SEPARATOR_LENGTH); //reader index is advanced by 3 too far because 10= has already been read
+            }
             bytesToParse.readerIndex(closestFieldTerminatorIndex + 1); //end index
+            if (FixConstants.BODY_LENGTH_FIELD_NUMBER == parsedFieldNumber) {
+                bodyLengthEndIndex = bytesToParse.readerIndex();
+            }
             final int length = bytesToParse.readerIndex() - start - 1;
             final FieldType fieldType = numberToFieldType.get(parsedFieldNumber);
             if (fieldType != null) {
@@ -125,7 +135,7 @@ public class FixMessageParser implements Resettable {
             } else {
                 log.debug(FIELD_NOT_FOUND_IN_MESSAGE_SPEC_LOG, parsedFieldNumber);
             }
-            if (parsedFieldNumber == FixConstants.CHECK_SUM_FIELD_NUMBER) {
+            if (isChecksumField) {
                 storedEndIndexOfLastUnfinishedMessage = 0;
                 return;
             }

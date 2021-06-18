@@ -318,15 +318,16 @@ class FixMessageParserTest extends Specification {
         fixMessage.refCnt() == 1 //1 because NonPoolableFixMessage does retain() in constructor, basically we're checking that reset() does not release fixMessage
     }
 
-    private final static String simpleNewOrderSingle = "8=FIX.4.2\u00019=145\u000135=D\u000134=4\u000149=ABC_DEFG01\u000152=20210323-15:40:29\u000156=CCG\u0001115=XYZ\u000111=NF " +
+    private final static String simpleNewOrderSingle = "8=FIX.4.2\u00019=146\u000135=D\u000134=4\u000149=ABC_DEFG01\u000152=20210323-15:40:29\u000156=CCG\u0001115=XYZ\u000111=NF " +
                                                        "0542/03232009\u000154=1\u000138=100\u000155=CVS\u000140=1\u000159=0\u000147=A\u000160=20210323-15:40:29\u000121=1\u0001207=N\u000110=139\u0001"
 
-    private final static String simpleNewOrderSingleWithGarbage = "garbae8=FIX.4.2\u00019=145\u000135=D\u000134=4\u000149=ABC_DEFG01\u000152=20210323-15:40:29\u000156=CCG\u0001115=XYZ\u000111=NF " +
+    private final static String simpleNewOrderSingleWithGarbage = "garbae8=FIX.4.2\u00019=146\u000135=D\u000134=4\u000149=ABC_DEFG01\u000152=20210323-15:40:29\u000156=CCG\u0001115=XYZ\u000111=NF " +
                                                                   "0542/03232009\u000154=1\u000138=100\u000155=CVS\u000140=1\u000159=0\u000147=A\u000160=20210323-15:40:29\u000121=1\u0001207=N\u000110=139\u0001garbage"
 
     private static void assertSimpleNewOrderSingle(FixMessage fixMessage) {
         assert fixMessage.getCharSequenceValue(8).toString() == "FIX.4.2"
-        assert fixMessage.getLongValue(9) == 145
+        assert fixMessage.getLongValue(9) == 146
+        assert fixMessage.getBodyLength() == 146
         assert fixMessage.getCharSequenceValue(35).toString() == "D"
         assert fixMessage.getLongValue(34) == 4
         assert fixMessage.getCharSequenceValue(49).toString() == "ABC_DEFG01"

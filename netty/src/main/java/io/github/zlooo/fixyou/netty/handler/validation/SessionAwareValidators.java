@@ -46,18 +46,14 @@ public class SessionAwareValidators {
 
     public static final PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>> BODY_LENGTH_VALIDATOR =
             new PredicateWithValidator<>(ValidationConfig::isShouldCheckBodyLength, (fixMessage, sessionState) -> {
-                //TODO how do I get message length here? Will have to figure that out, for now disabling this check
-                //                final Field bodyLengthField = fixMessage.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER);
-                //                final long bodyLength = bodyLengthField.getLongValue();
-                //                final Field checksumField = fixMessage.getField(FixConstants.CHECK_SUM_FIELD_NUMBER);
-                //                final int numberOfBytesInMessage = checksumField.getStartIndex() - 3 /*10=*/ - bodyLengthField.getEndIndex() - 1/*SOH after body length field*/;
-                //                if (bodyLength != numberOfBytesInMessage) {
-                //                    log.warn("Body length mismatch, value in message {}, calculated {}. Ignoring message and logging it on debug level", bodyLength, numberOfBytesInMessage);
-                //                    log.debug("Ignored message {}", fixMessage);
-                //                    return ValidationFailureActions.RELEASE_MESSAGE;
-                //                } else {
-                return null;
-                //                }
+                final long bodyLength = fixMessage.getLongValue(FixConstants.BODY_LENGTH_FIELD_NUMBER);
+                if (bodyLength != fixMessage.getBodyLength()) {
+                    log.warn("Body length mismatch, value in message {}, calculated {}. Ignoring message and logging it on debug level", bodyLength, fixMessage.getBodyLength());
+                    log.debug("Ignored message {}", fixMessage);
+                    return ValidationFailureActions.DO_NOTHING;
+                } else {
+                    return null;
+                }
             });
 
     public static final PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>> MESSAGE_TYPE_VALIDATOR =

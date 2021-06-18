@@ -54,6 +54,7 @@ public class FixMessage extends AbstractPoolableObject implements Resettable {
     private final BitSet fieldsSet = new BitSet(DefaultConfiguration.INITIAL_FIELDS_IN_MSG_NUMBER);
     private final LongLongMap repeatingGroupAddresses = new LongLongHashMap();
     private final DirectCharSequence directCharSequence = new DirectCharSequence();
+    private int bodyLength;
 
     public FixMessage(ObjectPool<Region> regionPool) {
         this.regionPool = regionPool;
@@ -398,6 +399,7 @@ public class FixMessage extends AbstractPoolableObject implements Resettable {
     @Override
     public void reset() {
         regionsIndex = 0;
+        bodyLength = 0;
         fieldsSet.clear();
         fieldNumberToAddress.clear();
         repeatingGroupAddresses.clear();
@@ -510,6 +512,14 @@ public class FixMessage extends AbstractPoolableObject implements Resettable {
 
     public IntCollection setFields() {
         return fieldNumberToAddress.keys();
+    }
+
+    public int getBodyLength() {
+        return bodyLength;
+    }
+
+    public void setBodyLength(int bodyLength) {
+        this.bodyLength = bodyLength;
     }
 
     private static final class DirectCharSequence implements CharSequence { //TODO write optimized equals

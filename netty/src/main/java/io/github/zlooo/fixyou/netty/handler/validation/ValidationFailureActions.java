@@ -5,5 +5,5 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class ValidationFailureActions {
 
-    public static final ValidationFailureAction RELEASE_MESSAGE = (ctx, msg, fixMessageObjectPool) -> msg.release();
+    public static final ValidationFailureAction DO_NOTHING = (ctx, msg, fixMessageObjectPool) -> { };
 }
