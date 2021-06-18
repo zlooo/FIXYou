@@ -135,7 +135,7 @@ subprojects {
             "${project.name}"(MavenPublication) {
                 from components.java
                 pom {
-                    name = "FixYOU - ${project.name}"
+                    name = "FIXYou - ${project.name}"
                     url = 'https://github.com/zlooo/FIXYou'
                     licenses {
                         license {

@@ -1,4 +1,4 @@
-description 'Api module of FixYOU project, as the name would suggest contains APIs shared between all FixYOU modules'
+description 'Api module of FIXYou project, as the name would suggest contains APIs shared between all FIXYou modules'
 
 dependencies {
     api group: 'io.netty', name: 'netty-buffer', version: "$nettyVersion"

@@ -1,4 +1,4 @@
-description 'Commons module of FixYOU project, contains common code used in multiple FixYOU modules'
+description 'Commons module of FIXYou project, contains common code used in multiple FIXYou modules'
 
 dependencies {
     api project(":api")
