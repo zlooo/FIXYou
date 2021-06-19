@@ -350,7 +350,6 @@ class ReceiveMessageStandardHeaderIntegrationTest extends AbstractFixYOUAcceptor
         !sessionSateListener.sessionState.channel.isActive()
     }
 
-    @PendingFeature
     def "should ignore message with incorrect body length 2-m"() {
         setup:
         def channel = connect()

@@ -1,7 +1,6 @@
 package io.github.zlooo.fixyou.netty.handler.validation
 
 import io.github.zlooo.fixyou.FixConstants
-import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.commons.pool.ObjectPool
 import io.github.zlooo.fixyou.fix.commons.LogoutTexts
 import io.github.zlooo.fixyou.fix.commons.RejectReasons
@@ -12,15 +11,12 @@ import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID
-import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelFuture
 import io.netty.channel.ChannelFutureListener
 import io.netty.channel.ChannelHandlerContext
 import spock.lang.AutoCleanup
-import spock.lang.PendingFeature
 import spock.lang.Specification
 
-import java.nio.charset.StandardCharsets
 import java.time.Clock
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -117,22 +113,20 @@ class SessionAwareValidators_ValidationFailureActionsTest extends Specification 
         0 * _
     }
 
-    @PendingFeature
     def "should do nothing if body length is incorrect"() {
         setup:
-        def fixMessageAsString = "8=FIXT.1.1\u00019=1\u000149=senderCompId\u000156=targetCompId\u000110=000\u0001"
-        ByteBufComposer byteBufComposer = new ByteBufComposer(1)
-        byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(fixMessageAsString.getBytes(StandardCharsets.US_ASCII)))
-//        fixMessage.setMessageByteSource(byteBufComposer)
-//        fixMessage.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER).setIndexes(13, 14)
+        //just for reference
+        //"8=FIXT.1.1\u00019=1\u000149=senderCompId\u000156=targetCompId\u000110=000\u0001"
+        fixMessage.setLongValue(FixConstants.BODY_LENGTH_FIELD_NUMBER, 1)
+        fixMessage.setBodyLength(32)
 
         expect:
-        SessionAwareValidators.BODY_LENGTH_VALIDATOR.validator.apply(fixMessage, sessionState) == ValidationFailureActions.RELEASE_MESSAGE
+        SessionAwareValidators.BODY_LENGTH_VALIDATOR.validator.apply(fixMessage, sessionState) == ValidationFailureActions.DO_NOTHING
     }
 
     def "should send reject if message type is invalid"() {
         setup:
-        fixMessage.setCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER,'Z')
+        fixMessage.setCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER, 'Z')
 
         when:
         SessionAwareValidators.MESSAGE_TYPE_VALIDATOR.validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectPool)

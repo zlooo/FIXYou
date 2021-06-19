@@ -1,19 +1,15 @@
 package io.github.zlooo.fixyou.netty.handler.validation
 
 import io.github.zlooo.fixyou.FixConstants
-import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
 import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID
-import io.netty.buffer.Unpooled
 import spock.lang.AutoCleanup
-import spock.lang.PendingFeature
 import spock.lang.Specification
 
-import java.nio.charset.StandardCharsets
 import java.time.Clock
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
@@ -62,15 +58,12 @@ class SessionAwareValidators_ValidatorsTest extends Specification {
         'wrongBeginString'    | false
     }
 
-    @PendingFeature
     def "should validate body length"() {
         setup:
-        def fixMessageAsString = "8=FIXT.1.1\u00019=$bodyLength\u000149=senderCompId\u000156=targetCompId\u000110=000\u0001"
-        ByteBufComposer byteBufComposer = new ByteBufComposer(1)
-        byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(fixMessageAsString.getBytes(StandardCharsets.US_ASCII)))
-        //        fixMessage.setMessageByteSource(byteBufComposer)
-        //        fixMessage.getField(FixConstants.BODY_LENGTH_FIELD_NUMBER).setIndexes(fixMessageAsString.indexOf("9=") + 2, fixMessageAsString.indexOf("9=") + 2 + bodyLength.toString().length())
-        //        fixMessage.getField(FixConstants.CHECK_SUM_FIELD_NUMBER).setIndexes(fixMessageAsString.indexOf("10=") + 3, fixMessageAsString.indexOf("10=") + 3 + 3)
+        //just for reference
+        //"8=FIXT.1.1\u00019=$bodyLength\u000149=senderCompId\u000156=targetCompId\u000110=000\u0001"
+        fixMessage.setLongValue(FixConstants.BODY_LENGTH_FIELD_NUMBER, tagBodyLength)
+        fixMessage.setBodyLength(realBodyLength)
 
         when:
         def result = SessionAwareValidators.BODY_LENGTH_VALIDATOR.validator.apply(fixMessage, sessionState)
@@ -79,9 +72,9 @@ class SessionAwareValidators_ValidatorsTest extends Specification {
         (result == null) == expectedResult
 
         where:
-        bodyLength                                                                        | expectedResult
-        3 + sessionID.senderCompID.length() + 1 + 3 + sessionID.targetCompID.length() + 1 | true
-        1                                                                                 | false
+        tagBodyLength                                                                     | realBodyLength                                                                    | expectedResult
+        3 + sessionID.senderCompID.length() + 1 + 3 + sessionID.targetCompID.length() + 1 | tagBodyLength                                                                     | true
+        1                                                                                 | 3 + sessionID.senderCompID.length() + 1 + 3 + sessionID.targetCompID.length() + 1 | false
     }
 
     def "should validate message type"() {
