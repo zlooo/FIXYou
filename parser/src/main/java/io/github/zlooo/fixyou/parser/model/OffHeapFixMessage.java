@@ -9,16 +9,14 @@ import com.carrotsearch.hppcrt.maps.IntLongHashMap;
 import com.carrotsearch.hppcrt.maps.LongLongHashMap;
 import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.FIXYouException;
-import io.github.zlooo.fixyou.Resettable;
+import io.github.zlooo.fixyou.commons.AbstractPoolableFixMessage;
 import io.github.zlooo.fixyou.commons.memory.MemoryConstants;
 import io.github.zlooo.fixyou.commons.memory.Region;
-import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.commons.utils.ReflectionUtils;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.parser.StandardHeaderAndFooterOnlyFixSpec;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
-import io.github.zlooo.fixyou.utils.AsciiCodes;
 import io.github.zlooo.fixyou.utils.UnsafeAccessor;
 import lombok.experimental.FieldNameConstants;
 import sun.misc.Unsafe;
@@ -37,10 +35,8 @@ import java.util.BitSet;
  * </ul><p>
  */
 @FieldNameConstants
-public class FixMessage extends AbstractPoolableObject implements Resettable {
+public class OffHeapFixMessage extends AbstractPoolableFixMessage<OffHeapFixMessage> {
 
-    public static final byte FIELD_SEPARATOR = AsciiCodes.SOH;
-    public static final byte FIELD_VALUE_SEPARATOR = AsciiCodes.EQUAL;
     private static final Unsafe UNSAFE = UnsafeAccessor.UNSAFE;
     private static final long NO_VALUE = -1;
     private static final String NO_REGIONS_IN_POOL_MSG_TEMPLATE = "No regions available in pool ";
@@ -56,28 +52,35 @@ public class FixMessage extends AbstractPoolableObject implements Resettable {
     private final DirectCharSequence directCharSequence = new DirectCharSequence();
     private int bodyLength;
 
-    public FixMessage(ObjectPool<Region> regionPool) {
+    public OffHeapFixMessage(ObjectPool<Region> regionPool) {
         this.regionPool = regionPool;
         fieldNumberToAddress.setDefaultValue(NO_VALUE);
         repeatingGroupAddresses.setDefaultValue(NO_VALUE);
         final Region region = regionPool.tryGetAndRetain();
+        if (region == null) {
+            throw new FIXYouException("Region pool has run out of objects to create this fix message, please increase it");
+        }
         regionSize = region.getSize();
         ArrayUtils.putElementAt(regions, 0, region);
     }
 
+    @Override
     public boolean getBooleanValue(int fieldNumber) {
         return UNSAFE.getByte(fieldNumberToAddress.get(fieldNumber)) == 1;
     }
 
+    @Override
     public boolean getBooleanValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
         return UNSAFE.getByte(repeatingGroupAddresses.get(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber))) == 1;
     }
 
+    @Override
     public void setBooleanValue(int fieldNumber, boolean newValue) {
         UNSAFE.putByte(fieldAddress(fieldNumber, FieldConstants.BOOLEAN_FIELD_SIZE), newValue ? (byte) 1 : (byte) 0);
         fieldsSet.set(fieldNumber);
     }
 
+    @Override
     public void setBooleanValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, boolean newValue) {
         final boolean newRepeatingGroup = saveIndexIfGreater(groupNumber, repetitionIndex);
         UNSAFE.putByte(fieldAddress(fieldNumber, groupNumber, repetitionIndex, parentRepetitionIndex, FieldConstants.BOOLEAN_FIELD_SIZE), newValue ? (byte) 1 : (byte) 0);
@@ -86,19 +89,23 @@ public class FixMessage extends AbstractPoolableObject implements Resettable {
         }
     }
 
+    @Override
     public char getCharValue(int fieldNumber) {
         return UNSAFE.getChar(fieldNumberToAddress.get(fieldNumber));
     }
 
+    @Override
     public char getCharValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
         return UNSAFE.getChar(repeatingGroupAddresses.get(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber)));
     }
 
+    @Override
     public void setCharValue(int fieldNumber, char newValue) {
         UNSAFE.putChar(fieldAddress(fieldNumber, FieldConstants.CHAR_FIELD_SIZE), newValue);
         fieldsSet.set(fieldNumber);
     }
 
+    @Override
     public void setCharValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, char newValue) {
         final boolean newRepeatingGroup = saveIndexIfGreater(groupNumber, repetitionIndex);
         UNSAFE.putChar(fieldAddress(fieldNumber, groupNumber, repetitionIndex, parentRepetitionIndex, FieldConstants.CHAR_FIELD_SIZE), newValue);
@@ -110,13 +117,15 @@ public class FixMessage extends AbstractPoolableObject implements Resettable {
     /**
      * Returns value as {@link CharSequence}.
      * However remember that returned {@link CharSequence} is just a view, actual data is stored in one of this message's {@link Region}. So if you get this {@link CharSequence} and then return
-     * {@link FixMessage} object to pool you might and probably will get weird data as this {@link CharSequence} will point to region of memory that could be already used by different {@link FixMessage} storing different data, possibly
-     * even different type. Same if you want to reuse this {@link FixMessage} after calling {@link #reset()}, ie get some field's data, do reset and store this data again in clean message.
+     * {@link OffHeapFixMessage} object to pool you might and probably will get weird data as this {@link CharSequence} will point to region of memory that could be already used by different {@link OffHeapFixMessage} storing different
+     * data, possibly
+     * even different type. Same if you want to reuse this {@link OffHeapFixMessage} after calling {@link #reset()}, ie get some field's data, do reset and store this data again in clean message.
      * Also note this {@link CharSequence} is shared for whole message. Subsequent calls of this method will return the same instance of {@link CharSequence}, ie {@link #getCharSequenceValue(int)} == {@link #getCharSequenceValue(int)}
      *
      * @param fieldNumber you want to get data for
      * @return field's data as {@link CharSequence}
      */
+    @Override
     public CharSequence getCharSequenceValue(int fieldNumber) {
         directCharSequence.startAddress = fieldNumberToAddress.get(fieldNumber);
         return directCharSequence;
@@ -130,19 +139,23 @@ public class FixMessage extends AbstractPoolableObject implements Resettable {
      * @return field's data as {@link CharSequence}
      * @see #getCharSequenceValue(int)
      */
+    @Override
     public CharSequence getCharSequenceValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
         directCharSequence.startAddress = repeatingGroupAddresses.get(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber));
         return directCharSequence;
     }
 
+    @Override
     public char getCharSequenceLength(int fieldNumber) {
         return UNSAFE.getChar(fieldNumberToAddress.get(fieldNumber));
     }
 
+    @Override
     public char getCharSequenceLength(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
         return UNSAFE.getChar(repeatingGroupAddresses.get(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber)));
     }
 
+    @Override
     public void setCharSequenceValue(int fieldNumber, CharSequence newValue) {
         final int numberOfChars = newValue.length();
         final long fieldAddress = fieldAddressWithLengthCheck(fieldNumber, (short) (numberOfChars * MemoryConstants.CHAR_SIZE + FieldConstants.CHAR_SEQUENCE_LENGTH_SIZE));
@@ -150,6 +163,7 @@ public class FixMessage extends AbstractPoolableObject implements Resettable {
         fieldsSet.set(fieldNumber);
     }
 
+    @Override
     public void setCharSequenceValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, CharSequence newValue) {
         final int numberOfChars = newValue.length();
         final boolean newRepeatingGroup = saveIndexIfGreater(groupNumber, repetitionIndex);
@@ -160,20 +174,24 @@ public class FixMessage extends AbstractPoolableObject implements Resettable {
         }
     }
 
+    @Override
     public void setCharSequenceValue(int fieldNumber, char[] newValue) {
         setCharSequenceValue(fieldNumber, newValue, newValue.length);
     }
 
+    @Override
     public void setCharSequenceValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, char[] newValue) {
         setCharSequenceValue(fieldNumber, groupNumber, repetitionIndex, parentRepetitionIndex, newValue, newValue.length);
     }
 
+    @Override
     public void setCharSequenceValue(int fieldNumber, char[] newValue, int newValueLength) {
         final long fieldAddress = fieldAddressWithLengthCheck(fieldNumber, (short) (newValueLength * MemoryConstants.CHAR_SIZE + FieldConstants.CHAR_SEQUENCE_LENGTH_SIZE));
         doSetCharSequenceData(newValue, newValueLength, fieldAddress);
         fieldsSet.set(fieldNumber);
     }
 
+    @Override
     public void setCharSequenceValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, char[] newValue, int newValueLength) {
         final boolean newRepeatingGroup = saveIndexIfGreater(groupNumber, repetitionIndex);
         final long fieldAddress = fieldAddressWithLengthCheck(fieldNumber, groupNumber, repetitionIndex, parentRepetitionIndex, (short) (newValueLength * MemoryConstants.CHAR_SIZE + FieldConstants.CHAR_SEQUENCE_LENGTH_SIZE));
@@ -183,28 +201,34 @@ public class FixMessage extends AbstractPoolableObject implements Resettable {
         }
     }
 
+    @Override
     public long getDoubleUnscaledValue(int fieldNumber) {
         return UNSAFE.getLong(fieldNumberToAddress.get(fieldNumber));
     }
 
+    @Override
     public long getDoubleUnscaledValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
         return UNSAFE.getLong(repeatingGroupAddresses.get(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber)));
     }
 
+    @Override
     public short getScale(int fieldNumber) {
         return UNSAFE.getShort(fieldNumberToAddress.get(fieldNumber) + MemoryConstants.LONG_SIZE);
     }
 
+    @Override
     public short getScale(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
         return UNSAFE.getShort(repeatingGroupAddresses.get(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber)) + MemoryConstants.LONG_SIZE);
     }
 
+    @Override
     public void setDoubleValue(int fieldNumber, long newValue, short newScale) {
         final long fieldAddress = fieldAddress(fieldNumber, FieldConstants.DOUBLE_FIELD_SIZE);
         doSetDoubleValue(newValue, newScale, fieldAddress);
         fieldsSet.set(fieldNumber);
     }
 
+    @Override
     public void setDoubleValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, long newValue, short newScale) {
         final boolean newRepeatingGroup = saveIndexIfGreater(groupNumber, repetitionIndex);
         final long fieldAddress = fieldAddress(fieldNumber, groupNumber, repetitionIndex, parentRepetitionIndex, FieldConstants.DOUBLE_FIELD_SIZE);
@@ -214,19 +238,23 @@ public class FixMessage extends AbstractPoolableObject implements Resettable {
         }
     }
 
+    @Override
     public long getLongValue(int fieldNumber) {
         return UNSAFE.getLong(fieldNumberToAddress.get(fieldNumber));
     }
 
+    @Override
     public long getLongValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
         return UNSAFE.getLong(repeatingGroupAddresses.get(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber)));
     }
 
+    @Override
     public void setLongValue(int fieldNumber, long newValue) {
         UNSAFE.putLong(fieldAddress(fieldNumber, MemoryConstants.LONG_SIZE), newValue);
         fieldsSet.set(fieldNumber);
     }
 
+    @Override
     public void setLongValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, long newValue) {
         final boolean newRepeatingGroup = saveIndexIfGreater(groupNumber, repetitionIndex);
         UNSAFE.putLong(fieldAddress(fieldNumber, groupNumber, repetitionIndex, parentRepetitionIndex, MemoryConstants.LONG_SIZE), newValue);
@@ -235,19 +263,23 @@ public class FixMessage extends AbstractPoolableObject implements Resettable {
         }
     }
 
+    @Override
     public long getTimestampValue(int fieldNumber) {
         return UNSAFE.getLong(fieldNumberToAddress.get(fieldNumber));
     }
 
+    @Override
     public long getTimestampValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
         return UNSAFE.getLong(repeatingGroupAddresses.get(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber)));
     }
 
+    @Override
     public void setTimestampValue(int fieldNumber, long newValue) {
         UNSAFE.putLong(fieldAddress(fieldNumber, MemoryConstants.LONG_SIZE), newValue);
         fieldsSet.set(fieldNumber);
     }
 
+    @Override
     public void setTimestampValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, long newValue) {
         final boolean newRepeatingGroup = saveIndexIfGreater(groupNumber, repetitionIndex);
         UNSAFE.putLong(fieldAddress(fieldNumber, groupNumber, repetitionIndex, parentRepetitionIndex, MemoryConstants.LONG_SIZE), newValue);
@@ -422,10 +454,12 @@ public class FixMessage extends AbstractPoolableObject implements Resettable {
         }
     }
 
+    @Override
     public boolean isValueSet(int fieldNumber) {
         return fieldsSet.get(fieldNumber);
     }
 
+    @Override
     public boolean isValueSet(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex) {
         return repeatingGroupAddresses.containsKey(FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber));
     }
@@ -435,11 +469,13 @@ public class FixMessage extends AbstractPoolableObject implements Resettable {
         return toString(false, StandardHeaderAndFooterOnlyFixSpec.INSTANCE);
     }
 
+    @Override
     public String toString(boolean wholeMessage, FixSpec fixSpec) {
         return FixMessageToString.toString(this, wholeMessage, fixSpec);
     }
 
-    public void copyDataFrom(FixMessage source) { //TODO maybe this method can be optimized?
+    @Override
+    public void copyDataFrom(OffHeapFixMessage source) { //TODO maybe this method can be optimized?
         this.regionsIndex = source.regionsIndex;
         final int numberOfRegions = regionsIndex + 1;
         ensureRegionsLength(numberOfRegions);
@@ -471,7 +507,7 @@ public class FixMessage extends AbstractPoolableObject implements Resettable {
         }
     }
 
-    private void copyRegionDataAndSaveStartAddresses(FixMessage source, int numberOfRegions, long[] regionsStartAddresses) {
+    private void copyRegionDataAndSaveStartAddresses(OffHeapFixMessage source, int numberOfRegions, long[] regionsStartAddresses) {
         for (int i = 0; i < numberOfRegions; i++) {
             final Region sourceRegion = ArrayUtils.getElementAt(source.regions, i);
             Region region = ArrayUtils.getElementAt(regions, i);
@@ -505,19 +541,23 @@ public class FixMessage extends AbstractPoolableObject implements Resettable {
         }
     }
 
+    @Override
     public void removeField(int fieldNumber) {
         fieldsSet.clear(fieldNumber);
         fieldNumberToAddress.remove(fieldNumber);
     }
 
+    @Override
     public IntCollection setFields() {
         return fieldNumberToAddress.keys();
     }
 
+    @Override
     public int getBodyLength() {
         return bodyLength;
     }
 
+    @Override
     public void setBodyLength(int bodyLength) {
         this.bodyLength = bodyLength;
     }

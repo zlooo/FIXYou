@@ -2,10 +2,10 @@ package io.github.zlooo.fixyou.netty.handler
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
+import io.github.zlooo.fixyou.model.FixMessage
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
+import io.github.zlooo.fixyou.netty.SimpleFixMessage
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
-import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID
 import io.netty.channel.ChannelFuture
@@ -48,7 +48,7 @@ class MutableIdleStateHandlerTest extends Specification {
 
     def "should send heartbeat when write timeout occurs"() {
         setup:
-        FixMessage fixMessage = new NotPoolableFixMessage()
+        FixMessage fixMessage = new SimpleFixMessage()
 
         when:
         idleStateHandler.channelIdle(channelHandlerContext, IdleStateEvent.WRITER_IDLE_STATE_EVENT)
@@ -67,7 +67,7 @@ class MutableIdleStateHandlerTest extends Specification {
 
     def "should send test request when first read timeout occurs"() {
         setup:
-        FixMessage fixMessage = new NotPoolableFixMessage()
+        FixMessage fixMessage = new SimpleFixMessage()
 
         when:
         idleStateHandler.channelIdle(channelHandlerContext, IdleStateEvent.FIRST_READER_IDLE_STATE_EVENT)

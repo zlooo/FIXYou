@@ -1,13 +1,16 @@
 package io.github.zlooo.fixyou.netty.handler.admin;
 
 import io.github.zlooo.fixyou.FixConstants;
+import io.github.zlooo.fixyou.commons.AbstractPoolableFixMessage;
 import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
+import io.github.zlooo.fixyou.fix.commons.utils.EmptyFixMessage;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
+import io.github.zlooo.fixyou.model.FixMessage;
 import io.github.zlooo.fixyou.session.LongSubscriber;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.util.ReferenceCountUtil;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
@@ -22,7 +25,7 @@ class RetransmitionSubscriber extends AbstractPoolableObject implements LongSubs
     @Setter
     private ChannelHandlerContext channelHandlerContext;
     @Setter
-    private ObjectPool<FixMessage> fixMessagePool;
+    private ObjectPool<? extends AbstractPoolableFixMessage> fixMessagePool;
     private long fromValue = NOT_SET;
     private long toValue = NOT_SET;
 
@@ -38,7 +41,7 @@ class RetransmitionSubscriber extends AbstractPoolableObject implements LongSubs
 
     @Override
     public void onNext(long sequenceNumber, FixMessage fixMessage) {
-        if (fixMessage == FixMessageUtils.EMPTY_FAKE_MESSAGE) {
+        if (fixMessage == EmptyFixMessage.INSTANCE) {
             storeSequenceNumberForGapFill(sequenceNumber);
         } else {
             if (!FixMessageUtils.isAdminMessage(fixMessage)) {
@@ -52,7 +55,7 @@ class RetransmitionSubscriber extends AbstractPoolableObject implements LongSubs
                 //let's not spam other party with single sequence gap fills but check if we can send one which will fill multiple sequence numbers
                 final long sequenceValue = fixMessage.getLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER);
                 storeSequenceNumberForGapFill(sequenceValue);
-                fixMessage.release();
+                ReferenceCountUtil.release(fixMessage);
             }
         }
     }

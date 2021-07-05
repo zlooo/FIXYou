@@ -1,8 +1,10 @@
 package io.github.zlooo.fixyou.parser.model;
 
 import io.github.zlooo.fixyou.model.FieldType;
+import io.github.zlooo.fixyou.model.FixMessage;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
+import io.netty.util.ReferenceCountUtil;
 import lombok.experimental.UtilityClass;
 
 import java.math.BigDecimal;
@@ -17,7 +19,7 @@ class FixMessageToString {
     private static final int LONG_MESSAGE_FIELD_NUMBER_THRESHOLD = 10;
 
     static String toString(FixMessage message, boolean wholeMessage, FixSpec fixSpec) {
-        final StringBuilder builder = new StringBuilder("FixMessage -> ");
+        final StringBuilder builder = new StringBuilder("FixMessage -> [");
         final List<FixSpec.FieldNumberType> fieldNumberTypes = new ArrayList<>();
         addFieldNumberTypes(message, fixSpec.getHeaderFieldsOrder(), fixSpec.getHeaderFieldTypes(), fieldNumberTypes);
         addFieldNumberTypes(message, fixSpec.getBodyFieldsOrder(), fixSpec.getBodyFieldTypes(), fieldNumberTypes);
@@ -28,7 +30,7 @@ class FixMessageToString {
         for (int i = 0; i < fieldsLimit; i++) {
             appendFieldToBuilder(builder, message, fieldNumberTypes.get(i));
         }
-        builder.deleteCharAt(builder.length() - 1).append(shortenOutput ? "..." : "").append(", refCnt=").append(message.refCnt());
+        builder.deleteCharAt(builder.length() - 1).append(shortenOutput ? "..." : "").append("], refCnt=").append(ReferenceCountUtil.refCnt(message));
         return builder.toString();
     }
 

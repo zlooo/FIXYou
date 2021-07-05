@@ -3,8 +3,9 @@ package io.github.zlooo.fixyou.netty
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.fix.commons.session.MemoryMessageStore
 import io.github.zlooo.fixyou.netty.test.framework.FixMessages
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
+import io.github.zlooo.fixyou.netty.test.framework.SimpleFixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
+import io.netty.util.ReferenceCountUtil
 import org.assertj.core.api.Assertions
 import quickfix.Message
 import quickfix.Session
@@ -27,23 +28,23 @@ class ReceiveResendRequestMessagePersistenceOnIntegrationTest extends AbstractFi
     @Override
     protected SessionConfig createConfig() {
         fakeMessageStore = new MemoryMessageStore()
-        def newOrderSingle1 = new NotPoolableFixMessage()
+        def newOrderSingle1 = new SimpleFixMessage()
         FixMessages.createFIXYouNewOrderSingle(clordid1).accept(newOrderSingle1)
         newOrderSingle1.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 2L)
         fakeMessageStore.storeMessage(fixYouSessionId, 2L, newOrderSingle1)
-        def newOrderSingle2 = new NotPoolableFixMessage()
+        def newOrderSingle2 = new SimpleFixMessage()
         FixMessages.createFIXYouNewOrderSingle(clordid2).accept(newOrderSingle2)
         newOrderSingle2.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 3L)
         fakeMessageStore.storeMessage(fixYouSessionId, 3L, newOrderSingle2)
-        def heartbeat1 = new NotPoolableFixMessage()
+        def heartbeat1 = new SimpleFixMessage()
         FixMessages.createFIXYouHeartbeat().accept(heartbeat1)
         heartbeat1.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 4L)
         fakeMessageStore.storeMessage(fixYouSessionId, 4L, heartbeat1)
-        def heartbeat2 = new NotPoolableFixMessage()
+        def heartbeat2 = new SimpleFixMessage()
         FixMessages.createFIXYouHeartbeat().accept(heartbeat2)
         heartbeat2.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 5L)
         fakeMessageStore.storeMessage(fixYouSessionId, 5L, heartbeat2)
-        def newOrderSingle3 = new NotPoolableFixMessage()
+        def newOrderSingle3 = new SimpleFixMessage()
         FixMessages.createFIXYouNewOrderSingle(clordid3).accept(newOrderSingle3)
         newOrderSingle3.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 6L)
         fakeMessageStore.storeMessage(fixYouSessionId, 6L, newOrderSingle3)
@@ -80,7 +81,6 @@ class ReceiveResendRequestMessagePersistenceOnIntegrationTest extends AbstractFi
                 containsExactly(clordid1.toString(), clordid2.toString(), clordid3.toString())
 
         cleanup:
-        fakeMessageStore.sessionToMessagesMap.forEach((sessionId, messages) -> messages.values().forEach(msg -> msg.release()))
-        fakeMessageStore.sessionToMessagesMap.forEach((sessionId, messages) -> messages.values().forEach(msg -> msg.close()))
+        fakeMessageStore.sessionToMessagesMap.forEach((sessionId, messages) -> messages.values().forEach(msg -> ReferenceCountUtil.release(msg)))
     }
 }

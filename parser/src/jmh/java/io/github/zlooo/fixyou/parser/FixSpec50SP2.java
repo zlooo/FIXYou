@@ -2,7 +2,6 @@ package io.github.zlooo.fixyou.parser;
 
 import io.github.zlooo.fixyou.model.ApplicationVersionID;
 import io.github.zlooo.fixyou.model.FieldType;
-import io.github.zlooo.fixyou.utils.ArrayUtils;
 
 import java.util.HashMap;
 import java.util.Map;

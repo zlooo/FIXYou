@@ -51,7 +51,7 @@ public class ArrayBackedObjectPool<T extends AbstractPoolableObject> extends Abs
             synchronized (this) { //yeah looks shitty, but it should not come to this. If we have to resize the pool is too small!!!!
                 resizeObjectArray();
             }
-            return getAndRetain();
+            return tryGetAndRetain();
         } else {
             return objectFromPool;
         }

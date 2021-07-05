@@ -6,17 +6,19 @@ import com.carrotsearch.hppcrt.procedures.ObjectProcedure;
 import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.Resettable;
-import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject;
+import io.github.zlooo.fixyou.commons.AbstractPoolableFixMessage;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.fix.commons.LogoutTexts;
 import io.github.zlooo.fixyou.fix.commons.RejectReasons;
 import io.github.zlooo.fixyou.fix.commons.session.SessionIDUtils;
+import io.github.zlooo.fixyou.fix.commons.utils.EmptyFixMessage;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
+import io.github.zlooo.fixyou.model.FixMessage;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.netty.utils.FixChannelListeners;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.netty.channel.*;
+import io.netty.util.ReferenceCountUtil;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -30,17 +32,17 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
     private static final int DEFAULT_OUTBOUND_SEQUENCE_NUMBER = 0;
 
     private final NettyHandlerAwareSessionState sessionState;
-    private final ObjectPool<FixMessage> fixMessageObjectPool;
+    private final ObjectPool<? extends AbstractPoolableFixMessage> fixMessageObjectPool;
     private final SessionID sessionId;
     //TODO performance test it, maybe some other collection is better suited, especially since it's ordered
     private final LongObjectMap<FixMessage> sequenceNumberToQueuedFixMessages = new LongObjectHashMap<>(DefaultConfiguration.QUEUED_MESSAGES_MAP_SIZE);
     private long nextExpectedInboundSequenceNumber = DEFAULT_NEXT_EXPECTED_INBOUND_SEQUENCE_NUMBER;
     private long lastOutboundSequenceNumber = DEFAULT_OUTBOUND_SEQUENCE_NUMBER;
 
-    public SessionHandler(NettyHandlerAwareSessionState sessionState, ObjectPool<FixMessage> fixMessageObjectPool) {
+    public SessionHandler(NettyHandlerAwareSessionState sessionState, ObjectPool<? extends AbstractPoolableFixMessage> fixMessageObjectPool) {
         this.sessionState = sessionState;
         this.fixMessageObjectPool = fixMessageObjectPool;
-        this.sequenceNumberToQueuedFixMessages.setDefaultValue(FixMessageUtils.EMPTY_FAKE_MESSAGE);
+        this.sequenceNumberToQueuedFixMessages.setDefaultValue(EmptyFixMessage.INSTANCE);
         sessionId = sessionState.getSessionId();
         loadSequenceNumbers();
         log.debug("Created fix session handler for session {}", sessionId);
@@ -54,7 +56,7 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
     public void reset() {
         nextExpectedInboundSequenceNumber = DEFAULT_NEXT_EXPECTED_INBOUND_SEQUENCE_NUMBER;
         lastOutboundSequenceNumber = DEFAULT_OUTBOUND_SEQUENCE_NUMBER;
-        sequenceNumberToQueuedFixMessages.values().forEach((ObjectProcedure<? super FixMessage>) AbstractPoolableObject::release);
+        sequenceNumberToQueuedFixMessages.values().forEach((ObjectProcedure<? super FixMessage>) ReferenceCountUtil::release);
         sequenceNumberToQueuedFixMessages.clear();
     }
 
@@ -105,7 +107,7 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
             final FixMessage rejectMessage = FixMessageUtils.toRejectMessage(fixMessage, RejectReasons.VALUE_IS_INCORRECT_FOR_THIS_TAG, FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, RejectReasons.TOO_LOW_NEW_SEQUENCE_NUMBER);
             SessionIDUtils.setSessionIdFields(rejectMessage, sessionId);
             rejectMessage.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, ++lastOutboundSequenceNumber);
-            ctx.writeAndFlush(rejectMessage.retain()).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+            ctx.writeAndFlush(ReferenceCountUtil.retain(rejectMessage)).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
         } else {
             log.warn("Sequence reset in reset mode received for session {}, setting new next expected inbound sequence number to {}", sessionId, newSequenceValue);
             for (long i = nextExpectedInboundSequenceNumber; i < newSequenceValue; i++) {
@@ -120,7 +122,7 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
     private void pushQueuedMessagesIfPresent(ChannelHandlerContext ctx) {
         if (!sequenceNumberToQueuedFixMessages.isEmpty()) { //quick path, 99% cases there won't be anything queued
             FixMessage queuedFixMessage;
-            while ((queuedFixMessage = sequenceNumberToQueuedFixMessages.get(nextExpectedInboundSequenceNumber)) != FixMessageUtils.EMPTY_FAKE_MESSAGE) {
+            while ((queuedFixMessage = sequenceNumberToQueuedFixMessages.get(nextExpectedInboundSequenceNumber)) != EmptyFixMessage.INSTANCE) {
                 try {
                     sequenceNumberToQueuedFixMessages.remove(nextExpectedInboundSequenceNumber);
                     if (!FixMessageUtils.isAdminMessage(queuedFixMessage)) {
@@ -132,7 +134,7 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
                         nextExpectedInboundSequenceNumber++;
                     }
                 } finally {
-                    queuedFixMessage.release();
+                    ReferenceCountUtil.release(queuedFixMessage);
                 }
             }
         }
@@ -154,7 +156,7 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
                 log.error("Missing from sequence number({}) is lower than missing to sequence number({}), how can this be?", cutDownFromInclusive, cutDownToInclusive);
             }
         }
-        final FixMessage fixMessageToBeQueued = fixMessageObjectPool.getAndRetain();
+        final AbstractPoolableFixMessage fixMessageToBeQueued = fixMessageObjectPool.getAndRetain();
         fixMessageToBeQueued.copyDataFrom(fixMessage);
         sequenceNumberToQueuedFixMessages.put(sequenceNumberFromMessage, fixMessageToBeQueued);
         pushQueuedMessagesIfPresent(ctx);
@@ -172,7 +174,7 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
             final FixMessage logoutMessage = FixMessageUtils.toLogoutMessage(fixMessage, LogoutTexts.SEQUENCE_NUMBER_LOWER_THAN_EXPECTED);
             SessionIDUtils.setSessionIdFields(logoutMessage, sessionId);
             logoutMessage.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, ++lastOutboundSequenceNumber);
-            ctx.writeAndFlush(logoutMessage.retain())
+            ctx.writeAndFlush(ReferenceCountUtil.retain(logoutMessage))
                .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
                .addListener(FixChannelListeners.LOGOUT_SENT);
         } else {
@@ -195,7 +197,7 @@ class SessionHandler extends ChannelDuplexHandler implements SessionAwareChannel
 
     private void fillMapWithPlaceholders(long fromInclusive, long toInclusive) {
         for (long i = fromInclusive; i <= toInclusive; i++) {
-            sequenceNumberToQueuedFixMessages.put(i, FixMessageUtils.EMPTY_FAKE_MESSAGE);
+            sequenceNumberToQueuedFixMessages.put(i, EmptyFixMessage.INSTANCE);
         }
     }
 

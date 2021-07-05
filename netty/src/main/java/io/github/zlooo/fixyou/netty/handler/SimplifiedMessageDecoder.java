@@ -1,14 +1,15 @@
 package io.github.zlooo.fixyou.netty.handler;
 
+import io.github.zlooo.fixyou.FIXYouException;
 import io.github.zlooo.fixyou.FixConstants;
+import io.github.zlooo.fixyou.commons.AbstractPoolableFixMessage;
 import io.github.zlooo.fixyou.commons.ByteBufComposer;
+import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.model.ApplicationVersionID;
 import io.github.zlooo.fixyou.model.FieldType;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.parser.FixFieldsTypes;
 import io.github.zlooo.fixyou.parser.FixMessageParser;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
@@ -18,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 @Slf4j
@@ -26,17 +28,20 @@ import javax.inject.Singleton;
 class SimplifiedMessageDecoder extends ChannelInboundHandlerAdapter {
 
     private static final LogonOnlySpec LOGON_ONLY_SPEC = new LogonOnlySpec();
+    private static final int GET_FROM_POOL_MAX_ATTEMPTS = 10;
+    private final ObjectPool<? extends AbstractPoolableFixMessage> fixMessagePool;
 
     @Inject
-    SimplifiedMessageDecoder() {
+    SimplifiedMessageDecoder(@Named("fixMessageObjectPool") ObjectPool<? extends AbstractPoolableFixMessage> fixMessagePool) {
+        this.fixMessagePool = fixMessagePool;
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof ByteBuf) {
             final ByteBuf in = (ByteBuf) msg;
-            final FixMessage fixMessage = new NotPoolableFixMessage();
             final ByteBufComposer byteBufComposer = new ByteBufComposer(1);
+            final AbstractPoolableFixMessage fixMessage = tryGetFixMessage(fixMessagePool, GET_FROM_POOL_MAX_ATTEMPTS);
             try {
                 /**
                  * This handler should handle 1 message only anyway, first logon, so we can afford couple of constructor invocations. After that it's removed from pipeline by
@@ -60,13 +65,26 @@ class SimplifiedMessageDecoder extends ChannelInboundHandlerAdapter {
                     ctx.close();
                 }
             } finally {
-                fixMessage.close();
+                fixMessage.release();
                 byteBufComposer.reset();
                 in.release();
             }
         } else {
             ctx.fireChannelRead(msg);
         }
+    }
+
+    private static AbstractPoolableFixMessage tryGetFixMessage(ObjectPool<? extends AbstractPoolableFixMessage> fixMessagePool, int maxAttempts) {
+        AbstractPoolableFixMessage fixMessage;
+        int attempts = 1;
+        while ((fixMessage = fixMessagePool.tryGetAndRetain()) == null) {
+            if (attempts < maxAttempts) {
+                attempts++;
+            } else {
+                throw new FIXYouException("Could not get fix message from pool, tried " + attempts + " times");
+            }
+        }
+        return fixMessage;
     }
 
     /**

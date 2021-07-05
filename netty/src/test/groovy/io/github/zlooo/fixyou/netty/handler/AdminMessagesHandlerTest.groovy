@@ -1,14 +1,13 @@
 package io.github.zlooo.fixyou.netty.handler
 
 import io.github.zlooo.fixyou.FixConstants
+import io.github.zlooo.fixyou.model.FixMessage
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
+import io.github.zlooo.fixyou.netty.SimpleFixMessage
 import io.github.zlooo.fixyou.netty.handler.admin.AdministrativeMessageHandler
-import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.util.Attribute
-import spock.lang.AutoCleanup
 import spock.lang.Specification
 
 class AdminMessagesHandlerTest extends Specification {
@@ -24,8 +23,7 @@ class AdminMessagesHandlerTest extends Specification {
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
     private NettyHandlerAwareSessionState sessionState = Mock()
-    @AutoCleanup
-    private FixMessage fixMessage = new NotPoolableFixMessage()
+    private FixMessage fixMessage = new SimpleFixMessage()
 
     def "should handle message of known type"() {
         setup:
@@ -45,6 +43,7 @@ class AdminMessagesHandlerTest extends Specification {
     def "should handle message of unknown type"() {
         setup:
         fixMessage.setCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER, FixConstants.SEQUENCE_RESET)
+        fixMessage.retain()
 
         when:
         handler.channelRead(channelHandlerContext, fixMessage)
@@ -53,7 +52,7 @@ class AdminMessagesHandlerTest extends Specification {
         1 * channelHandlerContext.channel() >> channel
         1 * channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY) >> sessionStateAttribute
         1 * sessionStateAttribute.get() >> sessionState
-        fixMessage.refCnt() == 1
+        fixMessage.refCnt() == 1 //auto release is set to false so refCnt should stay on 1
         1 * channelHandlerContext.fireChannelRead(fixMessage)
         0 * _
     }

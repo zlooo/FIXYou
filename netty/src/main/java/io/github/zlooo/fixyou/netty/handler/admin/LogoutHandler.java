@@ -1,10 +1,11 @@
 package io.github.zlooo.fixyou.netty.handler.admin;
 
 import io.github.zlooo.fixyou.FixConstants;
+import io.github.zlooo.fixyou.model.FixMessage;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
@@ -27,7 +28,7 @@ class LogoutHandler implements AdministrativeMessageHandler {
         if (!sessionState.isLogoutSent()) {
             sessionState.setLogoutSent(true);
             fixMessage.setCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER, FixConstants.LOGOUT);
-            ctx.writeAndFlush(fixMessage.retain()).addListener(ChannelFutureListener.CLOSE);
+            ctx.writeAndFlush(ReferenceCountUtil.retain(fixMessage)).addListener(ChannelFutureListener.CLOSE);
         } else {
             ctx.channel().close();
         }

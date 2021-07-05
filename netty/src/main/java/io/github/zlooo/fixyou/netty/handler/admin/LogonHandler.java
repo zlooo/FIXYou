@@ -1,12 +1,14 @@
 package io.github.zlooo.fixyou.netty.handler.admin;
 
 import io.github.zlooo.fixyou.FixConstants;
+import io.github.zlooo.fixyou.commons.AbstractPoolableFixMessage;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.fix.commons.Authenticator;
 import io.github.zlooo.fixyou.fix.commons.LogoutTexts;
 import io.github.zlooo.fixyou.fix.commons.RejectReasons;
 import io.github.zlooo.fixyou.fix.commons.session.SessionIDUtils;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
+import io.github.zlooo.fixyou.model.FixMessage;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.netty.handler.Handlers;
 import io.github.zlooo.fixyou.netty.handler.NamedHandler;
@@ -16,13 +18,13 @@ import io.github.zlooo.fixyou.netty.handler.validation.ValidationOperations;
 import io.github.zlooo.fixyou.netty.utils.DelegatingChannelHandlerContext;
 import io.github.zlooo.fixyou.netty.utils.FixChannelListeners;
 import io.github.zlooo.fixyou.netty.utils.PipelineUtils;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.github.zlooo.fixyou.session.SessionRegistry;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandler;
+import io.netty.util.ReferenceCountUtil;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -42,13 +44,13 @@ class LogonHandler implements AdministrativeMessageHandler {
     private final SessionRegistry<NettyHandlerAwareSessionState> sessionRegistry;
     private final ChannelHandler beforeSessionMessageValidatorHandler;
     private final ChannelHandler afterSessionMessageValidatorHandler;
-    private final ObjectPool<FixMessage> fixMessageObjectPool;
+    private final ObjectPool<? extends AbstractPoolableFixMessage> fixMessageObjectPool;
 
     @Inject
     LogonHandler(@Nullable Authenticator authenticator, SessionRegistry sessionRegistry,
                  @NamedHandler(Handlers.BEFORE_SESSION_MESSAGE_VALIDATOR) ChannelHandler beforeSessionMessageValidatorHandler,
                  @NamedHandler(Handlers.AFTER_SESSION_MESSAGE_VALIDATOR) ChannelHandler afterSessionMessageValidatorHandler,
-                 @Named("fixMessageObjectPool") ObjectPool<FixMessage> fixMessageObjectPool) {
+                 @Named("fixMessageObjectPool") ObjectPool<? extends AbstractPoolableFixMessage> fixMessageObjectPool) {
         this.authenticator = authenticator;
         this.sessionRegistry = sessionRegistry;
         this.beforeSessionMessageValidatorHandler = beforeSessionMessageValidatorHandler;
@@ -95,7 +97,7 @@ class LogonHandler implements AdministrativeMessageHandler {
                     return sessionHandler;
                 } else {
                     log.error("Authentication for session {} failed", sessionID);
-                    ctx.writeAndFlush(FixMessageUtils.toLogoutMessage(fixMessage, LogoutTexts.BAD_CREDENTIALS).retain())
+                    ctx.writeAndFlush(ReferenceCountUtil.retain(FixMessageUtils.toLogoutMessage(fixMessage, LogoutTexts.BAD_CREDENTIALS)))
                        .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
                        .addListener(FixChannelListeners.LOGOUT_SENT);
                 }
@@ -134,7 +136,7 @@ class LogonHandler implements AdministrativeMessageHandler {
         ctx.write(rejectMessage).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
         final FixMessage logoutMessage = FixMessageUtils.toLogoutMessage(fixMessage, LogoutTexts.INVALID_LOGON_MESSAGE);
         sessionHandler.write(notMovingForwardCtx, logoutMessage, null);
-        ctx.writeAndFlush(logoutMessage.retain()).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE).addListener(ChannelFutureListener.CLOSE);
+        ctx.writeAndFlush(ReferenceCountUtil.retain(logoutMessage)).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE).addListener(ChannelFutureListener.CLOSE);
     }
 
     private SessionAwareChannelInboundHandler addRequiredHandlersToPipelineIfNeeded(ChannelHandlerContext ctx, NettyHandlerAwareSessionState sessionState, long heartbeatInterval) {

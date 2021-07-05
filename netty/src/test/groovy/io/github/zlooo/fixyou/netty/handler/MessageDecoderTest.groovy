@@ -4,9 +4,9 @@ import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.commons.ByteBufComposer
 import io.github.zlooo.fixyou.commons.memory.Region
 import io.github.zlooo.fixyou.commons.pool.ObjectPool
+import io.github.zlooo.fixyou.model.FixMessage
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
-import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID
 import io.github.zlooo.fixyou.utils.UnsafeAccessor

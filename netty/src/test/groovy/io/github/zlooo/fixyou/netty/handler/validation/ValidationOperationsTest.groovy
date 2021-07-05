@@ -2,8 +2,8 @@ package io.github.zlooo.fixyou.netty.handler.validation
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.model.ApplicationVersionID
-import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
+import io.github.zlooo.fixyou.model.FixMessage
+import io.github.zlooo.fixyou.netty.SimpleFixMessage
 import spock.lang.Specification
 
 import java.time.Instant
@@ -17,9 +17,6 @@ class ValidationOperationsTest extends Specification {
     def "should check sending time"() {
         expect:
         ValidationOperations.checkOrigSendingTime(fixMessage) == result
-
-        cleanup:
-        fixMessage?.close()
 
         where:
         fixMessage                                                                 | result
@@ -36,9 +33,6 @@ class ValidationOperationsTest extends Specification {
     def "should validate logon message"() {
         expect:
         ValidationOperations.isValidLogonMessage(message) == result
-
-        cleanup:
-        message?.close()
 
         where:
         message                                                  | result
@@ -58,7 +52,7 @@ class ValidationOperationsTest extends Specification {
     }
 
     private static FixMessage createFixMessage(LocalDateTime origSendingTime, LocalDateTime sendingTime) {
-        def fixMessage = new NotPoolableFixMessage()
+        def fixMessage = new SimpleFixMessage()
         if (origSendingTime != null) {
             fixMessage.setTimestampValue(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER, origSendingTime.toInstant(ZoneOffset.UTC).toEpochMilli())
         }
@@ -69,7 +63,7 @@ class ValidationOperationsTest extends Specification {
     }
 
     private static FixMessage logon(int fieldToReset = -1) {
-        FixMessage logon = new NotPoolableFixMessage()
+        FixMessage logon = new SimpleFixMessage()
         logon.setCharSequenceValue(FixConstants.BEGIN_STRING_FIELD_NUMBER, "beginString")
         logon.setCharSequenceValue(FixConstants.SENDER_COMP_ID_FIELD_NUMBER, "senderCompID")
         logon.setCharSequenceValue(FixConstants.TARGET_COMP_ID_FIELD_NUMBER, "targetCompID")

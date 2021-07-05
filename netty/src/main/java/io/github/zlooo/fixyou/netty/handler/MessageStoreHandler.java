@@ -2,8 +2,8 @@ package io.github.zlooo.fixyou.netty.handler;
 
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.Resettable;
+import io.github.zlooo.fixyou.model.FixMessage;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.session.MessageStore;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.netty.channel.ChannelHandler;

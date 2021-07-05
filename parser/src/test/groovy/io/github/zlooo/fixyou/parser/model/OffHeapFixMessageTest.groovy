@@ -13,7 +13,7 @@ import sun.misc.Unsafe
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-class FixMessageTest extends Specification {
+class OffHeapFixMessageTest extends Specification {
 
     private static final Unsafe UNSAFE = UnsafeAccessor.UNSAFE
     private static final Instant NOW = Instant.now()
@@ -21,7 +21,7 @@ class FixMessageTest extends Specification {
     @Shared
     private RegionPool regionPool = new RegionPool(10, DefaultConfiguration.REGION_SIZE)
     @Shared
-    private FixMessage fixMessage = new FixMessage(regionPool)
+    private OffHeapFixMessage fixMessage = new OffHeapFixMessage(regionPool)
 
     void setup() {
         fixMessage.currentRegion() //just to make sure region is allocated if needed which is during execution of first test from this class
@@ -414,7 +414,7 @@ class FixMessageTest extends Specification {
         def field1Value = RandomString.make(125)
         fixMessage.setCharSequenceValue(1, field1Value)
         fixMessage.setLongValue(3, 2, 0 as byte, 0 as byte, 666)
-        def dstFixMessage = new FixMessage(regionPool)
+        def dstFixMessage = new OffHeapFixMessage(regionPool)
 
         when:
         dstFixMessage.copyDataFrom(fixMessage)

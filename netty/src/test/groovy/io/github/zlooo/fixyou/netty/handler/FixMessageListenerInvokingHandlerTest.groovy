@@ -3,18 +3,20 @@ package io.github.zlooo.fixyou.netty.handler
 import com.lmax.disruptor.dsl.Disruptor
 import io.github.zlooo.fixyou.FIXYouConfiguration
 import io.github.zlooo.fixyou.commons.memory.Region
+import io.github.zlooo.fixyou.commons.memory.RegionPool
 import io.github.zlooo.fixyou.commons.pool.ObjectPool
 import io.github.zlooo.fixyou.fix.commons.FixMessageListener
+import io.github.zlooo.fixyou.model.FixMessage
 import io.github.zlooo.fixyou.netty.AbstractNettyAwareFixMessageListener
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
-import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
+import io.github.zlooo.fixyou.parser.model.OffHeapFixMessage
 import io.github.zlooo.fixyou.session.SessionID
 import io.github.zlooo.fixyou.utils.UnsafeAccessor
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.util.Attribute
 import spock.lang.AutoCleanup
+import spock.lang.Shared
 import spock.lang.Specification
 import spock.util.concurrent.PollingConditions
 
@@ -27,9 +29,19 @@ class FixMessageListenerInvokingHandlerTest extends Specification {
     private Attribute<Integer> ordinalNumberAttribute = Mock()
     private NettyHandlerAwareSessionState sessionState = Mock()
     private SessionID sessionID = new SessionID("", "", "")
+    @Shared
+    private final RegionPool regionPool = new RegionPool(1, 16 as short)
     @AutoCleanup
-    private FixMessage fixMessage = new NotPoolableFixMessage()
+    private FixMessage fixMessage = new OffHeapFixMessage(regionPool)
     def fixYouConfiguration = FIXYouConfiguration.builder().separateIoFromAppThread(false).build()
+
+    def setup() {
+        fixMessage.retain() //fix message passed to this handler will have ref count == 1
+    }
+
+    def cleanupSpec() {
+        regionPool.close()
+    }
 
     def "should invoke fix message listener directly"() {
         setup:
@@ -103,7 +115,7 @@ class FixMessageListenerInvokingHandlerTest extends Specification {
         try {
             disruptor.start()
             assert false: "Disruptor has not been started"
-        } catch (IllegalStateException) {
+        } catch (IllegalStateException e) {
         }
     }
 

@@ -7,14 +7,10 @@ import io.github.zlooo.fixyou.commons.utils.DateUtils;
 import io.github.zlooo.fixyou.commons.utils.FieldUtils;
 import io.github.zlooo.fixyou.commons.utils.NumberConstants;
 import io.github.zlooo.fixyou.commons.utils.ReflectionUtils;
-import io.github.zlooo.fixyou.model.DefaultExtendedFixSpec;
-import io.github.zlooo.fixyou.model.ExtendedFixSpec;
-import io.github.zlooo.fixyou.model.FieldType;
-import io.github.zlooo.fixyou.model.FixSpec;
+import io.github.zlooo.fixyou.model.*;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.netty.utils.FixSpec50SP2;
 import io.github.zlooo.fixyou.parser.FieldValueParser;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.github.zlooo.fixyou.utils.AsciiCodes;
 import io.netty.buffer.ByteBuf;
@@ -71,8 +67,8 @@ abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
                 //TODO check if bulk move, if 1 out.writeBytes per field, will perform better
                 sumOfBytes += writeTagAndSeparator(fieldNumber, out);
                 sumOfBytes += writeValue(msg, fixSpec, fieldNumber, fieldType, out);
-                out.writeByte(FixMessage.FIELD_SEPARATOR);
-                sumOfBytes += FixMessage.FIELD_SEPARATOR;
+                out.writeByte(io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR);
+                sumOfBytes += io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR;
             }
         }
         return sumOfBytes;
@@ -82,8 +78,8 @@ abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
 
     protected static int writeTagAndSeparator(int fieldNumber, ByteBuf out) {
         int sumOfBytes = FieldUtils.writeEncoded(fieldNumber, out);
-        out.writeByte(FixMessage.FIELD_VALUE_SEPARATOR);
-        sumOfBytes += FixMessage.FIELD_VALUE_SEPARATOR;
+        out.writeByte(io.github.zlooo.fixyou.model.FixMessage.FIELD_VALUE_SEPARATOR);
+        sumOfBytes += io.github.zlooo.fixyou.model.FixMessage.FIELD_VALUE_SEPARATOR;
         return sumOfBytes;
     }
 
@@ -120,8 +116,8 @@ abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
     private int writeRepeatingGroup(FixMessage msg, FixSpec fixSpec, int groupNumber, byte parentRepetitionIndex, ByteBuf out) {
         final long groupRepetitionNumber = msg.getLongValue(groupNumber);
         int sumOfBytes = FieldUtils.writeEncoded(groupRepetitionNumber, out);
-        out.writeByte(FixMessage.FIELD_SEPARATOR);
-        sumOfBytes += FixMessage.FIELD_SEPARATOR;
+        out.writeByte(io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR);
+        sumOfBytes += io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR;
         final FixSpec.FieldNumberType[] repeatingGroupFieldNumbers = fixSpec.getRepeatingGroupFieldNumbers(groupNumber);
         for (byte repetitionIndex = 0; repetitionIndex < groupRepetitionNumber; repetitionIndex++) {
             sumOfBytes += writeGroupSingleRepetition(msg, fixSpec, groupNumber, parentRepetitionIndex, out, repeatingGroupFieldNumbers, repetitionIndex);
@@ -164,8 +160,8 @@ abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
                     default:
                         throw new IllegalArgumentException(String.format(UNSUPPORTED_FIELD_TYPE_ERROR_MSG_TEMPLATE, fieldType, repeatingGroupConstituent));
                 }
-                out.writeByte(FixMessage.FIELD_SEPARATOR);
-                sumOfBytes += FixMessage.FIELD_SEPARATOR;
+                out.writeByte(io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR);
+                sumOfBytes += io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR;
             }
         }
         return sumOfBytes;
@@ -244,14 +240,14 @@ abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
         out.markWriterIndex();
         out.readerIndex(startingIndex).writerIndex(startingIndex);
         int sumOfBytes = writeTagAndSeparator(FixConstants.BEGIN_STRING_FIELD_NUMBER, out);
-        sumOfBytes += writeCharSequenceValue(fixMessage.getCharSequenceValue(FixConstants.BEGIN_STRING_FIELD_NUMBER), out) + FixMessage.FIELD_SEPARATOR;
-        out.writeByte(FixMessage.FIELD_SEPARATOR);
+        sumOfBytes += writeCharSequenceValue(fixMessage.getCharSequenceValue(FixConstants.BEGIN_STRING_FIELD_NUMBER), out) + io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR;
+        out.writeByte(io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR);
         sumOfBytes += writeTagAndSeparator(FixConstants.BODY_LENGTH_FIELD_NUMBER, out);
-        sumOfBytes += FieldUtils.writeEncoded(bodyLengthValue, out) + FixMessage.FIELD_SEPARATOR;
-        out.writeByte(FixMessage.FIELD_SEPARATOR);
+        sumOfBytes += FieldUtils.writeEncoded(bodyLengthValue, out) + io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR;
+        out.writeByte(io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR);
         sumOfBytes += writeTagAndSeparator(FixConstants.MESSAGE_TYPE_FIELD_NUMBER, out);
-        sumOfBytes += writeCharSequenceValue(fixMessage.getCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER), out) + FixMessage.FIELD_SEPARATOR;
-        out.writeByte(FixMessage.FIELD_SEPARATOR).resetWriterIndex();
+        sumOfBytes += writeCharSequenceValue(fixMessage.getCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER), out) + io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR;
+        out.writeByte(io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR).resetWriterIndex();
         return sumOfBytes;
     }
 
@@ -259,7 +255,7 @@ abstract class AbstractMessageEncoder extends MessageToByteEncoder<FixMessage> {
         writeTagAndSeparator(FixConstants.CHECK_SUM_FIELD_NUMBER, out);
         final int checksum = sumOfBytes & FixConstants.CHECK_SUM_MODULO_MASK;
         FieldUtils.writeEncoded(checksum, out, CHECKSUM_VALUE_LENGTH);
-        out.writeByte(FixMessage.FIELD_SEPARATOR);
+        out.writeByte(io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR);
     }
 
     @Override

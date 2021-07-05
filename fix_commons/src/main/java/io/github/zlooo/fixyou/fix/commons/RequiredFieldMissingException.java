@@ -1,6 +1,6 @@
 package io.github.zlooo.fixyou.fix.commons;
 
-import io.github.zlooo.fixyou.parser.model.FixMessage;
+import io.github.zlooo.fixyou.model.FixMessage;
 import lombok.Getter;
 import lombok.ToString;
 

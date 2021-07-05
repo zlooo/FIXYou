@@ -1,10 +1,12 @@
 package io.github.zlooo.fixyou.netty.handler
 
 import io.github.zlooo.fixyou.FixConstants
+import io.github.zlooo.fixyou.commons.memory.RegionPool
+import io.github.zlooo.fixyou.model.FixMessage
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
+import io.github.zlooo.fixyou.netty.SimpleFixMessage
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
-import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
+import io.github.zlooo.fixyou.parser.model.OffHeapFixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID
 import io.netty.buffer.ByteBuf
@@ -13,6 +15,7 @@ import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.util.Attribute
 import spock.lang.AutoCleanup
+import spock.lang.Shared
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
@@ -20,12 +23,18 @@ import java.nio.charset.StandardCharsets
 class FixSpecOrderedMessageEncoderTest extends Specification {
 
     private FixSpecOrderedMessageEncoder messageEncoder = new FixSpecOrderedMessageEncoder()
+    @Shared
+    private RegionPool regionPool = new RegionPool(16, 256 as short)
     @AutoCleanup
-    private FixMessage fixMessage = new NotPoolableFixMessage()
+    private FixMessage fixMessage = new OffHeapFixMessage(regionPool)
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionAttribute = Mock()
     private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), new SessionID("testBeginString", "testSender", "testTarget"), TestSpec.INSTANCE)
+
+    void cleanupSpec() {
+        regionPool.close()
+    }
 
     def "should encode simple message"() {
         setup:

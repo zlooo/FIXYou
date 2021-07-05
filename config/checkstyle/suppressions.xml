@@ -18,5 +18,5 @@
     <suppress checks="" files="io.github.zlooo.fixyou.commons.utils.DateUtils\.java"/>
     <suppress checks="" files="ObjectFactory\.java"/>
     <suppress checks="" files="io.github.zlooo.fixyou.commons.IntIntAVLTree\.java"/>
-    <suppress checks="FileLength" files="io.github.zlooo.fixyou.parser.model.FixMessage\.java"/>
+    <suppress checks="FileLength" files="io.github.zlooo.fixyou.parser.model.OffHeapFixMessage\.java"/>
 </suppressions>

@@ -1,28 +1,37 @@
 package io.github.zlooo.fixyou.parser
 
-import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.commons.ByteBufComposer
-import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
+import io.github.zlooo.fixyou.commons.memory.RegionPool
+import io.github.zlooo.fixyou.model.FixMessage
+import io.github.zlooo.fixyou.parser.model.OffHeapFixMessage
 import io.netty.buffer.Unpooled
 import spock.lang.AutoCleanup
+import spock.lang.Shared
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 class FixMessageParserTest extends Specification {
 
+    private static final DateTimeFormatter UTC_TIMESTAMP_NO_MILLIS_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HH:mm:ss");
     private static final FixSpec50SP2 fixSpec50SP2 = new FixSpec50SP2()
+    @Shared
+    private RegionPool regionPool = new RegionPool(16, 256 as short)
     @AutoCleanup
-    private FixMessage fixMessage = new NotPoolableFixMessage()
+    private FixMessage fixMessage = new OffHeapFixMessage(regionPool)
     private ByteBufComposer byteBufComposer = new ByteBufComposer(10)
     private FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer, fixSpec50SP2, fixMessage)
 
     void cleanup() {
         byteBufComposer.reset()
+    }
+
+    void cleanupSpec() {
+        regionPool.close()
     }
 
     def "should start parsing"() {
@@ -84,7 +93,7 @@ class FixMessageParserTest extends Specification {
         fixMessage.getLongValue(34) == 5
         fixMessage.getCharSequenceValue(49).toString() == "CCG"
         fixMessage.getCharSequenceValue(56).toString() == "ABC_DEFG01"
-        fixMessage.getTimestampValue(52) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        fixMessage.getTimestampValue(52) == UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
         fixMessage.getCharSequenceValue(55).toString() == "CVS"
         fixMessage.getCharSequenceValue(37).toString() == "NF 0542/03232009"
         fixMessage.getCharSequenceValue(11).toString() == "NF 0542/03232009"
@@ -106,7 +115,7 @@ class FixMessageParserTest extends Specification {
         fixMessage.getScale(6) == 0 as short
         fixMessage.getDoubleUnscaledValue(151) == 0
         fixMessage.getScale(151) == 0 as short
-        fixMessage.getTimestampValue(60) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:30", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        fixMessage.getTimestampValue(60) == UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:30", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
         fixMessage.getCharSequenceValue(58).toString() == "Fill"
         fixMessage.getCharSequenceValue(30).toString() == "N"
         fixMessage.getCharSequenceValue(207).toString() == "N"
@@ -115,7 +124,7 @@ class FixMessageParserTest extends Specification {
         fixMessage.getCharSequenceValue(337, 382, 0 as byte, 0 as byte).toString() == "0000"
         fixMessage.getDoubleUnscaledValue(437, 382, 0 as byte, 0 as byte) == 100
         fixMessage.getScale(437, 382, 0 as byte, 0 as byte) == 0
-        fixMessage.getTimestampValue(438, 382, 0 as byte, 0 as byte) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210330-23:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        fixMessage.getTimestampValue(438, 382, 0 as byte, 0 as byte) == UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210330-23:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
         fixMessage.getCharValue(29) == "1" as char
         fixMessage.getCharSequenceValue(63).toString() == "0"
         fixMessage.getCharSequenceValue(10).toString() == "080"
@@ -141,7 +150,7 @@ class FixMessageParserTest extends Specification {
         fixMessage.getLongValue(34) == 5
         fixMessage.getCharSequenceValue(49).toString() == "CCG"
         fixMessage.getCharSequenceValue(56).toString() == "ABC_DEFG01"
-        fixMessage.getTimestampValue(52) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        fixMessage.getTimestampValue(52) == UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
         fixMessage.getCharSequenceValue(55).toString() == "CVS"
         fixMessage.getCharSequenceValue(37).toString() == "NF 0542/03232009"
         fixMessage.getCharSequenceValue(11).toString() == "NF 0542/03232009"
@@ -163,7 +172,7 @@ class FixMessageParserTest extends Specification {
         fixMessage.getScale(6) == 0
         fixMessage.getDoubleUnscaledValue(151) == 0
         fixMessage.getScale(151) == 0
-        fixMessage.getTimestampValue(60) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:30", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        fixMessage.getTimestampValue(60) == UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:30", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
         fixMessage.getCharSequenceValue(58).toString() == "Fill"
         fixMessage.getCharSequenceValue(30).toString() == "N"
         fixMessage.getCharSequenceValue(207).toString() == "N"
@@ -172,12 +181,12 @@ class FixMessageParserTest extends Specification {
         fixMessage.getCharSequenceValue(337, 382, 0 as byte, 0 as byte).toString() == "0000"
         fixMessage.getDoubleUnscaledValue(437, 382, 0 as byte, 0 as byte) == 100
         fixMessage.getScale(437, 382, 0 as byte, 0 as byte) == 0
-        fixMessage.getTimestampValue(438, 382, 0 as byte, 0 as byte) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210330-23:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        fixMessage.getTimestampValue(438, 382, 0 as byte, 0 as byte) == UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210330-23:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
         fixMessage.getCharSequenceValue(375, 382, 1 as byte, 0 as byte).toString() == "TOD2"
         fixMessage.getCharSequenceValue(337, 382, 1 as byte, 0 as byte).toString() == "0001"
         fixMessage.getDoubleUnscaledValue(437, 382, 1 as byte, 0 as byte) == 101
         fixMessage.getScale(437, 382, 1 as byte, 0 as byte) == 0
-        fixMessage.getTimestampValue(438, 382, 1 as byte, 0 as byte) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210330-23:40:36", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        fixMessage.getTimestampValue(438, 382, 1 as byte, 0 as byte) == UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210330-23:40:36", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
         fixMessage.getCharValue(29) == "1" as char
         fixMessage.getCharSequenceValue(63).toString() == "0"
         fixMessage.getCharSequenceValue(10).toString() == "080"
@@ -202,7 +211,7 @@ class FixMessageParserTest extends Specification {
         fixMessage.getLongValue(34) == 5
         fixMessage.getCharSequenceValue(49).toString() == "CCG"
         fixMessage.getCharSequenceValue(56).toString() == "ABC_DEFG01"
-        fixMessage.getLongValue(52) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        fixMessage.getLongValue(52) == UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:35", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
         fixMessage.getLongValue(85) == 2
         fixMessage.getCharValue(787, 85, 0 as byte, 0 as byte) == 'C' as char
         fixMessage.getLongValue(781, 85, 0 as byte, 0 as byte) == 2
@@ -315,7 +324,6 @@ class FixMessageParserTest extends Specification {
         fixMessageParser.@storedEndIndexOfLastUnfinishedMessage == 0
         !fixMessageParser.@parsingRepeatingGroup
         fixMessageParser.@groupIndexNumberStack.isEmpty()
-        fixMessage.refCnt() == 1 //1 because NonPoolableFixMessage does retain() in constructor, basically we're checking that reset() does not release fixMessage
     }
 
     private final static String simpleNewOrderSingle = "8=FIX.4.2\u00019=146\u000135=D\u000134=4\u000149=ABC_DEFG01\u000152=20210323-15:40:29\u000156=CCG\u0001115=XYZ\u000111=NF " +
@@ -331,7 +339,7 @@ class FixMessageParserTest extends Specification {
         assert fixMessage.getCharSequenceValue(35).toString() == "D"
         assert fixMessage.getLongValue(34) == 4
         assert fixMessage.getCharSequenceValue(49).toString() == "ABC_DEFG01"
-        assert fixMessage.getTimestampValue(52) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:29", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        assert fixMessage.getTimestampValue(52) == UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:29", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
         assert fixMessage.getCharSequenceValue(56).toString() == "CCG"
         assert fixMessage.getCharSequenceValue(115).toString() == "XYZ"
         assert fixMessage.getCharSequenceValue(11).toString() == "NF 0542/03232009"
@@ -341,7 +349,7 @@ class FixMessageParserTest extends Specification {
         assert fixMessage.getCharSequenceValue(55).toString() == "CVS"
         assert fixMessage.getCharValue(40) == "1" as char
         assert fixMessage.getCharValue(59) == "0" as char
-        assert fixMessage.getTimestampValue(60) == FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:29", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
+        assert fixMessage.getTimestampValue(60) == UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse("20210323-15:40:29", { LocalDateTime.from(it) }).toInstant(ZoneOffset.UTC).toEpochMilli()
         assert fixMessage.getCharValue(21) == "1" as char
         assert fixMessage.getCharSequenceValue(207).toString() == "N"
         assert fixMessage.getCharSequenceValue(10).toString() == "139"

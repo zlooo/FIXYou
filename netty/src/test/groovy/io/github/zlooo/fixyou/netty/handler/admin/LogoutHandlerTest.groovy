@@ -1,9 +1,8 @@
 package io.github.zlooo.fixyou.netty.handler.admin
 
-
+import io.github.zlooo.fixyou.model.FixMessage
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
-import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
+import io.github.zlooo.fixyou.netty.SimpleFixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID
 import io.github.zlooo.fixyou.session.SessionStateListener
@@ -12,7 +11,6 @@ import io.netty.channel.ChannelFuture
 import io.netty.channel.ChannelFutureListener
 import io.netty.channel.ChannelHandlerContext
 import io.netty.util.Attribute
-import spock.lang.AutoCleanup
 import spock.lang.Specification
 
 class LogoutHandlerTest extends Specification {
@@ -24,8 +22,7 @@ class LogoutHandlerTest extends Specification {
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
     private Channel channel = Mock()
     private ChannelHandlerContext channelHandlerContext = Mock()
-    @AutoCleanup
-    private FixMessage fixMessage = new NotPoolableFixMessage()
+    private FixMessage fixMessage = new SimpleFixMessage()
     private ChannelFuture channelFuture = Mock()
 
     def "should send logout message if none was sent"() {
@@ -36,7 +33,7 @@ class LogoutHandlerTest extends Specification {
         logoutHandler.handleMessage(fixMessage, channelHandlerContext)
 
         then:
-        fixMessage.refCnt() == 1 + 1 //+1 because fixMessage is being reused as LogoutResponse
+        fixMessage.refCnt() == 1 //+1 because fixMessage is being reused as LogoutResponse
         1 * channelHandlerContext.channel() >> channel
         1 * channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY) >> sessionStateAttribute
         1 * sessionStateAttribute.get() >> sessionState
@@ -56,7 +53,7 @@ class LogoutHandlerTest extends Specification {
         logoutHandler.handleMessage(fixMessage, channelHandlerContext)
 
         then:
-        fixMessage.refCnt() == 1 // 1 because NotPoolableFixMessage has refCnt of 1 after creation
+        fixMessage.refCnt() == 0
         2 * channelHandlerContext.channel() >> channel
         1 * channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY) >> sessionStateAttribute
         1 * sessionStateAttribute.get() >> sessionState

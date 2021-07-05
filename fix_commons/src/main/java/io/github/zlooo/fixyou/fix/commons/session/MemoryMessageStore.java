@@ -1,12 +1,12 @@
 package io.github.zlooo.fixyou.fix.commons.session;
 
 import io.github.zlooo.fixyou.DefaultConfiguration;
-import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject;
-import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
+import io.github.zlooo.fixyou.fix.commons.utils.EmptyFixMessage;
+import io.github.zlooo.fixyou.model.FixMessage;
 import io.github.zlooo.fixyou.session.LongSubscriber;
 import io.github.zlooo.fixyou.session.MessageStore;
 import io.github.zlooo.fixyou.session.SessionID;
+import io.netty.util.ReferenceCountUtil;
 import io.netty.util.collection.LongObjectHashMap;
 import io.netty.util.collection.LongObjectMap;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +28,7 @@ public class MemoryMessageStore implements MessageStore<FixMessage> {
     @Override
     public void storeMessage(SessionID sessionID, long sequenceNumber, FixMessage message) {
         log.debug("Storing message for session id {}, sequence number {}, message {}", sessionID, sequenceNumber, message);
-        message.retain();
+        ReferenceCountUtil.retain(message);
         sessionToMessagesMap.computeIfAbsent(sessionID, MESSAGES_MAP_CREATOR).put(sequenceNumber, message);
     }
 
@@ -41,7 +41,7 @@ public class MemoryMessageStore implements MessageStore<FixMessage> {
                 final long actualTo = to > 0 ? to : messages.size() - 1;
                 for (long i = from; i <= actualTo; i++) {
                     final FixMessage message = messages.get(i);
-                    messageSubscriber.onNext(i, message != null ? message : FixMessageUtils.EMPTY_FAKE_MESSAGE);
+                    messageSubscriber.onNext(i, message != null ? message : EmptyFixMessage.INSTANCE);
                 }
             }
             messageSubscriber.onComplete();
@@ -54,6 +54,6 @@ public class MemoryMessageStore implements MessageStore<FixMessage> {
     @Override
     public void reset(SessionID sessionID) {
         final LongObjectMap<FixMessage> messages = sessionToMessagesMap.remove(sessionID);
-        messages.values().forEach(AbstractPoolableObject::release);
+        messages.values().forEach(ReferenceCountUtil::release);
     }
 }

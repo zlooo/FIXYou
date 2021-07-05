@@ -1,8 +1,7 @@
 package io.github.zlooo.fixyou.fix.commons.utils;
 
 import io.github.zlooo.fixyou.FixConstants;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage;
+import io.github.zlooo.fixyou.model.FixMessage;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 import lombok.experimental.UtilityClass;
@@ -15,8 +14,6 @@ public final class FixMessageUtils {
     static {
         Arrays.sort(FixConstants.ADMIN_MESSAGE_TYPES);
     }
-
-    public static final FixMessage EMPTY_FAKE_MESSAGE = new NotPoolableFixMessage();
 
     public static FixMessage toRejectMessage(FixMessage sourceMessage, long rejectReasonCode) {
         final long sourceMessageSequenceNumber = sourceMessage.isValueSet(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER) ? sourceMessage.getLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER) : 0;

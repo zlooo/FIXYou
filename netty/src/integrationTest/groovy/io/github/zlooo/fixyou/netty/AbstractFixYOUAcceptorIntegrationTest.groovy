@@ -3,12 +3,13 @@ package io.github.zlooo.fixyou.netty
 import io.github.zlooo.fixyou.FIXYouConfiguration
 import io.github.zlooo.fixyou.Resettable
 import io.github.zlooo.fixyou.commons.ByteBufComposer
+import io.github.zlooo.fixyou.commons.memory.RegionPool
 import io.github.zlooo.fixyou.commons.pool.AbstractPoolableObject
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
 import io.github.zlooo.fixyou.commons.pool.ObjectPool
+import io.github.zlooo.fixyou.model.FixMessage
 import io.github.zlooo.fixyou.netty.handler.NettyResettablesNames
 import io.github.zlooo.fixyou.netty.test.framework.*
-import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.ValidationConfig
 import io.netty.bootstrap.Bootstrap
@@ -24,6 +25,7 @@ import org.spockframework.util.Assert
 import org.springframework.util.SocketUtils
 import quickfix.Initiator
 import quickfix.SessionID
+import spock.lang.Shared
 import spock.lang.Specification
 import spock.util.concurrent.PollingConditions
 
@@ -44,7 +46,9 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
     protected Initiator initiator
     protected TestQuickfixApplication testQuickfixApplication = new TestQuickfixApplication()
     protected int acceptorPort
-    protected final TestFixMessageListener testFixMessageListener = new TestFixMessageListener()
+    @Shared
+    private final RegionPool regionPool = new RegionPool(50, 256 as short)
+    protected final TestFixMessageListener testFixMessageListener = new TestFixMessageListener(regionPool)
     protected final PollingConditions pollingConditions = new PollingConditions(timeout: 30)
     private EventLoopGroup group
     protected final List<String> receivedMessages = Collections.synchronizedList(new ArrayList())
@@ -54,13 +58,17 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
         acceptorPort = SocketUtils.findAvailableTcpPort()
         LOGGER.debug("Starting FIXYou, listening on port {}", acceptorPort)
         engine = FIXYouNetty.
-                create(FIXYouConfiguration.builder().acceptorListenPort(acceptorPort).initiator(false).fixMessagePoolSize(4).fixMessageListenerInvokerDisruptorSize(8).build(), testFixMessageListener).
+                create(FIXYouConfiguration.builder().acceptorListenPort(acceptorPort).initiator(false).fixMessagePoolSize(8).fixMessageListenerInvokerDisruptorSize(8).build(), testFixMessageListener).
                 //TODO test spec for now but once we have real one it should be used here instead
                         registerSession(fixYouSessionId, TestSpec.INSTANCE, createConfig())
         engine.start().get()
         LOGGER.debug("Creating quickfix initiator")
         initiator = QuickfixTestUtils.setupInitiator(acceptorPort, sessionID, testQuickfixApplication)
         LOGGER.info("Setup done")
+    }
+
+    def cleanupSpec(){
+        regionPool.close()
     }
 
     protected SessionConfig createConfig() {

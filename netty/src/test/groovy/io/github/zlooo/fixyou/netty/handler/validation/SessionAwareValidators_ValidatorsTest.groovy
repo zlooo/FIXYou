@@ -1,13 +1,12 @@
 package io.github.zlooo.fixyou.netty.handler.validation
 
 import io.github.zlooo.fixyou.FixConstants
+import io.github.zlooo.fixyou.model.FixMessage
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
+import io.github.zlooo.fixyou.netty.SimpleFixMessage
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
-import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID
-import spock.lang.AutoCleanup
 import spock.lang.Specification
 
 import java.time.Clock
@@ -19,8 +18,7 @@ class SessionAwareValidators_ValidatorsTest extends Specification {
 
     private static OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC)
     private static SessionID sessionID = new SessionID('beginString', 'senderCompId', 'targetCompId')
-    @AutoCleanup
-    private FixMessage fixMessage = new NotPoolableFixMessage()
+    private FixMessage fixMessage = new SimpleFixMessage()
     private SessionConfig sessionConfig = new SessionConfig()
     private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(sessionConfig, sessionID, TestSpec.INSTANCE)
 

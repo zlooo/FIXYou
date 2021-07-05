@@ -2,13 +2,13 @@ package io.github.zlooo.fixyou.netty.handler.admin
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
+import io.github.zlooo.fixyou.fix.commons.utils.EmptyFixMessage
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils
-import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
+import io.github.zlooo.fixyou.model.FixMessage
+import io.github.zlooo.fixyou.netty.SimpleFixMessage
 import io.netty.channel.ChannelFuture
 import io.netty.channel.ChannelFutureListener
 import io.netty.channel.ChannelHandlerContext
-import spock.lang.AutoCleanup
 import spock.lang.Specification
 
 import java.time.Instant
@@ -20,8 +20,7 @@ class RetransmitionSubscriberTest extends Specification {
     private RetransmitionSubscriber fixMessageSubscriber = new RetransmitionSubscriber()
     private DefaultObjectPool<RetransmitionSubscriber> fixMessageSubscriberPool = Mock()
     private ChannelFuture channelFuture = Mock()
-    @AutoCleanup
-    private FixMessage fixMessage = new NotPoolableFixMessage()
+    private FixMessage fixMessage = new SimpleFixMessage()
 
     void setup() {
         fixMessageSubscriber.channelHandlerContext = channelHandlerContext
@@ -53,6 +52,7 @@ class RetransmitionSubscriberTest extends Specification {
         fixMessage.setCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER, "D")
         def sendingTime = Instant.now().toEpochMilli()
         fixMessage.setTimestampValue(FixConstants.SENDING_TIME_FIELD_NUMBER, sendingTime)
+        fixMessage.retain() //message stored in MessageStore should have ref count of at least 1
 
         when:
         fixMessageSubscriber.onNext(1, fixMessage)
@@ -68,10 +68,12 @@ class RetransmitionSubscriberTest extends Specification {
 
     def "should retransmit non-admin message proceeded by gap fill"() {
         setup:
-        FixMessage gapFill = new NotPoolableFixMessage()
+        SimpleFixMessage gapFill = new SimpleFixMessage()
+        gapFill.retain() //ref count should be 1 when coming out of pool
         fixMessage.setCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER, "D")
         def sendingTime = Instant.now().toEpochMilli()
         fixMessage.setTimestampValue(FixConstants.SENDING_TIME_FIELD_NUMBER, sendingTime)
+        fixMessage.retain() //message stored in MessageStore should have ref count of at least 1
         fixMessageSubscriber.@fromValue = 666
         fixMessageSubscriber.@toValue = 777
 
@@ -98,6 +100,7 @@ class RetransmitionSubscriberTest extends Specification {
         setup:
         fixMessage.setCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER, "0")
         fixMessage.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 666)
+        fixMessage.retain() //message stored in MessageStore should have ref count of at least 1
 
         when:
         fixMessageSubscriber.onNext(666, fixMessage)
@@ -115,6 +118,7 @@ class RetransmitionSubscriberTest extends Specification {
         fixMessage.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 666)
         fixMessageSubscriber.@fromValue = 665
         fixMessageSubscriber.@toValue = 665
+        fixMessage.retain() //message stored in MessageStore should have ref count of at least 1
 
         when:
         fixMessageSubscriber.onNext(666, fixMessage)
@@ -130,6 +134,7 @@ class RetransmitionSubscriberTest extends Specification {
         setup:
         fixMessage.setCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER, "0")
         fixMessage.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 666)
+        fixMessage.retain() //message stored in MessageStore should have ref count of at least 1
 
         when:
         fixMessageSubscriber.onNext(666, fixMessage)
@@ -143,7 +148,7 @@ class RetransmitionSubscriberTest extends Specification {
 
     def "should store sequence number for gap fill if provided message is empty"() {
         when:
-        fixMessageSubscriber.onNext(666, FixMessageUtils.EMPTY_FAKE_MESSAGE)
+        fixMessageSubscriber.onNext(666, EmptyFixMessage.INSTANCE)
 
         then:
         fixMessageSubscriber.@fromValue == 666L
@@ -156,7 +161,8 @@ class RetransmitionSubscriberTest extends Specification {
         fixMessageSubscriber.retain()
         fixMessageSubscriber.@fromValue = 666L
         fixMessageSubscriber.@toValue = 777L
-        FixMessage gapFill = new NotPoolableFixMessage()
+        SimpleFixMessage gapFill = new SimpleFixMessage()
+        gapFill.retain() //ref count should be 1 when coming out of pool
 
         when:
         fixMessageSubscriber.onError(new Exception())
@@ -170,9 +176,6 @@ class RetransmitionSubscriberTest extends Specification {
         1 * channelHandlerContext.flush()
         fixMessageSubscriberPool.returnObject(fixMessageSubscriber)
         fixMessageSubscriber.refCnt() == 0
-
-        cleanup:
-        gapFill?.close()
     }
 
     def "should push gap fill if queued, flush and release on subscription completion"() {
@@ -180,7 +183,8 @@ class RetransmitionSubscriberTest extends Specification {
         fixMessageSubscriber.retain()
         fixMessageSubscriber.@fromValue = 666L
         fixMessageSubscriber.@toValue = 777L
-        FixMessage gapFill = new NotPoolableFixMessage()
+        SimpleFixMessage gapFill = new SimpleFixMessage()
+        gapFill.retain() //ref count should be 1 when coming out of pool
 
         when:
         fixMessageSubscriber.onComplete()
@@ -194,8 +198,5 @@ class RetransmitionSubscriberTest extends Specification {
         1 * channelHandlerContext.flush()
         fixMessageSubscriberPool.returnObject(fixMessageSubscriber)
         fixMessageSubscriber.refCnt() == 0
-
-        cleanup:
-        gapFill?.close()
     }
 }
