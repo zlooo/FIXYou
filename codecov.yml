@@ -6,3 +6,4 @@ ignore:
   - "**/*Exception.java"
   - "**/FakeFixSpec.java"
   - "**/StandardHeaderAndFooterOnlyFixSpec.java"
+  - "**/EmptyFixMessage.java"
