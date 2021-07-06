@@ -4,7 +4,7 @@ import com.carrotsearch.hppcrt.IntObjectMap;
 import com.carrotsearch.hppcrt.cursors.IntCursor;
 import io.github.zlooo.fixyou.model.ExtendedFixSpec;
 import io.github.zlooo.fixyou.model.FieldType;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
+import io.github.zlooo.fixyou.model.FixMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
 
@@ -30,8 +30,8 @@ class UnorderedMessageEncoder extends AbstractMessageEncoder {
                 if (fieldType != null) { //if null it means we have either content of repeating group or unknown field, either way we don't want to write this field
                     sumOfBytes += writeTagAndSeparator(fieldNumber, out);
                     sumOfBytes += writeValue(msg, fixSpec, fieldNumber, fieldType, out);
-                    out.writeByte(FixMessage.FIELD_SEPARATOR);
-                    sumOfBytes += FixMessage.FIELD_SEPARATOR;
+                    out.writeByte(io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR);
+                    sumOfBytes += io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR;
                 }
             }
         }

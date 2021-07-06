@@ -1,7 +1,5 @@
 package io.github.zlooo.fixyou.commons;
 
-import io.github.zlooo.fixyou.utils.ArrayUtils;
-
 public class IntIntAVLTreeBase {
 
     public static final int INVALID_IDX = -1;

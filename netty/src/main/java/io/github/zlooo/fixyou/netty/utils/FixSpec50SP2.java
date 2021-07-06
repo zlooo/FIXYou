@@ -3,7 +3,6 @@ package io.github.zlooo.fixyou.netty.utils;
 import io.github.zlooo.fixyou.model.ApplicationVersionID;
 import io.github.zlooo.fixyou.model.FieldType;
 
-import javax.annotation.Nonnull;
 import java.util.HashMap;
 import java.util.Map;
 

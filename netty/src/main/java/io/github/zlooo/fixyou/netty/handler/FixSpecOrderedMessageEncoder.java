@@ -2,7 +2,7 @@ package io.github.zlooo.fixyou.netty.handler;
 
 import io.github.zlooo.fixyou.model.ExtendedFixSpec;
 import io.github.zlooo.fixyou.model.FieldType;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
+import io.github.zlooo.fixyou.model.FixMessage;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
@@ -30,8 +30,8 @@ class FixSpecOrderedMessageEncoder extends AbstractMessageEncoder {
                 //TODO check if bulk move, if 1 out.writeBytes per field, will perform better
                 sumOfBytes += writeTagAndSeparator(fieldNumber, out);
                 sumOfBytes += writeValue(msg, fixSpec, fieldNumber, fieldType, out);
-                out.writeByte(FixMessage.FIELD_SEPARATOR);
-                sumOfBytes += FixMessage.FIELD_SEPARATOR;
+                out.writeByte(io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR);
+                sumOfBytes += io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR;
             }
         }
         return sumOfBytes;

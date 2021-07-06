@@ -19,7 +19,7 @@ class FixMessageRepeatingGroupTest extends Specification {
     @Shared
     private RegionPool regionPool = new RegionPool(10, DefaultConfiguration.REGION_SIZE)
     @Shared
-    private FixMessage fixMessage = new FixMessage(regionPool)
+    private OffHeapFixMessage fixMessage = new OffHeapFixMessage(regionPool)
 
     void setup() {
         fixMessage.currentRegion() //just to make sure region is allocated if needed which is during execution of first test from this class

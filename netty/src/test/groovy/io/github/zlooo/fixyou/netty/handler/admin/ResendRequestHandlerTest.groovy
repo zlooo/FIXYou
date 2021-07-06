@@ -2,9 +2,9 @@ package io.github.zlooo.fixyou.netty.handler.admin
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
+import io.github.zlooo.fixyou.model.FixMessage
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
-import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
+import io.github.zlooo.fixyou.netty.SimpleFixMessage
 import io.github.zlooo.fixyou.session.MessageStore
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID
@@ -13,7 +13,6 @@ import io.netty.channel.ChannelFuture
 import io.netty.channel.ChannelFutureListener
 import io.netty.channel.ChannelHandlerContext
 import io.netty.util.Attribute
-import spock.lang.AutoCleanup
 import spock.lang.Specification
 
 class ResendRequestHandlerTest extends Specification {
@@ -22,8 +21,7 @@ class ResendRequestHandlerTest extends Specification {
     private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
     private ResendRequestHandler resendRequestHandler = new ResendRequestHandler(fixMessageSubscriberPool, fixMessageObjectPool)
     private ChannelHandlerContext channelHandlerContext = Mock()
-    @AutoCleanup
-    private FixMessage fixMessage = new NotPoolableFixMessage()
+    private FixMessage fixMessage = new SimpleFixMessage()
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
     private SessionID sessionID = new SessionID("", "", "")
@@ -42,7 +40,7 @@ class ResendRequestHandlerTest extends Specification {
         resendRequestHandler.handleMessage(fixMessage, channelHandlerContext)
 
         then:
-        fixMessage.refCnt() == 1 //1 because handler does not release and NotPoolableFixMessage has refCnt 1 after creation
+        fixMessage.refCnt() == 0
         1 * channelHandlerContext.channel() >> channel
         1 * channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY) >> sessionStateAttribute
         1 * sessionStateAttribute.get() >> sessionState
@@ -67,7 +65,7 @@ class ResendRequestHandlerTest extends Specification {
         1 * channelHandlerContext.channel() >> channel
         1 * channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY) >> sessionStateAttribute
         1 * sessionStateAttribute.get() >> sessionState
-        fixMessage.refCnt() == 1 + 1 //+1 because fix message is being reused as sequence reset
+        fixMessage.refCnt() == 1 //+1 because fix message is being reused as sequence reset
         fixMessage.getCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).chars == FixConstants.SEQUENCE_RESET
         fixMessage.getLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER) == 666L
         fixMessage.getLongValue(FixConstants.NEW_SEQUENCE_NUMBER_FIELD_NUMBER) == 778L

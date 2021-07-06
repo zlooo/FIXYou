@@ -1,8 +1,8 @@
 package io.github.zlooo.fixyou.fix.commons.session
 
-import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils
-import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
+import io.github.zlooo.fixyou.fix.commons.SimpleFixMessage
+import io.github.zlooo.fixyou.fix.commons.utils.EmptyFixMessage
+import io.github.zlooo.fixyou.model.FixMessage
 import io.github.zlooo.fixyou.session.LongSubscriber
 import io.github.zlooo.fixyou.session.SessionID
 import org.assertj.core.api.Assertions
@@ -15,7 +15,7 @@ class MemoryMessageStoreTest extends Specification {
 
     def "should store message"() {
         setup:
-        NotPoolableFixMessage msg = new NotPoolableFixMessage()
+        SimpleFixMessage msg = new SimpleFixMessage()
 
         when:
         store.storeMessage(sessionID, 666, msg)
@@ -24,16 +24,13 @@ class MemoryMessageStoreTest extends Specification {
         msg.refCnt() == 1 + 1 //one after construction, +1 after message is stored
         Assertions.assertThat(store.@sessionToMessagesMap).containsOnlyKeys(sessionID)
         Assertions.assertThat(store.@sessionToMessagesMap[sessionID]).containsOnly(Assertions.entry(666L, msg))
-
-        cleanup:
-        msg?.close()
     }
 
     def "should load messages"() {
         setup:
         List<FixMessage> msgs = []
         for (i in 0..6) {
-            msgs << new NotPoolableFixMessage()
+            msgs << new SimpleFixMessage()
         }
         store.@sessionToMessagesMap.computeIfAbsent(sessionID, MemoryMessageStore.MESSAGES_MAP_CREATOR).putAll(msgs.indexed().collectEntries { key, value -> [key.toLong(), value] })
         def testSub = new TestLongSubscriber()
@@ -46,16 +43,13 @@ class MemoryMessageStoreTest extends Specification {
         testSub.completeCalled
         testSub.error == null
         Assertions.assertThat(testSub.items).containsOnly(Assertions.entry(3L, msgs[3]), Assertions.entry(4L, msgs[4]), Assertions.entry(5L, msgs[5])) \
-
-        cleanup:
-        msgs?.forEach(msg -> msg.close())
     }
 
     def "should load messages even when excessive amount is requested"() {
         setup:
         List<FixMessage> msgs = []
         for (i in 0..4) {
-            msgs << new NotPoolableFixMessage()
+            msgs << new SimpleFixMessage()
         }
         store.@sessionToMessagesMap.computeIfAbsent(sessionID, MemoryMessageStore.MESSAGES_MAP_CREATOR).putAll(msgs.indexed().collectEntries { key, value -> [key.toLong(), value] })
         def testSub = new TestLongSubscriber()
@@ -67,17 +61,14 @@ class MemoryMessageStoreTest extends Specification {
         testSub.subscribeCalled
         testSub.completeCalled
         testSub.error == null
-        Assertions.assertThat(testSub.items).containsOnly(Assertions.entry(3L, msgs[3]), Assertions.entry(4L, msgs[4]), Assertions.entry(5L, FixMessageUtils.EMPTY_FAKE_MESSAGE))
-
-        cleanup:
-        msgs?.forEach(msg -> msg.close())
+        Assertions.assertThat(testSub.items).containsOnly(Assertions.entry(3L, msgs[3]), Assertions.entry(4L, msgs[4]), Assertions.entry(5L, EmptyFixMessage.INSTANCE))
     }
 
     def "should load all messages subsequent to provided sequence number"() {
         setup:
         List<FixMessage> msgs = []
         for (i in 0..6) {
-            msgs << new NotPoolableFixMessage()
+            msgs << new SimpleFixMessage()
         }
         store.@sessionToMessagesMap.computeIfAbsent(sessionID, MemoryMessageStore.MESSAGES_MAP_CREATOR).putAll(msgs.indexed().collectEntries { key, value -> [key.toLong(), value] })
         def testSub = new TestLongSubscriber()
@@ -90,16 +81,13 @@ class MemoryMessageStoreTest extends Specification {
         testSub.completeCalled
         testSub.error == null
         Assertions.assertThat(testSub.items).containsOnly(Assertions.entry(3L, msgs[3]), Assertions.entry(4L, msgs[4]), Assertions.entry(5L, msgs[5]), Assertions.entry(6L, msgs[6]))
-
-        cleanup:
-        msgs?.forEach(msg -> msg.close())
     }
 
     def "should notify about exception when it happens during message processing"() {
         setup:
         List<FixMessage> msgs = []
         for (i in 0..6) {
-            msgs << new NotPoolableFixMessage()
+            msgs << new SimpleFixMessage()
         }
         store.@sessionToMessagesMap.computeIfAbsent(sessionID, MemoryMessageStore.MESSAGES_MAP_CREATOR).putAll(msgs.indexed().collectEntries { key, value -> [key.toLong(), value] })
         def testSub = new TestLongSubscriber()
@@ -115,17 +103,14 @@ class MemoryMessageStoreTest extends Specification {
         testSub.error instanceof RuntimeException
         testSub.error.getMessage() == "Test"
         Assertions.assertThat(testSub.items).containsOnly(Assertions.entry(3L, msgs[3]))
-
-        cleanup:
-        msgs?.forEach(msg -> msg.close())
     }
 
     def "should release all for given session messages when store is reset"() {
         setup:
-        NotPoolableFixMessage msg = new NotPoolableFixMessage()
+        SimpleFixMessage msg = new SimpleFixMessage()
         store.storeMessage(sessionID, 666, msg)
         SessionID sessionID2 = new SessionID('2', '', '')
-        NotPoolableFixMessage msg2 = new NotPoolableFixMessage()
+        SimpleFixMessage msg2 = new SimpleFixMessage()
         store.storeMessage(sessionID2, 666, msg2)
 
         when:
@@ -134,10 +119,6 @@ class MemoryMessageStoreTest extends Specification {
         then:
         msg.refCnt() == 0 + 1 //one after construction, +1 after message is stored, -1 after reset() is called
         Assertions.assertThat(store.@sessionToMessagesMap).hasSize(1).containsOnlyKeys(sessionID2)
-
-        cleanup:
-        msg?.close()
-        msg2?.close()
     }
 
     private static final class TestLongSubscriber implements LongSubscriber<FixMessage> {

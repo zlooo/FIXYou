@@ -1,11 +1,11 @@
 package io.github.zlooo.fixyou.netty.handler;
 
 import io.github.zlooo.fixyou.Resettable;
+import io.github.zlooo.fixyou.commons.AbstractPoolableFixMessage;
 import io.github.zlooo.fixyou.commons.memory.Region;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.netty.utils.DelegatingChannelHandlerContext;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.session.SessionConfig;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
@@ -22,11 +22,11 @@ import java.util.function.Function;
 @Singleton
 public class NettyResettablesSupplier implements Function<NettyHandlerAwareSessionState, Map<String, Resettable>> {
 
-    private final ObjectPool<FixMessage> fixMessageObjectPool;
+    private final ObjectPool<? extends AbstractPoolableFixMessage> fixMessageObjectPool;
     private final ObjectPool<Region> regionPool;
 
     @Inject
-    NettyResettablesSupplier(@Named("fixMessageObjectPool") ObjectPool<FixMessage> fixMessageObjectPool, @Named("regionPool") ObjectPool<Region> regionPool) {
+    NettyResettablesSupplier(@Named("fixMessageObjectPool") ObjectPool<? extends AbstractPoolableFixMessage> fixMessageObjectPool, @Named("regionPool") ObjectPool<Region> regionPool) {
         this.fixMessageObjectPool = fixMessageObjectPool;
         this.regionPool = regionPool;
     }

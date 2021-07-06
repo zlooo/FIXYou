@@ -10,9 +10,10 @@ import io.github.zlooo.fixyou.commons.NamingThreadFactory;
 import io.github.zlooo.fixyou.commons.memory.Region;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.fix.commons.FixMessageListener;
+import io.github.zlooo.fixyou.model.FixMessage;
 import io.github.zlooo.fixyou.netty.AbstractNettyAwareFixMessageListener;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
+import io.github.zlooo.fixyou.parser.model.OffHeapFixMessage;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
@@ -74,12 +75,15 @@ class FixMessageListenerInvokingHandler extends SimpleChannelInboundHandler<FixM
             try {
                 final RingBuffer<Event> ringBuffer = disruptor.getRingBuffer();
                 final long sequence = ringBuffer.tryNext();
-                final Event event = ringBuffer.get(sequence);
-                final Channel channel = ctx.channel();
-                event.sessionID = channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY).get().getSessionId();
-                event.eventHandlerNumber = channel.attr(FIXYouChannelInitializer.ORDINAL_NUMBER_KEY).get();
-                event.fixMessage.copyDataFrom(msg);
-                ringBuffer.publish(sequence);
+                try {
+                    final Event event = ringBuffer.get(sequence);
+                    final Channel channel = ctx.channel();
+                    event.sessionID = channel.attr(NettyHandlerAwareSessionState.ATTRIBUTE_KEY).get().getSessionId();
+                    event.eventHandlerNumber = channel.attr(FIXYouChannelInitializer.ORDINAL_NUMBER_KEY).get();
+                    event.fixMessage.copyDataFrom((OffHeapFixMessage) msg); //TODO not sure if cast is best solution
+                } finally {
+                    ringBuffer.publish(sequence);
+                }
             } catch (InsufficientCapacityException e) {
                 log.warn("Insufficient capacity in disruptor's ring buffer, have to drop one or else boom goes the dynamite. Fix message dropped is logged on debug level.");
                 log.debug("FixMessage that's dropped: {}", msg);
@@ -92,12 +96,12 @@ class FixMessageListenerInvokingHandler extends SimpleChannelInboundHandler<FixM
         private final FixMessageListener fixMessageListener;
         private SessionID sessionID;
         @ToString.Exclude
-        private FixMessage fixMessage;
+        private OffHeapFixMessage fixMessage;
         private int eventHandlerNumber;
 
         public Event(FixMessageListener fixMessageListener, ObjectPool<Region> regionObjectPool) {
             this.fixMessageListener = fixMessageListener;
-            this.fixMessage = new FixMessage(regionObjectPool);
+            this.fixMessage = new OffHeapFixMessage(regionObjectPool);
             this.fixMessage.retain();
         }
     }

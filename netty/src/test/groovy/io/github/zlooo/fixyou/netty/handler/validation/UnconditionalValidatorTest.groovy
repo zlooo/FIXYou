@@ -1,8 +1,7 @@
 package io.github.zlooo.fixyou.netty.handler.validation
 
-import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
-import spock.lang.AutoCleanup
+import io.github.zlooo.fixyou.model.FixMessage
+import io.github.zlooo.fixyou.netty.SimpleFixMessage
 import spock.lang.Specification
 
 class UnconditionalValidatorTest extends Specification {
@@ -10,8 +9,7 @@ class UnconditionalValidatorTest extends Specification {
     private UnconditionalValidator unconditionalValidator = new UnconditionalValidator() {}
     private SingleArgValidator<FixMessage> validator1 = Mock()
     private SingleArgValidator<FixMessage> validator2 = Mock()
-    @AutoCleanup
-    private FixMessage fixMessage = new NotPoolableFixMessage()
+    private FixMessage fixMessage = new SimpleFixMessage()
 
     def "should return null validation failure action when validation passes"() {
         when:

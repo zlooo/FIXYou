@@ -1,9 +1,9 @@
 package io.github.zlooo.fixyou.netty
 
 import io.github.zlooo.fixyou.FixConstants
+import io.github.zlooo.fixyou.model.FixMessage
 import io.github.zlooo.fixyou.netty.test.framework.FixMessages
 import io.github.zlooo.fixyou.netty.test.framework.QuickfixTestUtils
-import io.github.zlooo.fixyou.parser.model.FixMessage
 import quickfix.Message
 import quickfix.Session
 import quickfix.SessionID
@@ -14,7 +14,6 @@ import quickfix.fixt11.Logout
 import quickfix.fixt11.Reject
 import quickfix.fixt11.ResendRequest
 import spock.lang.Ignore
-import spock.lang.PendingFeature
 import spock.lang.Timeout
 
 import java.time.LocalDateTime

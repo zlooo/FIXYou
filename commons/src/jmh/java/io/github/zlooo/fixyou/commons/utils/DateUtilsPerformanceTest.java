@@ -1,6 +1,5 @@
 package io.github.zlooo.fixyou.commons.utils;
 
-import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.commons.ReusableCharArray;
 import io.netty.buffer.ByteBuf;
@@ -55,7 +54,7 @@ public class DateUtilsPerformanceTest {
     @BenchmarkMode({Mode.Throughput})
     public void writeViaDateFormatterTest() {
         byteBuf.clear();
-        for (final char singleCharacter : FixConstants.UTC_TIMESTAMP_FORMATTER.format(OffsetDateTime.now(clock)).toCharArray()) {
+        for (final char singleCharacter : UTC_TIMESTAMP_NO_MILLIS_FORMATTER.format(OffsetDateTime.now(clock)).toCharArray()) {
             byteBuf.writeByte(AsciiString.c2b(singleCharacter));
         }
     }

@@ -4,7 +4,7 @@ import io.github.zlooo.fixyou.Engine
 import io.github.zlooo.fixyou.FIXYouConfiguration
 import io.github.zlooo.fixyou.FIXYouException
 import io.github.zlooo.fixyou.fix.commons.FixMessageListener
-import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.model.FixMessage
 import io.github.zlooo.fixyou.session.SessionID
 import spock.lang.Specification
 

@@ -2,7 +2,7 @@ package io.github.zlooo.fixyou.fix.commons.session
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.commons.utils.Comparators
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
+import io.github.zlooo.fixyou.fix.commons.SimpleFixMessage
 import io.github.zlooo.fixyou.session.SessionID
 import org.assertj.core.api.Assertions
 import spock.lang.Specification
@@ -13,7 +13,7 @@ class SessionIDUtilsTest extends Specification {
 
     def "should set all session id fields"() {
         setup:
-        def fixMessage = new NotPoolableFixMessage()
+        def fixMessage = new SimpleFixMessage()
 
         when:
         SessionIDUtils.setSessionIdFields(fixMessage, sessionID)
@@ -23,50 +23,38 @@ class SessionIDUtilsTest extends Specification {
         for (Map.Entry<SessionID.Fields, Integer> mappingEntry : sessionIdFieldsMap) {
             assert Comparators.compare(fixMessage.getCharSequenceValue(mappingEntry.value), sessionID.properties[mappingEntry.key.name()]) == 0
         }
-
-        cleanup:
-        fixMessage?.close()
     }
 
     def "should build session id from fix message"() {
         setup:
-        def fixMessage = new NotPoolableFixMessage()
+        def fixMessage = new SimpleFixMessage()
         fixMessage.setCharSequenceValue(FixConstants.BEGIN_STRING_FIELD_NUMBER, sessionID.beginString)
         fixMessage.setCharSequenceValue(FixConstants.SENDER_COMP_ID_FIELD_NUMBER, sessionID.senderCompID)
         fixMessage.setCharSequenceValue(FixConstants.TARGET_COMP_ID_FIELD_NUMBER, sessionID.targetCompID)
 
         expect:
         SessionIDUtils.buildSessionID(fixMessage, false) == sessionID
-
-        cleanup:
-        fixMessage?.close()
     }
 
     def "should build session id from fix message with comp ids flipped"() {
         setup:
-        def fixMessage = new NotPoolableFixMessage()
+        def fixMessage = new SimpleFixMessage()
         fixMessage.setCharSequenceValue(FixConstants.BEGIN_STRING_FIELD_NUMBER, sessionID.beginString)
         fixMessage.setCharSequenceValue(FixConstants.SENDER_COMP_ID_FIELD_NUMBER, sessionID.senderCompID)
         fixMessage.setCharSequenceValue(FixConstants.TARGET_COMP_ID_FIELD_NUMBER, sessionID.targetCompID)
 
         expect:
         SessionIDUtils.buildSessionID(fixMessage, true) == new SessionID(sessionID.beginString, sessionID.targetCompID, sessionID.senderCompID)
-
-        cleanup:
-        fixMessage?.close()
     }
 
     def "should check if comp ids are equal"() {
         setup:
-        def fixMessage = new NotPoolableFixMessage()
+        def fixMessage = new SimpleFixMessage()
         fixMessage.setCharSequenceValue(FixConstants.SENDER_COMP_ID_FIELD_NUMBER, senderCompID)
         fixMessage.setCharSequenceValue(FixConstants.TARGET_COMP_ID_FIELD_NUMBER, targetCompID)
 
         expect:
         SessionIDUtils.checkCompIDs(fixMessage, sessionIdToCompare, flipIDs) == result
-
-        cleanup:
-        fixMessage?.close()
 
         where:
         senderCompID | targetCompID | flipIDs | sessionIdToCompare                  | result

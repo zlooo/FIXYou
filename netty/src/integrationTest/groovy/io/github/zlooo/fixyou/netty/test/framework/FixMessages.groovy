@@ -1,7 +1,8 @@
 package io.github.zlooo.fixyou.netty.test.framework
 
 import io.github.zlooo.fixyou.FixConstants
-import io.github.zlooo.fixyou.parser.model.FixMessage
+import io.github.zlooo.fixyou.model.FixMessage
+import io.netty.util.ReferenceCountUtil
 import quickfix.SessionID
 import quickfix.field.*
 import quickfix.fix50sp2.NewOrderSingle
@@ -87,7 +88,7 @@ class FixMessages {
     static Consumer<FixMessage> createFIXYouHeartbeat() {
         return { FixMessage fixMessage ->
             fixMessage.setCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER, FixConstants.HEARTBEAT)
-            fixMessage.retain()
+            ReferenceCountUtil.retain(fixMessage)
         }
     }
 }

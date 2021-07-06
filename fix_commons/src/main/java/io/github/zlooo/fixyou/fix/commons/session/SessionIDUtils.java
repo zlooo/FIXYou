@@ -2,7 +2,7 @@ package io.github.zlooo.fixyou.fix.commons.session;
 
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.commons.utils.Comparators;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
+import io.github.zlooo.fixyou.model.FixMessage;
 import io.github.zlooo.fixyou.session.SessionID;
 import lombok.experimental.UtilityClass;
 

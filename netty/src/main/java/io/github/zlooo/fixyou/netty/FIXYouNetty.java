@@ -3,14 +3,15 @@ package io.github.zlooo.fixyou.netty;
 import io.github.zlooo.fixyou.Engine;
 import io.github.zlooo.fixyou.FIXYouConfiguration;
 import io.github.zlooo.fixyou.FIXYouException;
+import io.github.zlooo.fixyou.commons.AbstractPoolableFixMessage;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.fix.commons.FixMessageListener;
 import io.github.zlooo.fixyou.fix.commons.config.validator.ConfigValidator;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
+import io.github.zlooo.fixyou.model.FixMessage;
 import io.github.zlooo.fixyou.netty.handler.DaggerFixYouNettyComponent;
 import io.github.zlooo.fixyou.netty.handler.FixYouNettyComponent;
 import io.github.zlooo.fixyou.netty.utils.FixChannelListeners;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.session.SessionID;
 import io.github.zlooo.fixyou.session.SessionRegistry;
 import io.netty.channel.Channel;
@@ -80,7 +81,7 @@ public class FIXYouNetty {
     }
 
     @Nonnull
-    public static ObjectPool<FixMessage> fixMessagePool(@Nonnull Engine engine) { //TODO not sure about this API, should message pool be exposed?
+    public static ObjectPool<? extends AbstractPoolableFixMessage> fixMessagePool(@Nonnull Engine engine) { //TODO not sure about this API, should message pool be exposed?
         return ((AbstractFIXYouNetty) engine).fixYouNettyComponent.fixMessageObjectPool();
     }
 }

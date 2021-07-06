@@ -3,7 +3,6 @@ package io.github.zlooo.fixyou.fix.commons.session
 import io.github.zlooo.fixyou.FIXYouException
 import io.github.zlooo.fixyou.Resettable
 import io.github.zlooo.fixyou.model.ExtendedFixSpec
-import io.github.zlooo.fixyou.model.FixSpec
 import io.github.zlooo.fixyou.session.AbstractSessionState
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID

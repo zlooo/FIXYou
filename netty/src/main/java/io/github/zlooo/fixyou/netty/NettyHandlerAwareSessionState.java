@@ -2,8 +2,8 @@ package io.github.zlooo.fixyou.netty;
 
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.model.ExtendedFixSpec;
+import io.github.zlooo.fixyou.model.FixMessage;
 import io.github.zlooo.fixyou.netty.handler.NettyResettablesNames;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.session.AbstractSessionState;
 import io.github.zlooo.fixyou.session.SessionConfig;
 import io.github.zlooo.fixyou.session.SessionID;
@@ -11,6 +11,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandler;
 import io.netty.util.AttributeKey;
+import io.netty.util.ReferenceCountUtil;
 import lombok.*;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
@@ -59,7 +60,7 @@ public class NettyHandlerAwareSessionState extends AbstractSessionState {
             }
             log.debug("Queueing message {}", fixMessage);
         } finally {
-            fixMessage.release();
+            ReferenceCountUtil.release(fixMessage);
         }
     }
 }

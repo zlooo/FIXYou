@@ -2,8 +2,8 @@ package io.github.zlooo.fixyou.netty
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.fix.commons.session.MemoryMessageStore
+import io.github.zlooo.fixyou.model.FixMessage
 import io.github.zlooo.fixyou.netty.test.framework.FixMessages
-import io.github.zlooo.fixyou.parser.model.FixMessage
 import io.github.zlooo.fixyou.session.LongSubscriber
 import io.github.zlooo.fixyou.session.MessageStore
 import io.github.zlooo.fixyou.session.SessionConfig

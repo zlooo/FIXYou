@@ -1,7 +1,7 @@
 package io.github.zlooo.fixyou.parser;
 
 import io.github.zlooo.fixyou.commons.ByteBufComposer;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
+import io.github.zlooo.fixyou.model.FixMessage;
 import io.github.zlooo.fixyou.utils.AsciiCodes;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -18,7 +18,7 @@ public class ParsingPerformanceTest {
     @BenchmarkMode(Mode.Throughput)
     public void parseLong(TestState testState, Blackhole blackhole) {
         testState.byteBufComposer.readerIndex(0);
-        blackhole.consume(FieldValueParser.parseLong(testState.byteBufComposer, 0, FixMessage.FIELD_SEPARATOR));
+        blackhole.consume(FieldValueParser.parseLong(testState.byteBufComposer, 0, io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR));
     }
 
     @Benchmark

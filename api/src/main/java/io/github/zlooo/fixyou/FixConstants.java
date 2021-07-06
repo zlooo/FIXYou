@@ -2,7 +2,6 @@ package io.github.zlooo.fixyou;
 
 import lombok.experimental.UtilityClass;
 
-import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 
 @UtilityClass
@@ -52,9 +51,6 @@ public class FixConstants {
     public static final long ENCRYPTION_METHOD_PGP_DES = 4;
     public static final long ENCRYPTION_METHOD_PGP_DES_MD5 = 5;
     public static final long ENCRYPTION_METHOD_PEM_DES_MD5 = 6;
-    public static final DateTimeFormatter UTC_TIMESTAMP_NO_MILLIS_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HH:mm:ss"); //TODO get rid of those formatters!!!
-    public static final String UTC_TIMESTAMP_PATTERN = "yyyyMMdd-HH:mm:ss.SSS";
-    public static final DateTimeFormatter UTC_TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern(UTC_TIMESTAMP_PATTERN);
     public static final long SENDING_TIME_ACCURACY_MILLIS = TimeUnit.SECONDS.toMillis(30);
     public static final int CHECK_SUM_MODULO_MASK = 255;
     public static final char[] ADMIN_MESSAGE_TYPES = {'0', 'A', '5', '3', '2', '4', '1'};

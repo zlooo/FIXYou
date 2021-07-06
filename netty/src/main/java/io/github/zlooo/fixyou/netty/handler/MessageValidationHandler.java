@@ -1,9 +1,10 @@
 package io.github.zlooo.fixyou.netty.handler;
 
+import io.github.zlooo.fixyou.commons.AbstractPoolableFixMessage;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
+import io.github.zlooo.fixyou.model.FixMessage;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
 import io.github.zlooo.fixyou.netty.handler.validation.*;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -13,16 +14,14 @@ import java.util.List;
 
 @Slf4j
 @ChannelHandler.Sharable
-class MessageValidationHandler extends SimpleChannelInboundHandler<FixMessage>
-        implements UnconditionalValidator<FixMessage>, ConditionalValidator<FixMessage, NettyHandlerAwareSessionState> {
+class MessageValidationHandler extends SimpleChannelInboundHandler<FixMessage> implements UnconditionalValidator<FixMessage>, ConditionalValidator<FixMessage, NettyHandlerAwareSessionState> {
 
     private final List<SingleArgValidator<FixMessage>> unconditionalValidators;
     private final List<PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>>> predicateWithValidators;
-    private final ObjectPool<FixMessage> fixMessageObjectPool;
+    private final ObjectPool<? extends AbstractPoolableFixMessage> fixMessageObjectPool;
 
-    MessageValidationHandler(List<SingleArgValidator<FixMessage>> unconditionalValidators,
-                             List<PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>>> predicateWithValidators,
-                             ObjectPool<FixMessage> fixMessageObjectPool) {
+    MessageValidationHandler(List<SingleArgValidator<FixMessage>> unconditionalValidators, List<PredicateWithValidator<TwoArgsValidator<FixMessage, NettyHandlerAwareSessionState>>> predicateWithValidators,
+                             ObjectPool<? extends AbstractPoolableFixMessage> fixMessageObjectPool) {
         super(false);
         this.unconditionalValidators = unconditionalValidators;
         this.predicateWithValidators = predicateWithValidators;

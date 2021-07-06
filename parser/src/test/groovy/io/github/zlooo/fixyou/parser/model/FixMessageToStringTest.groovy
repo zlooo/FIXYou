@@ -1,8 +1,10 @@
 package io.github.zlooo.fixyou.parser.model
 
 import io.github.zlooo.fixyou.FixConstants
+import io.github.zlooo.fixyou.commons.memory.RegionPool
 import io.github.zlooo.fixyou.parser.FixSpec50SP2
 import spock.lang.AutoCleanup
+import spock.lang.Shared
 import spock.lang.Specification
 
 import java.time.Instant
@@ -11,8 +13,14 @@ class FixMessageToStringTest extends Specification {
 
     private static final FixSpec50SP2 SPEC = new FixSpec50SP2()
 
+    @Shared
+    private RegionPool regionPool = new RegionPool(4, 256 as short)
     @AutoCleanup
-    private NotPoolableFixMessage fixMessage = new NotPoolableFixMessage()
+    private OffHeapFixMessage fixMessage = new OffHeapFixMessage(regionPool)
+
+    void cleanupSpec() {
+        regionPool.close()
+    }
 
     def "should toString short message"() {
         setup:
@@ -30,7 +38,7 @@ class FixMessageToStringTest extends Specification {
         def result = FixMessageToString.toString(fixMessage, wholeMessage, SPEC)
 
         then:
-        result == "FixMessage -> 8=FIXT.1.1|9=10|43=Y|52=1617043873000|150=0|151=1.23|453=2, refCnt=2" //I know, no repeating group content :/
+        result == "FixMessage -> [8=FIXT.1.1|9=10|43=Y|52=1617043873000|150=0|151=1.23|453=2], refCnt=1" //I know, no repeating group content :/
 
         where:
         wholeMessage << [true, false]
@@ -55,7 +63,7 @@ class FixMessageToStringTest extends Specification {
         def result = FixMessageToString.toString(fixMessage, false, SPEC)
 
         then:
-        result == "FixMessage -> 8=FIXT.1.1|9=10|49=senderCompId|56=targetCompId|34=11|43=Y|52=1617043873000|10=001|58=some text|55=symbol..., refCnt=1"
+        result == "FixMessage -> [8=FIXT.1.1|9=10|49=senderCompId|56=targetCompId|34=11|43=Y|52=1617043873000|10=001|58=some text|55=symbol...], refCnt=0"
     }
 
     def "should not shorten long message"() {
@@ -77,6 +85,6 @@ class FixMessageToStringTest extends Specification {
         def result = FixMessageToString.toString(fixMessage, true, SPEC)
 
         then:
-        result == "FixMessage -> 8=FIXT.1.1|9=10|49=senderCompId|56=targetCompId|34=11|43=Y|52=1617043873000|10=001|58=some text|55=symbol|150=0|151=1.23, refCnt=1"
+        result == "FixMessage -> [8=FIXT.1.1|9=10|49=senderCompId|56=targetCompId|34=11|43=Y|52=1617043873000|10=001|58=some text|55=symbol|150=0|151=1.23], refCnt=0"
     }
 }

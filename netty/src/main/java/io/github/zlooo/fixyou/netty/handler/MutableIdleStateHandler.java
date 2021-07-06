@@ -1,10 +1,10 @@
 package io.github.zlooo.fixyou.netty.handler;
 
 import io.github.zlooo.fixyou.Resettable;
+import io.github.zlooo.fixyou.commons.AbstractPoolableFixMessage;
 import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.fix.commons.utils.FixMessageUtils;
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.netty.channel.*;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
@@ -40,7 +40,7 @@ public class MutableIdleStateHandler extends ChannelDuplexHandler implements Ses
 
     private final boolean observeOutput;
     private final NettyHandlerAwareSessionState sessionState;
-    private final ObjectPool<FixMessage> fixMessageObjectPool;
+    private final ObjectPool<? extends AbstractPoolableFixMessage> fixMessageObjectPool;
     private long readerIdleTimeNanos;
     private long writerIdleTimeNanos;
     private long allIdleTimeNanos;
@@ -65,16 +65,16 @@ public class MutableIdleStateHandler extends ChannelDuplexHandler implements Ses
     private long lastFlushProgress;
     private EventLoop eventLoop;
 
-    public MutableIdleStateHandler(NettyHandlerAwareSessionState sessionState, ObjectPool<FixMessage> fixMessageObjectPool) {
+    public MutableIdleStateHandler(NettyHandlerAwareSessionState sessionState, ObjectPool<? extends AbstractPoolableFixMessage> fixMessageObjectPool) {
         this(sessionState, fixMessageObjectPool, false, 0, 0, 0, TimeUnit.NANOSECONDS);
     }
 
-    public MutableIdleStateHandler(NettyHandlerAwareSessionState sessionState, ObjectPool<FixMessage> fixMessageObjectPool, int readerIdleTimeSeconds, int writerIdleTimeSeconds, int allIdleTimeSeconds) {
+    public MutableIdleStateHandler(NettyHandlerAwareSessionState sessionState, ObjectPool<? extends AbstractPoolableFixMessage> fixMessageObjectPool, int readerIdleTimeSeconds, int writerIdleTimeSeconds, int allIdleTimeSeconds) {
 
         this(sessionState, fixMessageObjectPool,readerIdleTimeSeconds, writerIdleTimeSeconds, allIdleTimeSeconds, TimeUnit.SECONDS);
     }
 
-    public MutableIdleStateHandler(NettyHandlerAwareSessionState sessionState, ObjectPool<FixMessage> fixMessageObjectPool, long readerIdleTime, long writerIdleTime, long allIdleTime, TimeUnit unit) {
+    public MutableIdleStateHandler(NettyHandlerAwareSessionState sessionState, ObjectPool<? extends AbstractPoolableFixMessage> fixMessageObjectPool, long readerIdleTime, long writerIdleTime, long allIdleTime, TimeUnit unit) {
         this(sessionState, fixMessageObjectPool,false, readerIdleTime, writerIdleTime, allIdleTime, unit);
     }
 
@@ -95,7 +95,7 @@ public class MutableIdleStateHandler extends ChannelDuplexHandler implements Ses
      * @param unit           the {@link TimeUnit} of {@code readerIdleTime},
      *                       {@code writeIdleTime}, and {@code allIdleTime}
      */
-    public MutableIdleStateHandler(NettyHandlerAwareSessionState sessionState, ObjectPool<FixMessage> fixMessageObjectPool, boolean observeOutput, long readerIdleTime, long writerIdleTime, long allIdleTime, TimeUnit unit) {
+    public MutableIdleStateHandler(NettyHandlerAwareSessionState sessionState, ObjectPool<? extends AbstractPoolableFixMessage> fixMessageObjectPool, boolean observeOutput, long readerIdleTime, long writerIdleTime, long allIdleTime, TimeUnit unit) {
         this.sessionState = sessionState;
         this.fixMessageObjectPool = fixMessageObjectPool;
         ObjectUtil.checkNotNull(unit, "unit");

@@ -1,6 +1,5 @@
 package io.github.zlooo.fixyou.commons.utils;
 
-import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.utils.AsciiCodes;
 import io.netty.buffer.ByteBuf;
@@ -119,14 +118,6 @@ public class DateUtils {
             sumOfBytes += FieldUtils.writeEncoded(remainingMillis, destinationBuffer, 3);
         }
         return sumOfBytes;
-    }
-
-    public static DateTimeFormatter chooseFormatter(int length) {
-        if (FixConstants.UTC_TIMESTAMP_PATTERN.length() == length) {
-            return FixConstants.UTC_TIMESTAMP_FORMATTER;
-        } else {
-            return FixConstants.UTC_TIMESTAMP_NO_MILLIS_FORMATTER;
-        }
     }
 
     public static long parseTimestamp(ByteBufComposer byteBuf, int srcIndex, int length, TimestampParser timestampParser) {

@@ -2,8 +2,8 @@ package io.github.zlooo.fixyou.netty.handler.validation
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.fix.commons.RejectReasons
-import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
+import io.github.zlooo.fixyou.model.FixMessage
+import io.github.zlooo.fixyou.netty.SimpleFixMessage
 import io.netty.channel.ChannelFuture
 import io.netty.channel.ChannelFutureListener
 import io.netty.channel.ChannelHandlerContext
@@ -56,13 +56,10 @@ class SimpleValidatorsTest extends Specification {
         fixMessage.getLongValue(FixConstants.SESSION_REJECT_REASON_FIELD_NUMBER) == RejectReasons.REQUIRED_TAG_MISSING
         fixMessage.getLongValue(FixConstants.REFERENCED_TAG_ID_FIELD_NUMBER) == FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER
         0 * _
-
-        cleanup:
-        fixMessage?.close()
     }
 
     private static FixMessage createFixMessage(LocalDateTime origSendingTime, Boolean possDupFlag) {
-        def fixMessage = new NotPoolableFixMessage()
+        def fixMessage = new SimpleFixMessage()
         if (origSendingTime != null) {
             fixMessage.setTimestampValue(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER, origSendingTime.toInstant(ZoneOffset.UTC).toEpochMilli())
         }

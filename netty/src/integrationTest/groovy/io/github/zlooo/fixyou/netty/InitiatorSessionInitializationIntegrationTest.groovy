@@ -2,6 +2,7 @@ package io.github.zlooo.fixyou.netty
 
 import io.github.zlooo.fixyou.Engine
 import io.github.zlooo.fixyou.FIXYouConfiguration
+import io.github.zlooo.fixyou.commons.memory.RegionPool
 import io.github.zlooo.fixyou.netty.test.framework.*
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.netty.bootstrap.ServerBootstrap
@@ -19,6 +20,7 @@ import quickfix.field.SessionRejectReason
 import quickfix.fixt11.Logon
 import quickfix.fixt11.Logout
 import quickfix.fixt11.Reject
+import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Timeout
 
@@ -36,11 +38,13 @@ class InitiatorSessionInitializationIntegrationTest extends Specification {
     private TestQuickfixApplication testQuickfixApplication = new TestQuickfixApplication()
     private int acceptorPort
     private TestSessionSateListener sessionSateListener = new TestSessionSateListener()
+    @Shared
+    private final RegionPool regionPool = new RegionPool(50, 256 as short)
 
     void setup() {
         acceptorPort = SocketUtils.findAvailableTcpPort()
         engine = FIXYouNetty.
-                create(FIXYouConfiguration.builder().initiator(true).fixMessagePoolSize(4).fixMessageListenerInvokerDisruptorSize(4).build(), new TestFixMessageListener()).
+                create(FIXYouConfiguration.builder().initiator(true).fixMessagePoolSize(4).fixMessageListenerInvokerDisruptorSize(4).build(), new TestFixMessageListener(regionPool)).
                 registerSession(new io.github.zlooo.fixyou.session.SessionID("FIXT.1.1", senderCompId, targetCompId,),
                                              TestSpec.INSTANCE,
                                              //TODO test spec for now but once we have real one it should be used here instead
@@ -51,6 +55,10 @@ class InitiatorSessionInitializationIntegrationTest extends Specification {
     void cleanup() {
         engine?.stop()
         acceptor?.stop(true)
+    }
+
+    def cleanupSpec(){
+        regionPool.close()
     }
 
     def "should initialize session 1B-c-0"() {

@@ -4,17 +4,16 @@ import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.commons.pool.ObjectPool
 import io.github.zlooo.fixyou.fix.commons.LogoutTexts
 import io.github.zlooo.fixyou.fix.commons.RejectReasons
+import io.github.zlooo.fixyou.model.FixMessage
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
+import io.github.zlooo.fixyou.netty.SimpleFixMessage
 import io.github.zlooo.fixyou.netty.handler.admin.TestSpec
 import io.github.zlooo.fixyou.netty.utils.FixChannelListeners
-import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.SessionID
 import io.netty.channel.ChannelFuture
 import io.netty.channel.ChannelFutureListener
 import io.netty.channel.ChannelHandlerContext
-import spock.lang.AutoCleanup
 import spock.lang.Specification
 
 import java.time.Clock
@@ -24,8 +23,7 @@ import java.time.ZoneOffset
 class SessionAwareValidators_ValidationFailureActionsTest extends Specification {
 
     private static SessionID sessionID = new SessionID('beginString', 'senderCompId', 'targetCompId')
-    @AutoCleanup
-    private FixMessage fixMessage = new NotPoolableFixMessage()
+    private FixMessage fixMessage = new SimpleFixMessage()
     private SessionConfig sessionConfig = new SessionConfig()
     private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(sessionConfig, sessionID, TestSpec.INSTANCE)
     private ChannelHandlerContext channelHandlerContext = Mock()
@@ -38,7 +36,7 @@ class SessionAwareValidators_ValidationFailureActionsTest extends Specification 
         LocalDateTime now = LocalDateTime.now()
         fixMessage.setTimestampValue(FixConstants.ORIG_SENDING_TIME_FIELD_NUMBER, now.plusMinutes(1).toInstant(ZoneOffset.UTC).toEpochMilli())
         fixMessage.setTimestampValue(FixConstants.SENDING_TIME_FIELD_NUMBER, now.minusMinutes(1).toInstant(ZoneOffset.UTC).toEpochMilli())
-        FixMessage logoutMessage = new NotPoolableFixMessage()
+        FixMessage logoutMessage = new SimpleFixMessage()
 
         when:
         SessionAwareValidators.ORIG_SENDING_TIME_VALIDATOR.validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectPool)
@@ -66,7 +64,7 @@ class SessionAwareValidators_ValidationFailureActionsTest extends Specification 
         fixMessage.setCharSequenceValue(FixConstants.BEGIN_STRING_FIELD_NUMBER, sessionID.beginString)
         fixMessage.setCharSequenceValue(FixConstants.TARGET_COMP_ID_FIELD_NUMBER, senderCompId)
         fixMessage.setCharSequenceValue(FixConstants.SENDER_COMP_ID_FIELD_NUMBER, targetCompId)
-        FixMessage logout = new NotPoolableFixMessage()
+        FixMessage logout = new SimpleFixMessage()
 
         when:
         SessionAwareValidators.COMP_ID_VALIDATOR.validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectPool)
@@ -144,7 +142,7 @@ class SessionAwareValidators_ValidationFailureActionsTest extends Specification 
         setup:
         LocalDateTime now = LocalDateTime.now()
         fixMessage.setTimestampValue(FixConstants.SENDING_TIME_FIELD_NUMBER, now.minusMinutes(1).toInstant(ZoneOffset.UTC).toEpochMilli())
-        FixMessage logoutMessage = new NotPoolableFixMessage()
+        FixMessage logoutMessage = new SimpleFixMessage()
 
         when:
         SessionAwareValidators.createSendingTimeValidator(Clock.fixed(now.toInstant(ZoneOffset.UTC), ZoneOffset.UTC)).validator.apply(fixMessage, sessionState).perform(channelHandlerContext, fixMessage, fixMessageObjectPool)

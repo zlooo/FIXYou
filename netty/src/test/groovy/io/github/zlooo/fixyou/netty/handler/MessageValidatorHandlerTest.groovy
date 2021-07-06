@@ -1,19 +1,18 @@
 package io.github.zlooo.fixyou.netty.handler
 
 import io.github.zlooo.fixyou.commons.pool.DefaultObjectPool
+import io.github.zlooo.fixyou.model.FixMessage
 import io.github.zlooo.fixyou.netty.NettyHandlerAwareSessionState
+import io.github.zlooo.fixyou.netty.SimpleFixMessage
 import io.github.zlooo.fixyou.netty.handler.validation.PredicateWithValidator
 import io.github.zlooo.fixyou.netty.handler.validation.SingleArgValidator
 import io.github.zlooo.fixyou.netty.handler.validation.TwoArgsValidator
 import io.github.zlooo.fixyou.netty.handler.validation.ValidationFailureAction
-import io.github.zlooo.fixyou.parser.model.FixMessage
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
 import io.github.zlooo.fixyou.session.SessionConfig
 import io.github.zlooo.fixyou.session.ValidationConfig
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.util.Attribute
-import spock.lang.AutoCleanup
 import spock.lang.Specification
 
 import java.util.function.Predicate
@@ -33,8 +32,7 @@ class MessageValidatorHandlerTest extends Specification {
     private NettyHandlerAwareSessionState sessionState = Mock()
     private ValidationConfig validationConfig = new ValidationConfig()
     private SessionConfig sessionConfig = new SessionConfig().setValidationConfig(validationConfig)
-    @AutoCleanup
-    private FixMessage fixMessage = new NotPoolableFixMessage()
+    private FixMessage fixMessage = new SimpleFixMessage()
     private ValidationFailureAction validationFailureAction = Mock()
 
     def "should perform after validation failure action when unconditional validation fails"() {

@@ -16,8 +16,8 @@ import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.commons.utils.DateUtils;
 import io.github.zlooo.fixyou.commons.utils.ReflectionUtils;
 import io.github.zlooo.fixyou.model.FieldType;
+import io.github.zlooo.fixyou.model.FixMessage;
 import io.github.zlooo.fixyou.model.FixSpec;
-import io.github.zlooo.fixyou.parser.model.FixMessage;
 import io.github.zlooo.fixyou.parser.model.FixMessageRepeatingGroupUtils;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.netty.buffer.ByteBuf;
@@ -110,7 +110,7 @@ public class FixMessageParser implements Resettable {
         int closestFieldTerminatorIndex;
 
         while (!bytesToParse.readerIndexBeyondStoredEnd() && ((closestFieldTerminatorIndex = bytesToParse.indexOfClosestSOH()) != ByteBufComposer.NOT_FOUND)) {
-            final int parsedFieldNumber = FieldValueParser.parseInteger(bytesToParse, bytesToParse.readerIndex(), FixMessage.FIELD_VALUE_SEPARATOR, true);
+            final int parsedFieldNumber = FieldValueParser.parseInteger(bytesToParse, bytesToParse.readerIndex(), io.github.zlooo.fixyou.model.FixMessage.FIELD_VALUE_SEPARATOR, true);
             final int start = bytesToParse.readerIndex();
             final boolean isChecksumField = FixConstants.CHECK_SUM_FIELD_NUMBER == parsedFieldNumber;
             if (isChecksumField) {
@@ -217,7 +217,7 @@ public class FixMessageParser implements Resettable {
                 break;
             case LONG:
             case GROUP:
-                fixMessage.setLongValue(fieldNumber, FieldValueParser.parseLong(bytesToParse, startIndex, FixMessage.FIELD_SEPARATOR));
+                fixMessage.setLongValue(fieldNumber, FieldValueParser.parseLong(bytesToParse, startIndex, io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR));
                 break;
             case TIMESTAMP:
                 timestampParser.reset();
@@ -248,7 +248,7 @@ public class FixMessageParser implements Resettable {
                 break;
             case LONG:
             case GROUP:
-                fixMessage.setLongValue(fieldNumber, groupNumber, repetitionIndex, parentGroupRepetitionIndex, FieldValueParser.parseLong(bytesToParse, startIndex, FixMessage.FIELD_SEPARATOR));
+                fixMessage.setLongValue(fieldNumber, groupNumber, repetitionIndex, parentGroupRepetitionIndex, FieldValueParser.parseLong(bytesToParse, startIndex, io.github.zlooo.fixyou.model.FixMessage.FIELD_SEPARATOR));
                 break;
             case TIMESTAMP:
                 timestampParser.reset();

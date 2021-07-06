@@ -2,19 +2,17 @@ package io.github.zlooo.fixyou.fix.commons.utils
 
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.fix.commons.FixSpec50SP2
+import io.github.zlooo.fixyou.fix.commons.SimpleFixMessage
 import io.github.zlooo.fixyou.model.ApplicationVersionID
 import io.github.zlooo.fixyou.model.FixSpec
-import io.github.zlooo.fixyou.parser.model.NotPoolableFixMessage
 import io.github.zlooo.fixyou.session.SessionID
-import spock.lang.AutoCleanup
 import spock.lang.Specification
 
 class FixMessageUtilsTest extends Specification {
 
     private static final FixSpec FIX_SPEC = new FixSpec50SP2()
 
-    @AutoCleanup
-    private NotPoolableFixMessage fixMessage = createFixMessage()
+    private SimpleFixMessage fixMessage = createFixMessage()
 
     def "should convert to reject message"() {
         when:
@@ -239,14 +237,11 @@ class FixMessageUtilsTest extends Specification {
 
     def "should check if message is administrative"() {
         setup:
-        NotPoolableFixMessage fixMessage = new NotPoolableFixMessage()
+        SimpleFixMessage fixMessage = new SimpleFixMessage()
         fixMessage.setCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER, msgType)
 
         expect:
         FixMessageUtils.isAdminMessage(fixMessage) == expectedResult
-
-        cleanup:
-        fixMessage?.close()
 
         where:
         msgType                     | expectedResult
@@ -262,8 +257,8 @@ class FixMessageUtilsTest extends Specification {
         "AJ".toCharArray()          | false
     }
 
-    NotPoolableFixMessage createFixMessage() {
-        NotPoolableFixMessage message = new NotPoolableFixMessage()
+    SimpleFixMessage createFixMessage() {
+        SimpleFixMessage message = new SimpleFixMessage()
         message.setCharSequenceValue(FixConstants.BEGIN_STRING_FIELD_NUMBER, "FIXT1.1")
         message.setCharSequenceValue(FixConstants.SENDER_COMP_ID_FIELD_NUMBER, "senderCompId")
         message.setCharSequenceValue(FixConstants.TARGET_COMP_ID_FIELD_NUMBER, "targetCompId")
@@ -271,7 +266,7 @@ class FixMessageUtilsTest extends Specification {
         return message
     }
 
-    void allFieldsDoNotHaveValueSetExcept(NotPoolableFixMessage message, int ... fieldNumbersWithValue) {
+    void allFieldsDoNotHaveValueSetExcept(SimpleFixMessage message, int ... fieldNumbersWithValue) {
         def valueSetFields = fieldNumbersWithValue.toSet()
         def fieldsToCheck = FIX_SPEC.headerFieldsOrder.toList()
         FIX_SPEC.bodyFieldsOrder.each {fieldsToCheck::add}
