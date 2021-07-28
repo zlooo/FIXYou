@@ -31,4 +31,15 @@ public class FIXYouConfiguration {
     private short regionSize = DefaultConfiguration.REGION_SIZE;
     @Builder.Default
     private boolean fixSpecOrderedFields = false;
+    @Builder.Default
+    private boolean sslEnabled = false;
+    private SSLConfiguration sslConfiguration;
+
+    @Builder
+    @Getter
+    public static class SSLConfiguration {
+        private String certChainFilePath;
+        private String privateKeyFilePath;
+        private String keyPassword;
+    }
 }

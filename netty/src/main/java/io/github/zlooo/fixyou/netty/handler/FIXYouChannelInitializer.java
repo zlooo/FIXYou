@@ -7,10 +7,13 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslHandler;
 import io.netty.util.AttributeKey;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.FileInputStream;
 
 @Singleton
 public class FIXYouChannelInitializer extends ChannelInitializer<NioSocketChannel> {
@@ -42,6 +45,12 @@ public class FIXYouChannelInitializer extends ChannelInitializer<NioSocketChanne
     protected void initChannel(NioSocketChannel ch) throws Exception {
         ch.attr(ORDINAL_NUMBER_KEY).set(ch.hashCode() % fixYouConfiguration.getNumberOfAppThreads());
         final ChannelPipeline pipeline = ch.pipeline();
+        if (fixYouConfiguration.isSslEnabled()) {
+            final FIXYouConfiguration.SSLConfiguration sslConfiguration = fixYouConfiguration.getSslConfiguration();
+            final SslContextBuilder sslContextBuilder =
+                    SslContextBuilder.forServer(new FileInputStream(sslConfiguration.getCertChainFilePath()), new FileInputStream(sslConfiguration.getPrivateKeyFilePath()), sslConfiguration.getKeyPassword());
+            pipeline.addFirst(new SslHandler(sslContextBuilder.build().newEngine(ch.alloc())));
+        }
         if (fixYouConfiguration.isAddLoggingHandler()) {
             pipeline.addFirst(LOGGING_HANDLER);
         }
