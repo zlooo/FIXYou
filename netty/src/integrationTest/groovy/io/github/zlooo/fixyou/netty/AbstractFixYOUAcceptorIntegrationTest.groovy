@@ -31,7 +31,7 @@ import spock.util.concurrent.PollingConditions
 
 import java.nio.charset.StandardCharsets
 
-class AbstractFixYOUAcceptorIntegrationTest extends Specification {
+abstract class AbstractFixYOUAcceptorIntegrationTest extends Specification {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractFixYOUAcceptorIntegrationTest)
 
@@ -57,28 +57,44 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
         LOGGER.info("Setup for test {}", getSpecificationContext().getCurrentFeature().getName())
         acceptorPort = SocketUtils.findAvailableTcpPort()
         LOGGER.debug("Starting FIXYou, listening on port {}", acceptorPort)
-        engine = FIXYouNetty.
-                create(FIXYouConfiguration.builder().acceptorListenPort(acceptorPort).initiator(false).fixMessagePoolSize(8).fixMessageListenerInvokerDisruptorSize(8).build(), testFixMessageListener).
+        def configBuilder = FIXYouConfiguration.builder().acceptorListenPort(acceptorPort).initiator(false).fixMessagePoolSize(8).fixMessageListenerInvokerDisruptorSize(8)
+        customizeFixYOUConfig(configBuilder)
+        def sessionConfigBuilder = SessionConfig.builder().persistent(false).validationConfig(ValidationConfig.builder().validate(true).
+                shouldCheckSendingTime(true).
+                shouldCheckSessionIDAfterLogon(true).
+                shouldCheckBodyLength(true).
+                shouldCheckOrigVsSendingTime(true).
+                shouldCheckMessageType(true).
+                shouldCheckMessageChecksum(true).build()).
+                sessionStateListener(sessionSateListener)
+        customizeSessionConfigConfig(sessionConfigBuilder)
+        engine = FIXYouNetty.create(configBuilder.build(), testFixMessageListener).
                 //TODO test spec for now but once we have real one it should be used here instead
-                        registerSession(fixYouSessionId, TestSpec.INSTANCE, createConfig())
+                        registerSession(fixYouSessionId, TestSpec.INSTANCE, sessionConfigBuilder.build())
         engine.start().get()
         LOGGER.debug("Creating quickfix initiator")
-        initiator = QuickfixTestUtils.setupInitiator(acceptorPort, sessionID, testQuickfixApplication)
+        initiator = QuickfixTestUtils.setupInitiator(acceptorPort, sessionID, testQuickfixApplication, quickfixConfigFilePath())
         LOGGER.info("Setup done")
     }
 
-    def cleanupSpec(){
+    protected void customizeFixYOUConfig(FIXYouConfiguration.FIXYouConfigurationBuilder builder) {
+        //nothing to do by default
+    }
+
+    protected void customizeSessionConfigConfig(SessionConfig.SessionConfigBuilder builder) {
+        //nothing to do by default
+    }
+
+    protected String quickfixConfigFilePath() {
+        return "quickfixConfigInitiator.properties"
+    }
+
+    def cleanupSpec() {
         regionPool.close()
     }
 
     protected SessionConfig createConfig() {
-        def sessionConfig = new SessionConfig().setPersistent(false).addSessionStateListener(sessionSateListener).setValidationConfig(new ValidationConfig().setValidate(true).
-                setShouldCheckSendingTime(true).
-                setShouldCheckSessionIDAfterLogon(true).
-                setShouldCheckBodyLength(true).
-                setShouldCheckOrigVsSendingTime(true).
-                setShouldCheckMessageType(true).
-                setShouldCheckMessageChecksum(true))
+
         LOGGER.debug("Session config: {}", sessionConfig)
         return sessionConfig
     }
@@ -191,7 +207,7 @@ class AbstractFixYOUAcceptorIntegrationTest extends Specification {
         engine?.stop()?.get()
         initiator?.stop(true)
         receivedMessages.clear()
-        testFixMessageListener.messagesReceived.forEach(msg->msg.close())
+        testFixMessageListener.messagesReceived.forEach(msg -> msg.close())
         LOGGER.info("Cleanup done")
     }
 

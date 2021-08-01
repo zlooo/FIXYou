@@ -1,10 +1,8 @@
 package io.github.zlooo.fixyou.netty
 
-import io.github.zlooo.fixyou.Engine
-import io.github.zlooo.fixyou.FIXYouConfiguration
-import io.github.zlooo.fixyou.commons.memory.RegionPool
-import io.github.zlooo.fixyou.netty.test.framework.*
-import io.github.zlooo.fixyou.session.SessionConfig
+
+import io.github.zlooo.fixyou.netty.test.framework.QuickfixTestUtils
+import io.github.zlooo.fixyou.netty.test.framework.TestSessionSateListener
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -12,54 +10,17 @@ import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
-import org.springframework.util.SocketUtils
-import quickfix.Acceptor
 import quickfix.Session
-import quickfix.SessionID
 import quickfix.field.SessionRejectReason
 import quickfix.fixt11.Logon
 import quickfix.fixt11.Logout
 import quickfix.fixt11.Reject
-import spock.lang.Shared
-import spock.lang.Specification
 import spock.lang.Timeout
 
 import java.nio.charset.StandardCharsets
 
 @Timeout(30)
-class InitiatorSessionInitializationIntegrationTest extends Specification {
-
-    private static final String senderCompId = "testInitiator"
-    private static final String targetCompId = "testAcceptor"
-    private static final String qualifier = "secondSession"
-    private SessionID sessionID = new SessionID("FIXT.1.1", targetCompId, senderCompId)
-    private Engine engine
-    private Acceptor acceptor
-    private TestQuickfixApplication testQuickfixApplication = new TestQuickfixApplication()
-    private int acceptorPort
-    private TestSessionSateListener sessionSateListener = new TestSessionSateListener()
-    @Shared
-    private final RegionPool regionPool = new RegionPool(50, 256 as short)
-
-    void setup() {
-        acceptorPort = SocketUtils.findAvailableTcpPort()
-        engine = FIXYouNetty.
-                create(FIXYouConfiguration.builder().initiator(true).fixMessagePoolSize(4).fixMessageListenerInvokerDisruptorSize(4).build(), new TestFixMessageListener(regionPool)).
-                registerSession(new io.github.zlooo.fixyou.session.SessionID("FIXT.1.1", senderCompId, targetCompId,),
-                                             TestSpec.INSTANCE,
-                                             //TODO test spec for now but once we have real one it should be used here instead
-                                             new SessionConfig().setPersistent(false).setHost("localhost").setPort(acceptorPort).addSessionStateListener(sessionSateListener))
-        acceptor = QuickfixTestUtils.setupAcceptor(acceptorPort, sessionID, testQuickfixApplication)
-    }
-
-    void cleanup() {
-        engine?.stop()
-        acceptor?.stop(true)
-    }
-
-    def cleanupSpec(){
-        regionPool.close()
-    }
+class InitiatorSessionInitializationIntegrationTest extends AbstractFixYOUInitiatorIntegrationTest {
 
     def "should initialize session 1B-c-0"() {
         setup:
@@ -106,7 +67,7 @@ class InitiatorSessionInitializationIntegrationTest extends Specification {
         def channel = new ServerBootstrap().channel(NioServerSocketChannel).
                 group(group).
                 childHandler(sendingHandler).
-                bind(acceptorPort).
+                bind(port).
                 syncUninterruptibly().
                 channel()
 
@@ -142,7 +103,7 @@ class InitiatorSessionInitializationIntegrationTest extends Specification {
         def channel = new ServerBootstrap().channel(NioServerSocketChannel).
                 group(group).
                 childHandler(messageSendingHandler).
-                bind(acceptorPort).
+                bind(port).
                 syncUninterruptibly().
                 channel()
 

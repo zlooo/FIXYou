@@ -20,6 +20,9 @@ class AcceptorConfigValidator implements ConfigValidator {
         } else if (new InetSocketAddress(fixYouConfiguration.getAcceptorBindInterface(), 0).isUnresolved()) {
             errorMessages.add("Invalid acceptor bind interface provided");
         }
+        if (fixYouConfiguration.isSslEnabled()) {
+            Validations.checkSsl(errorMessages, fixYouConfiguration.getSslConfiguration());
+        }
         return errorMessages;
     }
 

@@ -1,20 +1,20 @@
 package io.github.zlooo.fixyou.session;
 
-import lombok.Data;
-import lombok.experimental.Accessors;
+import lombok.Builder;
+import lombok.Getter;
 
-@Data
-@Accessors(chain = true)
+@Builder
+@Getter
 public class ValidationConfig {
 
     public static final ValidationConfig DEFAULT =
-            new ValidationConfig().setValidate(false)
-                                  .setShouldCheckOrigVsSendingTime(false)
-                                  .setShouldCheckSessionIDAfterLogon(false)
-                                  .setShouldCheckBodyLength(false)
-                                  .setShouldCheckSendingTime(false)
-                                  .setShouldCheckMessageType(false)
-                                  .setShouldCheckMessageChecksum(false);
+            ValidationConfig.builder().validate(false)
+                            .shouldCheckOrigVsSendingTime(false)
+                            .shouldCheckSessionIDAfterLogon(false)
+                            .shouldCheckBodyLength(false)
+                            .shouldCheckSendingTime(false)
+                            .shouldCheckMessageType(false)
+                            .shouldCheckMessageChecksum(false).build();
 
     private boolean validate;
     private boolean shouldCheckOrigVsSendingTime;

@@ -26,7 +26,7 @@ class ReceiveResendRequestMessagePersistenceOnIntegrationTest extends AbstractFi
     private UUID clordid3 = UUID.randomUUID()
 
     @Override
-    protected SessionConfig createConfig() {
+    protected void customizeSessionConfigConfig(SessionConfig.SessionConfigBuilder builder) {
         fakeMessageStore = new MemoryMessageStore()
         def newOrderSingle1 = new SimpleFixMessage()
         FixMessages.createFIXYouNewOrderSingle(clordid1).accept(newOrderSingle1)
@@ -48,7 +48,7 @@ class ReceiveResendRequestMessagePersistenceOnIntegrationTest extends AbstractFi
         FixMessages.createFIXYouNewOrderSingle(clordid3).accept(newOrderSingle3)
         newOrderSingle3.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 6L)
         fakeMessageStore.storeMessage(fixYouSessionId, 6L, newOrderSingle3)
-        return super.createConfig().setPersistent(true).setMessageStore(fakeMessageStore)
+        builder.persistent(true).messageStore(fakeMessageStore)
     }
 
     def "should fill resend request when persistence is turned on 8-a"() {

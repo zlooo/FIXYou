@@ -81,7 +81,7 @@ class AcceptorSessionInitializationIntegrationTest extends AbstractFixYOUAccepto
         setup:
         startQuickfixAndWaitTillLoggedIn()
         SessionID secondSessionID = new SessionID("FIXT.1.1", targetCompId, senderCompId, qualifier)
-        Initiator secondInitiator = QuickfixTestUtils.setupInitiator(acceptorPort, secondSessionID, testQuickfixApplication)
+        Initiator secondInitiator = QuickfixTestUtils.setupInitiator(acceptorPort, secondSessionID, testQuickfixApplication, "quickfixConfigInitiator.properties")
         secondInitiator.start()
         def session2 = Session.lookupSession(secondSessionID)
         def sessionStateListener = new TestSessionStateListener()
@@ -108,7 +108,7 @@ class AcceptorSessionInitializationIntegrationTest extends AbstractFixYOUAccepto
     def "should disconnect when logon attempt on unknown session is done test case 1S-c-2"() {
         setup:
         SessionID sessionIdForUnknownSession = new SessionID("FIXT.1.1", senderCompId + "NotConfigured", targetCompId)
-        Initiator unknownSessionInitiator = QuickfixTestUtils.setupInitiator(acceptorPort, sessionIdForUnknownSession, testQuickfixApplication)
+        Initiator unknownSessionInitiator = QuickfixTestUtils.setupInitiator(acceptorPort, sessionIdForUnknownSession, testQuickfixApplication, "quickfixConfigInitiator.properties")
         unknownSessionInitiator.start()
         def session2 = Session.lookupSession(sessionIdForUnknownSession)
         def sessionStateListener = new TestSessionStateListener()
