@@ -16,17 +16,21 @@ class AcceptorConfigValidatorTest extends Specification {
         Assertions.assertThat(configValidator.validateConfig(config)).containsOnly(errorMessages.<String> toArray([] as String[]))
 
         where:
-        config                                                                                                                                                  | errorMessages
-        FIXYouConfiguration.builder().acceptorListenPort(666).build()                                                                                           | []
-        FIXYouConfiguration.builder().acceptorListenPort(666666).build()                                                                                        | [Messages.invalidPort(666666)]
-        FIXYouConfiguration.builder().acceptorListenPort(-10).build()                                                                                           | [Messages.invalidPort(-10)]
-        FIXYouConfiguration.builder().acceptorListenPort(-10).acceptorBindInterface(null).build()                                                               | [Messages.invalidPort(-10), Messages.noBindInterface()]
-        FIXYouConfiguration.builder().acceptorListenPort(-10).acceptorBindInterface("").build()                                                                 | [Messages.invalidPort(-10), Messages.noBindInterface()]
-        FIXYouConfiguration.builder().acceptorListenPort(-10).acceptorBindInterface("wrongValue").build()                                                       |
+        config                                                                                                                                                                                               | errorMessages
+        FIXYouConfiguration.builder().acceptorListenPort(666).build()                                                                                                                                        | []
+        FIXYouConfiguration.builder().acceptorListenPort(666666).build()                                                                                                                                     | [Messages.invalidPort(666666)]
+        FIXYouConfiguration.builder().acceptorListenPort(-10).build()                                                                                                                                        | [Messages.invalidPort(-10)]
+        FIXYouConfiguration.builder().acceptorListenPort(-10).acceptorBindInterface(null).build()                                                                                                            |
+        [Messages.invalidPort(-10), Messages.noBindInterface()]
+        FIXYouConfiguration.builder().acceptorListenPort(-10).acceptorBindInterface("").build()                                                                                                              |
+        [Messages.invalidPort(-10), Messages.noBindInterface()]
+        FIXYouConfiguration.builder().acceptorListenPort(-10).acceptorBindInterface("wrongValue").build()                                                                                                    |
         [Messages.invalidPort(-10), Messages.invalidBindInterface()]
-        FIXYouConfiguration.builder().acceptorListenPort(1234).acceptorBindInterface("wrongValue").build()                                                      | [Messages.invalidBindInterface()]
-        FIXYouConfiguration.builder().acceptorListenPort(666).sslEnabled(true).build()                                                                          | [Messages.noSslConfig()]
-        FIXYouConfiguration.builder().acceptorListenPort(666).sslEnabled(true).sslConfiguration(FIXYouConfiguration.SSLConfiguration.builder().build()).build() |
+        FIXYouConfiguration.builder().acceptorListenPort(1234).acceptorBindInterface("wrongValue").build()                                                                                                   | [Messages.invalidBindInterface()]
+        FIXYouConfiguration.builder().acceptorListenPort(666).sslEnabled(true).build()                                                                                                                       | [Messages.noSslConfig()]
+        FIXYouConfiguration.builder().acceptorListenPort(666).sslEnabled(true).sslConfiguration(FIXYouConfiguration.SSLConfiguration.builder().build()).build()                                              |
+        [Messages.noCertChainFile(), Messages.noPrivateKeyFile()]
+        FIXYouConfiguration.builder().acceptorListenPort(666).sslEnabled(true).sslConfiguration(FIXYouConfiguration.SSLConfiguration.builder().certChainFilePath("").privateKeyFilePath("").build()).build() |
         [Messages.noCertChainFile(), Messages.noPrivateKeyFile()]
     }
 
