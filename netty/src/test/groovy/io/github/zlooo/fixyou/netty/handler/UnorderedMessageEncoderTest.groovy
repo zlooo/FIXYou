@@ -31,7 +31,7 @@ class UnorderedMessageEncoderTest extends Specification {
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionAttribute = Mock()
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), new SessionID("testBeginString", "testSender", "testTarget"), TestSpec.INSTANCE)
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(SessionConfig.builder().build(), new SessionID("testBeginString", "testSender", "testTarget"), TestSpec.INSTANCE)
 
     void cleanupSpec() {
         regionPool.close()

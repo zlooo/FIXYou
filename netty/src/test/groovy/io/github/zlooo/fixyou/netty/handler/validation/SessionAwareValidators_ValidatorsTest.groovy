@@ -19,7 +19,7 @@ class SessionAwareValidators_ValidatorsTest extends Specification {
     private static OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC)
     private static SessionID sessionID = new SessionID('beginString', 'senderCompId', 'targetCompId')
     private FixMessage fixMessage = new SimpleFixMessage()
-    private SessionConfig sessionConfig = new SessionConfig()
+    private SessionConfig sessionConfig = SessionConfig.builder().build()
     private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(sessionConfig, sessionID, TestSpec.INSTANCE)
 
     def "should validate session id"() {

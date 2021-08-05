@@ -14,7 +14,7 @@ class ConditionalValidatorTest extends Specification {
     private Predicate<ValidationConfig> predicate2 = Mock()
     private TwoArgsValidator<String, String> validator2 = Mock()
     private PredicateWithValidator<TwoArgsValidator<String, String>> predicateWithValidator2 = new PredicateWithValidator<>(predicate2, validator2)
-    private ValidationConfig validationConfig = new ValidationConfig()
+    private ValidationConfig validationConfig = ValidationConfig.builder().build()
 
     def "should fire only one validator because of predicate"() {
         when:

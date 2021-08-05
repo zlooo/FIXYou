@@ -305,7 +305,7 @@ class MessageDecoderTest extends Specification {
         (0..messageDecoder.@byteBufComposer.@components.length).forEach({ messageDecoder.@byteBufComposer.addByteBuf(Unpooled.buffer()) })
         Channel channel = Mock()
         Attribute sessionAttribute = Mock()
-        NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), new SessionID("", "", ""), TestSpec.INSTANCE)
+        NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(SessionConfig.builder().build(), new SessionID("", "", ""), TestSpec.INSTANCE)
 
         when:
         messageDecoder.channelRead(channelHandlerContext, Unpooled.buffer())

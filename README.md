@@ -31,7 +31,7 @@ final Engine engine = FIXYouNetty.create(FIXYouConfiguration.builder().initiator
 ```
 register session and dictionary if needed
 ```java
-engine.registerSessionAndDictionary(sessionID, "fix50sp2", new FixSpec50SP2(), new SessionConfig().setHost(host).setPort(port));//host and port are only needed if you're registering initiator
+engine.registerSessionAndDictionary(sessionID, "fix50sp2", new FixSpec50SP2(), SessionConfig.builder().host(host).port(port).build());//host and port are only needed if you're registering initiator
 ```
 start FIXYou
 ```java

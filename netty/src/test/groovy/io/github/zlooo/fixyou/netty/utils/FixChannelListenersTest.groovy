@@ -17,9 +17,8 @@ class FixChannelListenersTest extends Specification {
 
     def "should mark logout as sent and notify listeners if future is successful"() {
         setup:
-        def sessionConfig = new SessionConfig()
         def stateListener = Mock(SessionStateListener)
-        sessionConfig.addSessionStateListener(stateListener)
+        def sessionConfig = SessionConfig.builder().sessionStateListener(stateListener).build()
 
         when:
         FixChannelListeners.LOGOUT_SENT.operationComplete(channelFuture)

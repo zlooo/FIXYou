@@ -25,15 +25,13 @@ class ResendRequestHandlerTest extends Specification {
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionStateAttribute = Mock()
     private SessionID sessionID = new SessionID("", "", "")
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), sessionID, TestSpec.INSTANCE)
 
     def "should start message retrieval and send when persistence is on"() {
         setup:
-        sessionState.getSessionConfig().setPersistent(true)
         fixMessage.setLongValue(FixConstants.BEGIN_SEQUENCE_NUMBER_FIELD_NUMBER, 666L)
         fixMessage.setLongValue(FixConstants.END_SEQUENCE_NUMBER_FIELD_NUMBER, 777L)
         MessageStore messageStore = Mock()
-        sessionState.getSessionConfig().setMessageStore(messageStore)
+        NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(SessionConfig.builder().persistent(true).messageStore(messageStore).build(), sessionID, TestSpec.INSTANCE)
         RetransmitionSubscriber fixMessageSubscriber = new RetransmitionSubscriber()
 
         when:
@@ -53,7 +51,7 @@ class ResendRequestHandlerTest extends Specification {
 
     def "should send sequence reset gap fill message when persistence is not on"() {
         setup:
-        sessionState.getSessionConfig().setPersistent(false)
+        NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(SessionConfig.builder().persistent(false).build(), sessionID, TestSpec.INSTANCE)
         fixMessage.setLongValue(FixConstants.BEGIN_SEQUENCE_NUMBER_FIELD_NUMBER, 666L)
         fixMessage.setLongValue(FixConstants.END_SEQUENCE_NUMBER_FIELD_NUMBER, 777L)
         ChannelFuture channelFuture = Mock()

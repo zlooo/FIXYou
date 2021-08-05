@@ -24,7 +24,7 @@ class SessionAwareValidators_ValidationFailureActionsTest extends Specification 
 
     private static SessionID sessionID = new SessionID('beginString', 'senderCompId', 'targetCompId')
     private FixMessage fixMessage = new SimpleFixMessage()
-    private SessionConfig sessionConfig = new SessionConfig()
+    private SessionConfig sessionConfig = SessionConfig.builder().build()
     private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(sessionConfig, sessionID, TestSpec.INSTANCE)
     private ChannelHandlerContext channelHandlerContext = Mock()
     private ChannelFuture channelFuture1 = Mock()

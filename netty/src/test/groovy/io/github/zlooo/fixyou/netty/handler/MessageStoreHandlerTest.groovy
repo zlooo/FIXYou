@@ -21,12 +21,12 @@ class MessageStoreHandlerTest extends Specification {
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
     private Attribute sessionStateAttribute = Mock()
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), sessionID, TestSpec.INSTANCE)
+    private NettyHandlerAwareSessionState sessionState
     private FixMessage fixMessage = new SimpleFixMessage()
 
     def "should store message if session is persistent"() {
         setup:
-        sessionState.getSessionConfig().setPersistent(true)
+        sessionState = new NettyHandlerAwareSessionState(SessionConfig.builder().persistent(true).build(), sessionID, TestSpec.INSTANCE)
         fixMessage.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER,666L)
 
         when:
@@ -43,7 +43,7 @@ class MessageStoreHandlerTest extends Specification {
 
     def "should pass message if session is not established"() {
         setup:
-        sessionState.getSessionConfig().setPersistent(false)
+        sessionState = new NettyHandlerAwareSessionState(SessionConfig.builder().persistent(false).build(), sessionID, TestSpec.INSTANCE)
         fixMessage.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 666L)
 
         when:
@@ -59,7 +59,7 @@ class MessageStoreHandlerTest extends Specification {
 
     def "should pass message if object passed is not FixMessage"() {
         setup:
-        sessionState.getSessionConfig().setPersistent(false)
+        sessionState = new NettyHandlerAwareSessionState(SessionConfig.builder().persistent(false).build(), sessionID, TestSpec.INSTANCE)
         Object object = new Object()
 
         when:

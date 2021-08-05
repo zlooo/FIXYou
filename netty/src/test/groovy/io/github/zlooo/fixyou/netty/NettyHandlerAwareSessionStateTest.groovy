@@ -22,7 +22,7 @@ class NettyHandlerAwareSessionStateTest extends Specification {
     def "should queue message when session is persistent"() {
         setup:
         MessageStore messageStore = Mock()
-        NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setPersistent(true).setMessageStore(messageStore), sessionID, TestSpec.INSTANCE)
+        NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(SessionConfig.builder().persistent(true).messageStore(messageStore).build(), sessionID, TestSpec.INSTANCE)
         sessionState.getResettables()[NettyResettablesNames.NOT_MOVING_FORWARD_ON_READ_AND_WRITE_CHANNEL_HANDLER_CONTEXT] = notMovingForwardOnReadAndWriteCtx
         sessionState.getResettables()[NettyResettablesNames.SESSION] = sessionHandler
         fixMessage.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 10L)
@@ -40,7 +40,7 @@ class NettyHandlerAwareSessionStateTest extends Specification {
 
     def "should not queue message when session is not persistent"() {
         setup:
-        NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), sessionID, TestSpec.INSTANCE)
+        NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(SessionConfig.builder().build(), sessionID, TestSpec.INSTANCE)
         sessionState.getResettables()[NettyResettablesNames.NOT_MOVING_FORWARD_ON_READ_AND_WRITE_CHANNEL_HANDLER_CONTEXT] = notMovingForwardOnReadAndWriteCtx
         sessionState.getResettables()[NettyResettablesNames.SESSION] = sessionHandler
         fixMessage.setLongValue(FixConstants.MESSAGE_SEQUENCE_NUMBER_FIELD_NUMBER, 10L)
