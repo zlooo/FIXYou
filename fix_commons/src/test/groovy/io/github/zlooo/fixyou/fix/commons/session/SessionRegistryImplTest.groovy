@@ -15,7 +15,7 @@ class SessionRegistryImplTest extends Specification {
 
     private SessionID existingSessionId = new SessionID("","","")
     private SessionRegistryImpl sessionRegistry = new SessionRegistryImpl()
-    private TestSessionState existingSessionState = new TestSessionState(new SessionConfig(), existingSessionId, Mock(ExtendedFixSpec))
+    private TestSessionState existingSessionState = new TestSessionState(SessionConfig.builder().build(), existingSessionId, Mock(ExtendedFixSpec))
 
     void setup() {
         sessionRegistry.@sessions.put(existingSessionId, existingSessionState)

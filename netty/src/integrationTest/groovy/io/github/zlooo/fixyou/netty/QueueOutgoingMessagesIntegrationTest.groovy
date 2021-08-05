@@ -20,8 +20,8 @@ class QueueOutgoingMessagesIntegrationTest extends AbstractFixYOUAcceptorIntegra
     private MessageStore<FixMessage> messageStore = new MemoryMessageStore()
 
     @Override
-    protected SessionConfig createConfig() {
-        return super.createConfig().setPersistent(true).setMessageStore(messageStore)
+    protected void customizeSessionConfigConfig(SessionConfig.SessionConfigBuilder builder) {
+        builder.persistent(true).messageStore(messageStore)
     }
 
     def "should queue outgoing messages 16-a"() {

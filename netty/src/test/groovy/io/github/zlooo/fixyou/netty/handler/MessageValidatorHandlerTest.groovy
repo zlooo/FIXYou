@@ -30,8 +30,8 @@ class MessageValidatorHandlerTest extends Specification {
     private Channel channel = Mock()
     private Attribute<NettyHandlerAwareSessionState> sessionAttribute = Mock()
     private NettyHandlerAwareSessionState sessionState = Mock()
-    private ValidationConfig validationConfig = new ValidationConfig()
-    private SessionConfig sessionConfig = new SessionConfig().setValidationConfig(validationConfig)
+    private ValidationConfig validationConfig = ValidationConfig.builder().build()
+    private SessionConfig sessionConfig = SessionConfig.builder().validationConfig(validationConfig).build()
     private FixMessage fixMessage = new SimpleFixMessage()
     private ValidationFailureAction validationFailureAction = Mock()
 

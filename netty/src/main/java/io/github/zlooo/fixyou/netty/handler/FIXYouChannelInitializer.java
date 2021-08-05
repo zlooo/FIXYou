@@ -7,10 +7,14 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslHandler;
 import io.netty.util.AttributeKey;
+import lombok.SneakyThrows;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.FileInputStream;
 
 @Singleton
 public class FIXYouChannelInitializer extends ChannelInitializer<NioSocketChannel> {
@@ -42,6 +46,7 @@ public class FIXYouChannelInitializer extends ChannelInitializer<NioSocketChanne
     protected void initChannel(NioSocketChannel ch) throws Exception {
         ch.attr(ORDINAL_NUMBER_KEY).set(ch.hashCode() % fixYouConfiguration.getNumberOfAppThreads());
         final ChannelPipeline pipeline = ch.pipeline();
+        configureSsl(fixYouConfiguration, pipeline);
         if (fixYouConfiguration.isAddLoggingHandler()) {
             pipeline.addFirst(LOGGING_HANDLER);
         }
@@ -50,5 +55,27 @@ public class FIXYouChannelInitializer extends ChannelInitializer<NioSocketChanne
                 .addLast(Handlers.GENERIC.getName(), genericHandler)
                 .addLast(Handlers.ADMIN_MESSAGES.getName(), adminMessagesHandler)
                 .addLast(Handlers.LISTENER_INVOKER.getName(), fixMessageListenerInvokingHandler);
+    }
+
+    @SneakyThrows
+    private static void configureSsl(FIXYouConfiguration fixYouConfiguration, ChannelPipeline pipeline) {
+        if (fixYouConfiguration.isSslEnabled()) {
+            final FIXYouConfiguration.SSLConfiguration sslConfiguration = fixYouConfiguration.getSslConfiguration();
+            final SslContextBuilder sslContextBuilder;
+            final String certChainFilePath = sslConfiguration.getCertChainFilePath();
+            final String privateKeyFilePath = sslConfiguration.getPrivateKeyFilePath();
+            if (!fixYouConfiguration.isInitiator()) {
+                sslContextBuilder = SslContextBuilder.forServer(new FileInputStream(certChainFilePath), new FileInputStream(privateKeyFilePath), sslConfiguration.getKeyPassword());
+            } else {
+                sslContextBuilder = SslContextBuilder.forClient();
+                if (privateKeyFilePath != null) {
+                    sslContextBuilder.keyManager(certChainFilePath != null ? new FileInputStream(certChainFilePath) : null, new FileInputStream(privateKeyFilePath), sslConfiguration.getKeyPassword());
+                }
+            }
+            if (sslConfiguration.getTrustChainFilePath() != null) {
+                sslContextBuilder.trustManager(new FileInputStream(sslConfiguration.getTrustChainFilePath()));
+            }
+            pipeline.addFirst(new SslHandler(sslContextBuilder.build().newEngine(pipeline.channel().alloc())));
+        }
     }
 }

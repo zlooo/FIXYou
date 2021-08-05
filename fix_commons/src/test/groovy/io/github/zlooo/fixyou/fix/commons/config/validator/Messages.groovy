@@ -34,7 +34,19 @@ class Messages {
         "Invalid host provided"
     }
 
-    static String encryptionNotSupported(){
+    static String encryptionNotSupported() {
         "Encryption is not supported yet"
+    }
+
+    static String noSslConfig() {
+        "SSL configuration cannot be null when encryption is turned on"
+    }
+
+    static String noCertChainFile() {
+        "Certificate chain file cannot be empty"
+    }
+
+    static String noPrivateKeyFile() {
+        "Private key file cannot be empty"
     }
 }

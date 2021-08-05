@@ -9,7 +9,7 @@ class AbstractSessionStateTest extends Specification {
     private Resettable resettable1 = Mock()
     private Resettable resettable2 = Mock()
     private Resettable resettable3 = Mock()
-    private AbstractSessionState sessionState = new TestSessionState(new SessionConfig(), new SessionID("","",""), null)
+    private AbstractSessionState sessionState = new TestSessionState(SessionConfig.builder().build(), new SessionID("","",""), null)
 
     def "should notify resettables about session reset"() {
         setup:

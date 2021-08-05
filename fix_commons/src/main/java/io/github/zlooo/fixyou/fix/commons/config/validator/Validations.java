@@ -1,5 +1,6 @@
 package io.github.zlooo.fixyou.fix.commons.config.validator;
 
+import io.github.zlooo.fixyou.FIXYouConfiguration;
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.session.SessionConfig;
 import lombok.experimental.UtilityClass;
@@ -32,6 +33,19 @@ class Validations {
     static void checkEncryptMethod(Set<String> errorMessages, long encryptMethod) {
         if (encryptMethod != FixConstants.ENCRYPTION_METHOD_NONE) {
             errorMessages.add("Encryption is not supported yet");
+        }
+    }
+
+    static void checkSsl(Set<String> errorMessages, FIXYouConfiguration.SSLConfiguration sslConfiguration) {
+        if (sslConfiguration == null) {
+            errorMessages.add("SSL configuration cannot be null when encryption is turned on");
+        } else {
+            if (sslConfiguration.getCertChainFilePath() == null || sslConfiguration.getCertChainFilePath().trim().isEmpty()) {
+                errorMessages.add("Certificate chain file cannot be empty");
+            }
+            if (sslConfiguration.getPrivateKeyFilePath() == null || sslConfiguration.getPrivateKeyFilePath().trim().isEmpty()) {
+                errorMessages.add("Private key file cannot be empty");
+            }
         }
     }
 }

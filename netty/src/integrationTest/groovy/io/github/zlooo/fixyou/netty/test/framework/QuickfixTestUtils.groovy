@@ -11,8 +11,8 @@ class QuickfixTestUtils {
 
     static final DataDictionary FIXT11_DICTIONARY = new DataDictionary(this.getResourceAsStream("/FIXT11.xml"))
 
-    static Initiator setupInitiator(int connectPort, SessionID sessionID, Application application) {
-        def sessionSettings = new SessionSettings("quickfixConfigInitiator.properties")
+    static Initiator setupInitiator(int connectPort, SessionID sessionID, Application application, String configFilePath) {
+        def sessionSettings = new SessionSettings(configFilePath)
         sessionSettings.setLong("SocketConnectPort", connectPort)
         configureSession(sessionSettings, sessionID)
         return SocketInitiator.
@@ -32,8 +32,8 @@ class QuickfixTestUtils {
         }
     }
 
-    static Acceptor setupAcceptor(int acceptPort, SessionID sessionID, Application application) {
-        def sessionSettings = new SessionSettings("quickfixConfigAcceptor.properties")
+    static Acceptor setupAcceptor(int acceptPort, SessionID sessionID, Application application, String configFilePath) {
+        def sessionSettings = new SessionSettings(configFilePath)
         sessionSettings.setLong("SocketAcceptPort", acceptPort)
         configureSession(sessionSettings, sessionID)
         return SocketAcceptor.

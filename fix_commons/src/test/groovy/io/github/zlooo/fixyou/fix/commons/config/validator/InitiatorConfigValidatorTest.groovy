@@ -1,5 +1,9 @@
 package io.github.zlooo.fixyou.fix.commons.config.validator
 
+import io.github.zlooo.fixyou.FIXYouConfiguration
+import io.github.zlooo.fixyou.FixConstants
+import io.github.zlooo.fixyou.session.MessageStore
+import io.github.zlooo.fixyou.session.SessionConfig
 import org.assertj.core.api.Assertions
 import spock.lang.Specification
 
@@ -13,9 +17,9 @@ class InitiatorConfigValidatorTest extends Specification {
 
         where:
         config                                                                                                                        | errorMessages
-        io.github.zlooo.fixyou.FIXYouConfiguration.builder().build()                                                                                         | []
-        io.github.zlooo.fixyou.FIXYouConfiguration.builder().reconnectIntervalMillis(1).build()                                                              | []
-        io.github.zlooo.fixyou.FIXYouConfiguration.builder().acceptorListenPort(-10).acceptorBindInterface("wrongValue").reconnectIntervalMillis(-1).build() | [Messages.noReconnectInterval()]
+        FIXYouConfiguration.builder().build()                                                                                         | []
+        FIXYouConfiguration.builder().reconnectIntervalMillis(1).build()                                                              | []
+        FIXYouConfiguration.builder().acceptorListenPort(-10).acceptorBindInterface("wrongValue").reconnectIntervalMillis(-1).build() | [Messages.noReconnectInterval()]
     }
 
     def "should validate session config"() {
@@ -24,19 +28,14 @@ class InitiatorConfigValidatorTest extends Specification {
 
         where:
         config                                                                                                                         | errorMessages
-        new io.github.zlooo.fixyou.session.SessionConfig()                                                                                                                                   | [Messages.invalidPort(0), Messages.noHost()]
-        new io.github.zlooo.fixyou.session.SessionConfig().setPort(666).setHost("wrong")                                                                                                     | [Messages.invalidHost()]
-        new io.github.zlooo.fixyou.session.SessionConfig().setPort(666).setHost("10.0.0.1").setPersistent(false)                                                                             | []
-        new io.github.zlooo.fixyou.session.SessionConfig().setPort(666).setHost("10.0.0.1").setPersistent(false).setEncryptMethod(io.github.zlooo.fixyou.FixConstants.ENCRYPTION_METHOD_DES) | [Messages.encryptionNotSupported()]
-        new io.github.zlooo.fixyou.session.SessionConfig().setPort(666).setHost("10.0.0.1").setPersistent(false).setHeartbeatInterval(-19)                                                   | [Messages.positive(io.
-                github.
-                zlooo.
-                fixyou.
-                session.
-                SessionConfig.Fields.heartbeatInterval)]
-        new io.github.zlooo.fixyou.session.SessionConfig().setPort(666).setHost("10.0.0.1").setPersistent(false).setMessageStore(Mock(io.github.zlooo.fixyou.session.MessageStore))          | []
-        new io.github.zlooo.fixyou.session.SessionConfig().setPort(666).setHost("10.0.0.1").setPersistent(true).setMessageStore(Mock(io.github.zlooo.fixyou.session.MessageStore))           | []
-        new io.github.zlooo.fixyou.session.SessionConfig().setPort(666).setHost("10.0.0.1").setPersistent(true)                                                                              | [Messages.noPersistence()]
+        SessionConfig.builder().build()                                                                                                | [Messages.invalidPort(0), Messages.noHost()]
+        SessionConfig.builder().port(666).host("wrong").build()                                                                        | [Messages.invalidHost()]
+        SessionConfig.builder().port(666).host("10.0.0.1").persistent(false).build()                                                   | []
+        SessionConfig.builder().port(666).host("10.0.0.1").persistent(false).encryptMethod(FixConstants.ENCRYPTION_METHOD_DES).build() | [Messages.encryptionNotSupported()]
+        SessionConfig.builder().port(666).host("10.0.0.1").persistent(false).heartbeatInterval(-19).build()                            | [Messages.positive(SessionConfig.Fields.heartbeatInterval)]
+        SessionConfig.builder().port(666).host("10.0.0.1").persistent(false).messageStore(Mock(MessageStore)).build()                  | []
+        SessionConfig.builder().port(666).host("10.0.0.1").persistent(true).messageStore(Mock(MessageStore)).build()                   | []
+        SessionConfig.builder().port(666).host("10.0.0.1").persistent(true).build()                                                    | [Messages.noPersistence()]
 
     }
 }

@@ -35,7 +35,13 @@ class LogonHandlerTest extends Specification {
     private Channel channel = Mock()
     private SessionID sessionID = new SessionID("beginString", "senderCompId", "targetCompId")
     private SimpleFixMessage fixMessage = createValidLogonMessage(sessionID)
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)).setConsolidateFlushes(false), sessionID, TestSpec.INSTANCE) {
+    private SessionStateListener sessionStateListener = Mock()
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(SessionConfig.
+            builder().
+            validationConfig(ValidationConfig.builder().validate(true).build()).
+            consolidateFlushes(false).
+            sessionStateListener(sessionStateListener).
+            build(), sessionID, TestSpec.INSTANCE) {
 
         private boolean resetCalled
 
@@ -51,7 +57,6 @@ class LogonHandlerTest extends Specification {
     private SessionAwareChannelInboundHandler sessionHandler = Mock(additionalInterfaces: [Resettable])
     private MutableIdleStateHandler idleStateHandler = Mock(additionalInterfaces: [Resettable])
     private DelegatingChannelHandlerContext nmfCtx = Mock(additionalInterfaces: [Resettable])
-    private SessionStateListener sessionStateListener = Mock()
     private ChannelHandlerContext sessionHandlerContext = Mock()
 
     void setup() {
@@ -59,7 +64,6 @@ class LogonHandlerTest extends Specification {
                                          (NettyResettablesNames.SESSION)                                                     : sessionHandler,
                                          (NettyResettablesNames.NOT_MOVING_FORWARD_ON_READ_AND_WRITE_CHANNEL_HANDLER_CONTEXT): nmfCtx,
                                          (NettyResettablesNames.IDLE_STATE_HANDLER)                                          : idleStateHandler] as Map<? extends String, ? extends Resettable>)
-        sessionState.getSessionConfig().addSessionStateListener(sessionStateListener)
     }
 
     def "should close channel when logon on existing session is received"() {
@@ -191,8 +195,8 @@ class LogonHandlerTest extends Specification {
         1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
         1 * channelFuture.addListener(FixChannelListeners.LOGON_SENT) >> channelFuture
         logonResponse.getCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).chars == FixConstants.LOGON
-        logonResponse.getLongValue(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER)== 0L
-        logonResponse.getLongValue(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER)== 15L
+        logonResponse.getLongValue(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER) == 0L
+        logonResponse.getLongValue(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER) == 15L
         logonResponse.getCharSequenceValue(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).chars == ApplicationVersionID.FIX50SP2.value
         1 * sessionStateListener.logOn(sessionState)
         1 * sessionHandler.getSessionState() >> sessionState
@@ -291,7 +295,7 @@ class LogonHandlerTest extends Specification {
         setup:
         SessionID sessionID = new SessionID("beginString", "targetCompId", "senderCompId")
         ChannelPipeline channelPipeline = Mock()
-        fixMessage.setLongValue(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER,0L)
+        fixMessage.setLongValue(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER, 0L)
         fixMessage.setLongValue(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER, 15L)
         fixMessage.setCharSequenceValue(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER, ApplicationVersionID.FIX50SP2.value)
         ChannelFuture channelFuture = Mock()
@@ -345,7 +349,7 @@ class LogonHandlerTest extends Specification {
         1 * channelHandlerContext.write(reject) >> rejectMessageFuture
         1 * rejectMessageFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
         1 * sessionOutChannelHandler.write(nmfCtx, fixMessage, null)
-        fixMessage.refCnt() == 1  // +1 because fixMessage is being reused as logout
+        fixMessage.refCnt() == 1 // +1 because fixMessage is being reused as logout
         1 * channelHandlerContext.writeAndFlush(fixMessage) >> logoutMessageFuture
         1 * logoutMessageFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> logoutMessageFuture
         1 * logoutMessageFuture.addListener(ChannelFutureListener.CLOSE)

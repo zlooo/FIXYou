@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
 
 class MutableIdleStateHandlerTest extends Specification {
 
-    private SessionConfig sessionConfig = new SessionConfig()
+    private SessionConfig sessionConfig = SessionConfig.builder().build()
     private SessionID sessionID = new SessionID("", "", "")
     private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
     private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(sessionConfig, sessionID, TestSpec.INSTANCE)

@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit
 
 class PipelineUtilsTest extends Specification {
 
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig().setValidationConfig(new ValidationConfig().setValidate(true)), new SessionID("", "", ""),
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(SessionConfig.builder().validationConfig(ValidationConfig.builder().validate(true).build()).build(), new SessionID("", "", ""),
                                                                                            TestSpec.INSTANCE)
     private ChannelHandler messageDecoder = Mock()
     private ChannelHandler genericDecoder = Mock()
@@ -72,7 +72,9 @@ class PipelineUtilsTest extends Specification {
         setup:
         NioSocketChannel channel = Mock()
         TestPipeline channelPipeline = pipeline()
-        sessionState.getSessionConfig().setConsolidateFlushes(false)
+        sessionState = new NettyHandlerAwareSessionState(SessionConfig.builder().validationConfig(ValidationConfig.builder().validate(true).build()).consolidateFlushes(false).build(), new SessionID("", "", ""),
+                                                         TestSpec.INSTANCE)
+        setup()
 
         when:
         def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator, 30)
@@ -96,7 +98,9 @@ class PipelineUtilsTest extends Specification {
         setup:
         NioSocketChannel channel = Mock()
         TestPipeline channelPipeline = pipeline()
-        sessionState.getSessionConfig().setConsolidateFlushes(true).setConsolidateFlushes(true)
+        sessionState = new NettyHandlerAwareSessionState(SessionConfig.builder().validationConfig(ValidationConfig.builder().validate(true).build()).consolidateFlushes(true).build(), new SessionID("", "", ""),
+                                                         TestSpec.INSTANCE)
+        setup()
 
         when:
         def result = PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, preValidator, postValidator, 30)

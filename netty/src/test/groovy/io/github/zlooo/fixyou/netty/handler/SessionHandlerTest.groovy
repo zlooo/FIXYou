@@ -24,7 +24,7 @@ import spock.lang.Specification
 class SessionHandlerTest extends Specification {
 
     private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock(DefaultObjectPool)
-    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(new SessionConfig(), new SessionID("testBeginString", "testSender", "testTarget"), TestSpec.INSTANCE)
+    private NettyHandlerAwareSessionState sessionState = new NettyHandlerAwareSessionState(SessionConfig.builder().build(), new SessionID("testBeginString", "testSender", "testTarget"), TestSpec.INSTANCE)
     private SessionHandler sessionHandler = new SessionHandler(sessionState, fixMessageObjectPool)
     @Shared
     private RegionPool regionPool = new RegionPool(16, 256 as short)

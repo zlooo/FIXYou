@@ -2,15 +2,15 @@ package io.github.zlooo.fixyou.session;
 
 import io.github.zlooo.fixyou.DefaultConfiguration;
 import io.github.zlooo.fixyou.model.FixMessage;
-import lombok.Data;
-import lombok.experimental.Accessors;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Singular;
 import lombok.experimental.FieldNameConstants;
 
-import java.util.ArrayList;
 import java.util.List;
 
-@Data
-@Accessors(chain = true)
+@Builder
+@Getter
 @FieldNameConstants
 public class SessionConfig {
 
@@ -18,14 +18,14 @@ public class SessionConfig {
     private MessageStore<FixMessage> messageStore;
     private int port;
     private String host;
+    @Builder.Default
     private boolean consolidateFlushes = true;
+    @Builder.Default
     private long encryptMethod = DefaultConfiguration.DEFAULT_ENCRYPTION_METHOD;
+    @Builder.Default
     private long heartbeatInterval = DefaultConfiguration.DEFAULT_HEARTBEAT_INTERVAL;
-    private final List<SessionStateListener> sessionStateListeners = new ArrayList<>();
+    @Singular
+    private List<SessionStateListener> sessionStateListeners;
+    @Builder.Default
     private ValidationConfig validationConfig = ValidationConfig.DEFAULT;
-
-    public SessionConfig addSessionStateListener(SessionStateListener sessionStateListener) {
-        sessionStateListeners.add(sessionStateListener);
-        return this;
-    }
 }

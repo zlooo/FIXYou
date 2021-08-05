@@ -29,6 +29,16 @@ public class FIXYouConfiguration {
     private int regionPoolSize = DefaultConfiguration.REGION_POOL_SIZE;
     @Builder.Default
     private short regionSize = DefaultConfiguration.REGION_SIZE;
-    @Builder.Default
-    private boolean fixSpecOrderedFields = false;
+    private boolean fixSpecOrderedFields;
+    private boolean sslEnabled;
+    private SSLConfiguration sslConfiguration;
+
+    @Builder
+    @Getter
+    public static class SSLConfiguration {
+        private String trustChainFilePath;
+        private String certChainFilePath;
+        private String privateKeyFilePath;
+        private String keyPassword;
+    }
 }
