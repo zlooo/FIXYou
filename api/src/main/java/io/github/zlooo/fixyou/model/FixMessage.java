@@ -3,6 +3,7 @@ package io.github.zlooo.fixyou.model;
 import com.carrotsearch.hppcrt.IntCollection;
 import io.github.zlooo.fixyou.Resettable;
 import io.github.zlooo.fixyou.utils.AsciiCodes;
+import io.netty.buffer.ByteBuf;
 
 public interface FixMessage extends Resettable {
     byte FIELD_SEPARATOR = AsciiCodes.SOH;
@@ -32,9 +33,13 @@ public interface FixMessage extends Resettable {
 
     char getCharSequenceLength(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex);
 
+    void setCharSequenceValue(int fieldNumber, ByteBuf asciiByteBuffer);
+
     void setCharSequenceValue(int fieldNumber, CharSequence newValue);
 
     void setCharSequenceValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, CharSequence newValue);
+
+    void setCharSequenceValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, ByteBuf asciiByteBuffer);
 
     void setCharSequenceValue(int fieldNumber, char[] newValue);
 

@@ -34,43 +34,30 @@ class FixMessageParserTest extends Specification {
         regionPool.close()
     }
 
-    def "should start parsing"() {
-        setup:
-        fixMessageParser.@storedEndIndexOfLastUnfinishedMessage = 666
-
-        when:
-        fixMessageParser.startParsing()
-
-        then:
-        fixMessageParser.@storedEndIndexOfLastUnfinishedMessage == 0
-    }
-
     def "should parse new order single message, simple message case"() {
         setup:
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(simpleNewOrderSingle.getBytes(StandardCharsets.US_ASCII)))
 
         when:
-        fixMessageParser.startParsing()
         fixMessageParser.parseFixMsgBytes()
 
         then:
         fixMessageParser.isDone()
-        fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
         assertSimpleNewOrderSingle(fixMessage)
     }
 
     def "should discard garbage data from fix message"() {
         setup:
-        byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(("garbage garbage" + simpleNewOrderSingle).getBytes(StandardCharsets.US_ASCII)))
+        def message = "garbage garbage" + simpleNewOrderSingle
+        byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
 
         when:
-        fixMessageParser.startParsing()
         fixMessageParser.parseFixMsgBytes()
 
         then:
         fixMessageParser.isDone()
-        fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
         assertSimpleNewOrderSingle(fixMessage)
+        byteBufComposer.readerIndex() == message.length()
     }
 
     def "should parse execution report message, message with repeating group(382)"() {
@@ -81,12 +68,10 @@ class FixMessageParserTest extends Specification {
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
 
         when:
-        fixMessageParser.startParsing()
         fixMessageParser.parseFixMsgBytes()
 
         then:
         fixMessageParser.isDone()
-        fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
         fixMessage.getCharSequenceValue(8).toString() == "FIX.4.2"
         fixMessage.getLongValue(9) == 378
         fixMessage.getCharSequenceValue(35).toString() == "8"
@@ -128,6 +113,7 @@ class FixMessageParserTest extends Specification {
         fixMessage.getCharValue(29) == "1" as char
         fixMessage.getCharSequenceValue(63).toString() == "0"
         fixMessage.getCharSequenceValue(10).toString() == "080"
+        byteBufComposer.readerIndex() == message.length()
     }
 
     def "should parse execution report message, message with multiple occurrences of repeating group(382)"() {
@@ -138,12 +124,10 @@ class FixMessageParserTest extends Specification {
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
 
         when:
-        fixMessageParser.startParsing()
         fixMessageParser.parseFixMsgBytes()
 
         then:
         fixMessageParser.isDone()
-        fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
         fixMessage.getCharSequenceValue(8).toString() == "FIX.4.2"
         fixMessage.getLongValue(9) == 378
         fixMessage.getCharSequenceValue(35).toString() == "8"
@@ -190,6 +174,7 @@ class FixMessageParserTest extends Specification {
         fixMessage.getCharValue(29) == "1" as char
         fixMessage.getCharSequenceValue(63).toString() == "0"
         fixMessage.getCharSequenceValue(10).toString() == "080"
+        byteBufComposer.readerIndex() == message.length()
     }
 
     def "should parse fake confirmation message, message with nested repeating groups"() {
@@ -199,12 +184,10 @@ class FixMessageParserTest extends Specification {
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
 
         when:
-        fixMessageParser.startParsing()
         fixMessageParser.parseFixMsgBytes()
 
         then:
         fixMessageParser.isDone()
-        fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
         fixMessage.getCharSequenceValue(8).toString() == "FIX.4.4"
         fixMessage.getLongValue(9) == 378
         fixMessage.getCharSequenceValue(35).toString() == "AK"
@@ -221,23 +204,23 @@ class FixMessageParserTest extends Specification {
         fixMessage.getLongValue(781, 85, 1 as byte, 0 as byte) == 2
         fixMessage.getCharSequenceValue(782, 781, 0 as byte, 1 as byte).toString() == 'ID3'
         fixMessage.getCharSequenceValue(782, 781, 1 as byte, 1 as byte).toString() == 'ID4'
+        byteBufComposer.readerIndex() == message.length()
     }
 
     def "should check if can continue parsing"() {
         setup:
         fixMessageParser.@bytesToParse.readerIndex(readerIndex)
         fixMessageParser.@bytesToParse.@storedEndIndex = storedEndIndex
-        fixMessageParser.storedEndIndexOfLastUnfinishedMessage = storedEndIndexOfLastUnfinishedMessage
 
         expect:
         fixMessageParser.canContinueParsing() == expectedResult
 
         where:
-        readerIndex | storedEndIndex | storedEndIndexOfLastUnfinishedMessage | expectedResult
-        0           | 2              | 0                                     | true
-        2           | 2              | 0                                     | false
-        0           | 2              | 1                                     | true
-        2           | 2              | 2                                     | false
+        readerIndex | storedEndIndex | expectedResult
+        0           | 2              | true
+        2           | 2              | false
+        0           | 2              | true
+        2           | 2              | false
     }
 
     def "should parse unfinished message"() {
@@ -246,12 +229,10 @@ class FixMessageParserTest extends Specification {
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
 
         when:
-        fixMessageParser.startParsing()
         fixMessageParser.parseFixMsgBytes()
 
         then:
         !fixMessageParser.isDone()
-        fixMessageParser.storedEndIndexOfLastUnfinishedMessage == message.length() - 1
         fixMessage.getCharSequenceValue(8).toString() == "FIX.4.4"
         fixMessage.getLongValue(9) == 378
         fixMessage.getCharSequenceValue(35).toString() == "AK"
@@ -260,6 +241,8 @@ class FixMessageParserTest extends Specification {
         fixMessage.getCharSequenceValue(56).toString() == "ABC_DEFG01"
         !fixMessage.isValueSet(52)
         !fixMessageParser.canContinueParsing()
+        fixMessageParser.byteProcessor.composerBuffer.toString(StandardCharsets.US_ASCII) == "20210323-15:40:"
+        byteBufComposer.readerIndex() == message.length()
     }
 
     def "should parse unfinished message that ends with SOH"() {
@@ -268,12 +251,10 @@ class FixMessageParserTest extends Specification {
         byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(message.getBytes(StandardCharsets.US_ASCII)))
 
         when:
-        fixMessageParser.startParsing()
         fixMessageParser.parseFixMsgBytes()
 
         then:
         !fixMessageParser.isDone()
-        fixMessageParser.storedEndIndexOfLastUnfinishedMessage == message.length() - 1
         fixMessage.getCharSequenceValue(8).toString() == "FIX.4.4"
         fixMessage.getLongValue(9) == 378
         fixMessage.getCharSequenceValue(35).toString() == "AK"
@@ -282,6 +263,8 @@ class FixMessageParserTest extends Specification {
         fixMessage.getCharSequenceValue(56).toString() == "ABC_DEFG01"
         fixMessage.getTimestampValue(52) == Instant.parse("2021-03-23T15:40:35Z").toEpochMilli()
         !fixMessageParser.canContinueParsing()
+        fixMessageParser.byteProcessor.composerBuffer.readableBytes() == 0
+        byteBufComposer.readerIndex() == message.length()
     }
 
     def "should parse simple new order single fragmented with garbage"() {
@@ -296,7 +279,6 @@ class FixMessageParserTest extends Specification {
 
         then:
         fixMessageParser.isDone()
-        fixMessageParser.storedEndIndexOfLastUnfinishedMessage == 0
         assertSimpleNewOrderSingle(fixMessage)
         fixMessageParser.bytesToParse.readerIndex() == simpleNewOrderSingleWithGarbage.length() - "garbage".length()
 
@@ -311,9 +293,8 @@ class FixMessageParserTest extends Specification {
 
     def "should reset parser"() {
         setup:
-        fixMessageParser.@storedEndIndexOfLastUnfinishedMessage = 666
-        fixMessageParser.@parsingRepeatingGroup = true
-        fixMessageParser.@groupIndexNumberStack.addFirst(123)
+        fixMessageParser.byteProcessor.@parsingRepeatingGroup = true
+        fixMessageParser.byteProcessor.@groupIndexNumberStack.addFirst(123)
 
         when:
         fixMessageParser.reset()
@@ -321,9 +302,8 @@ class FixMessageParserTest extends Specification {
         then:
         fixMessageParser.@bytesToParse.is(byteBufComposer)
         fixMessageParser.@fixMessage.is(fixMessage)
-        fixMessageParser.@storedEndIndexOfLastUnfinishedMessage == 0
-        !fixMessageParser.@parsingRepeatingGroup
-        fixMessageParser.@groupIndexNumberStack.isEmpty()
+        !fixMessageParser.byteProcessor.@parsingRepeatingGroup
+        fixMessageParser.byteProcessor.@groupIndexNumberStack.isEmpty()
     }
 
     private final static String simpleNewOrderSingle = "8=FIX.4.2\u00019=146\u000135=D\u000134=4\u000149=ABC_DEFG01\u000152=20210323-15:40:29\u000156=CCG\u0001115=XYZ\u000111=NF " +

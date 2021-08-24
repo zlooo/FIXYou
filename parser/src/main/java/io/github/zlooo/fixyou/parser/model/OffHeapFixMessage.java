@@ -16,8 +16,11 @@ import io.github.zlooo.fixyou.commons.pool.ObjectPool;
 import io.github.zlooo.fixyou.commons.utils.ReflectionUtils;
 import io.github.zlooo.fixyou.model.FixSpec;
 import io.github.zlooo.fixyou.parser.StandardHeaderAndFooterOnlyFixSpec;
+import io.github.zlooo.fixyou.parser.ValueHolders;
 import io.github.zlooo.fixyou.utils.ArrayUtils;
 import io.github.zlooo.fixyou.utils.UnsafeAccessor;
+import io.netty.buffer.ByteBuf;
+import io.netty.util.AsciiString;
 import lombok.experimental.FieldNameConstants;
 import sun.misc.Unsafe;
 
@@ -116,7 +119,7 @@ public class OffHeapFixMessage extends AbstractPoolableFixMessage<OffHeapFixMess
 
     /**
      * Returns value as {@link CharSequence}.
-     * However remember that returned {@link CharSequence} is just a view, actual data is stored in one of this message's {@link Region}. So if you get this {@link CharSequence} and then return
+     * However, remember that returned {@link CharSequence} is just a view, actual data is stored in one of this message's {@link Region}. So if you get this {@link CharSequence} and then return
      * {@link OffHeapFixMessage} object to pool you might and probably will get weird data as this {@link CharSequence} will point to region of memory that could be already used by different {@link OffHeapFixMessage} storing different
      * data, possibly
      * even different type. Same if you want to reuse this {@link OffHeapFixMessage} after calling {@link #reset()}, ie get some field's data, do reset and store this data again in clean message.
@@ -156,11 +159,30 @@ public class OffHeapFixMessage extends AbstractPoolableFixMessage<OffHeapFixMess
     }
 
     @Override
+    public void setCharSequenceValue(int fieldNumber, ByteBuf asciiByteBuffer) {
+        final int numberOfChars = asciiByteBuffer.readableBytes();
+        final long fieldAddress = fieldAddressWithLengthCheck(fieldNumber, (short) (numberOfChars * MemoryConstants.CHAR_SIZE + FieldConstants.CHAR_SEQUENCE_LENGTH_SIZE));
+        doSetCharSequenceData(asciiByteBuffer, numberOfChars, fieldAddress);
+        fieldsSet.set(fieldNumber);
+    }
+
+    @Override
     public void setCharSequenceValue(int fieldNumber, CharSequence newValue) {
         final int numberOfChars = newValue.length();
         final long fieldAddress = fieldAddressWithLengthCheck(fieldNumber, (short) (numberOfChars * MemoryConstants.CHAR_SIZE + FieldConstants.CHAR_SEQUENCE_LENGTH_SIZE));
         doSetCharSequenceData(newValue, numberOfChars, fieldAddress);
         fieldsSet.set(fieldNumber);
+    }
+
+    @Override
+    public void setCharSequenceValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, ByteBuf asciiByteBuffer) {
+        final int numberOfChars = asciiByteBuffer.readableBytes();
+        final boolean newRepeatingGroup = saveIndexIfGreater(groupNumber, repetitionIndex);
+        final long fieldAddress = fieldAddressWithLengthCheck(fieldNumber, groupNumber, repetitionIndex, parentRepetitionIndex, (short) (numberOfChars * MemoryConstants.CHAR_SIZE + FieldConstants.CHAR_SEQUENCE_LENGTH_SIZE));
+        doSetCharSequenceData(asciiByteBuffer, numberOfChars, fieldAddress);
+        if (newRepeatingGroup) {
+            fieldsSet.set(groupNumber);
+        }
     }
 
     @Override
@@ -368,6 +390,17 @@ public class OffHeapFixMessage extends AbstractPoolableFixMessage<OffHeapFixMess
         for (int i = 0; i < numberOfChars; i++) {
             UNSAFE.putChar(dataStartingAddress + (long) i * MemoryConstants.CHAR_SIZE, ArrayUtils.getElementAt(newValue, i));
         }
+    }
+
+    private static void doSetCharSequenceData(ByteBuf newValue, int numberOfChars, long fieldAddress) {
+        UNSAFE.putChar(fieldAddress, (char) numberOfChars);
+        final ValueHolders.LongHolder address = new ValueHolders.LongHolder();
+        address.setValue(fieldAddress + FieldConstants.CHAR_SEQUENCE_LENGTH_SIZE);
+        newValue.forEachByte(byteRead -> {
+            UNSAFE.putChar(address.getValue(), AsciiString.b2c(byteRead));
+            address.increment(MemoryConstants.CHAR_SIZE);
+            return true;
+        });
     }
 
     private static void doSetDoubleValue(long newValue, short newScale, long fieldAddress) {

@@ -9,6 +9,9 @@ import io.github.zlooo.fixyou.model.FixMessage
 import io.github.zlooo.fixyou.model.FixSpec
 import io.github.zlooo.fixyou.parser.model.FixMessageRepeatingGroupUtils
 import io.github.zlooo.fixyou.parser.model.FixMessageToString
+import io.netty.buffer.ByteBuf
+
+import java.nio.charset.StandardCharsets
 
 class SimpleFixMessage implements FixMessage {
 
@@ -137,9 +140,22 @@ class SimpleFixMessage implements FixMessage {
     }
 
     @Override
+    void setCharSequenceValue(int fieldNumber, ByteBuf asciiByteBuffer) {
+        charSequenceValues.put(fieldNumber, asciiByteBuffer.toString(StandardCharsets.US_ASCII))
+        fieldsSet.add(fieldNumber)
+    }
+
+    @Override
     void setCharSequenceValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, CharSequence newValue) {
         final long repeatingGroupKey = FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber)
         charSequenceRepeatingGroupValues.put(repeatingGroupKey, newValue)
+        repeatingGroupFieldsSet.add(repeatingGroupKey)
+    }
+
+    @Override
+    void setCharSequenceValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, ByteBuf asciiByteBuffer) {
+        final long repeatingGroupKey = FixMessageRepeatingGroupUtils.repeatingGroupKey(parentRepetitionIndex, groupNumber, repetitionIndex, fieldNumber)
+        charSequenceRepeatingGroupValues.put(repeatingGroupKey, asciiByteBuffer.toString(StandardCharsets.US_ASCII))
         repeatingGroupFieldsSet.add(repeatingGroupKey)
     }
 

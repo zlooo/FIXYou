@@ -1,7 +1,5 @@
 package io.github.zlooo.fixyou.parser;
 
-import com.carrotsearch.hppcrt.procedures.LongShortProcedure;
-import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.utils.AsciiCodes;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.AsciiString;
@@ -10,10 +8,10 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class FieldValueParser {
     public static final char FRACTION_SEPARATOR = '.';
-    static final int RADIX = 10;
+    public static final int RADIX = 10;
 
-    static boolean parseBoolean(ByteBufComposer source, int srcIndex) {
-        final byte valueToParse = source.getByte(srcIndex);
+    static boolean parseBoolean(ByteBuf source) {
+        final byte valueToParse = source.readByte();
         switch (valueToParse) {
             case AsciiCodes.Y:
                 return true;
@@ -24,72 +22,57 @@ public class FieldValueParser {
         }
     }
 
-    static char parseChar(ByteBufComposer bytesToParse, int srcIndex) {
-        return AsciiString.b2c(bytesToParse.getByte(srcIndex));
+    static char parseChar(ByteBuf bytesToParse) {
+        return AsciiString.b2c(bytesToParse.readByte());
     }
 
-    static void readChars(ByteBufComposer source, int srcIndex, int length, ByteBuf tempBuffer, char[] destination) {
-        tempBuffer.clear();
-        source.getBytes(srcIndex, length, tempBuffer);
-        for (int i = 0; i < length; i++) {
-            destination[i] = AsciiString.b2c(tempBuffer.getByte(i));
-        }
-    }
-
-    static void setDoubleValuesFromByteBufComposer(ByteBufComposer source, int srcIndex, int length, ByteBuf tempBuffer, char[] tempCharBuffer, LongShortProcedure valueConsumer) {
-        //TODO after JMH check in LongField is done and you're right, check this one as well
-        readChars(source, srcIndex, length, tempBuffer, tempCharBuffer);
-        final boolean negative = tempCharBuffer[0] == '-';
-        long unscaledValue = 0;
-        short scale = 0;
-        for (int i = negative ? 1 : 0; i < length; i++) {
-            final char nextChar = tempCharBuffer[i];
-            if (nextChar != FRACTION_SEPARATOR) {
-                unscaledValue = unscaledValue * RADIX + ((int) nextChar - AsciiCodes.ZERO);
-            } else {
-                scale = (short) (length - i - 1);
-            }
-        }
+    static void setDoubleValuesFromAsciiByteBuf(ByteBuf asciiByteBuf, ValueHolders.IntHolder counter, ValueHolders.DecimalHolder valueHolder) {
+        valueHolder.reset();
+        counter.reset();
+        final boolean negative = asciiByteBuf.getByte(0) == AsciiCodes.MINUS;
         if (negative) {
-            unscaledValue *= -1;
+            counter.setValue(1);
         }
-        valueConsumer.apply(unscaledValue, scale);
+
+        final int length = asciiByteBuf.readableBytes();
+        asciiByteBuf.forEachByte(counter.getValue(), negative ? length - 1 : length, byteRead -> {
+            final char nextChar = AsciiString.b2c(byteRead);
+            if (nextChar != FRACTION_SEPARATOR) {
+                valueHolder.setUnscaledValue(valueHolder.getUnscaledValue() * RADIX + ((int) nextChar - AsciiCodes.ZERO));
+            } else {
+                valueHolder.setScale((short) (length - counter.getValue() - 1));
+            }
+            counter.getAndIncrement();
+            return true;
+        });
+        if (negative) {
+            valueHolder.setUnscaledValue(valueHolder.getUnscaledValue() * -1);
+        }
     }
 
-    static int parseInteger(ByteBufComposer byteBuf, int srcIndex, byte endIndicator, boolean advanceReaderIndex) {
-        int num = 0;
-        boolean negative = false;
-        int index = srcIndex;
-        while (true) {
-            final byte b = byteBuf.getByte(index++);
-            if (b >= AsciiCodes.ZERO && b <= AsciiCodes.NINE) {
-                num = num * RADIX + b - AsciiCodes.ZERO;
-            } else if (b == AsciiCodes.MINUS) {
-                negative = true;
-            } else if (b == endIndicator) {
-                break;
+    static void parseInteger(ByteBuf byteBuf, ValueHolders.IntHolder valueHolder) {
+        valueHolder.reset();
+        byteBuf.forEachByte(byteRead -> {
+            if (byteRead >= AsciiCodes.ZERO && byteRead <= AsciiCodes.NINE) {
+                valueHolder.setValue(valueHolder.getValue() * RADIX + byteRead - AsciiCodes.ZERO);
+            } else if (byteRead == AsciiCodes.MINUS) {
+                valueHolder.setNegative(true);
             }
-        }
-        if (advanceReaderIndex) {
-            byteBuf.readerIndex(index);
-        }
-        return negative ? -num : num;
+            return true;
+        });
     }
 
-    static long parseLong(ByteBufComposer byteBuf, int srcIndex, byte endIndicator) {
-        long num = 0;
-        boolean negative = false;
-        int index = srcIndex;
-        while (true) {
-            final byte b = byteBuf.getByte(index++);
-            if (b >= AsciiCodes.ZERO && b <= AsciiCodes.NINE) {
-                num = num * RADIX + b - AsciiCodes.ZERO;
-            } else if (b == AsciiCodes.MINUS) {
-                negative = true;
-            } else if (b == endIndicator) {
-                break;
+    static long parseLong(ByteBuf byteBuf, ValueHolders.LongHolder valueHolder) {
+        valueHolder.reset();
+        byteBuf.forEachByte(byteRead -> {
+            if (byteRead >= AsciiCodes.ZERO && byteRead <= AsciiCodes.NINE) {
+                valueHolder.setValue(valueHolder.getValue() * RADIX + byteRead - AsciiCodes.ZERO);
+            } else if (byteRead == AsciiCodes.MINUS) {
+                valueHolder.setNegative(true);
             }
-        }
-        return negative ? -num : num;
+            return true;
+        });
+        return valueHolder.isNegative() ? -valueHolder.getValue() : valueHolder.getValue();
     }
+
 }

@@ -43,11 +43,10 @@ class DateUtilsTest extends Specification {
 
     def "should parse timestamp"() {
         setup:
-        ByteBufComposer byteBufComposer = new ByteBufComposer(1)
-        byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(timestamp.getBytes(StandardCharsets.US_ASCII)))
+        def buffer = Unpooled.wrappedBuffer(timestamp.getBytes(StandardCharsets.US_ASCII))
 
         expect:
-        DateUtils.parseTimestamp(byteBufComposer, 0, byteBufComposer.storedEndIndex + 1, new DateUtils.TimestampParser()) == expectedResult
+        DateUtils.parseTimestamp(buffer,new DateUtils.TimestampParser()) == expectedResult
 
         where:
         timestamp               | expectedResult
@@ -74,9 +73,8 @@ class DateUtilsTest extends Specification {
         setup:
         def timestampParser = new DateUtils.TimestampParser()
         def freshParser = new DateUtils.TimestampParser()
-        ByteBufComposer byteBufComposer = new ByteBufComposer(1)
-        byteBufComposer.addByteBuf(Unpooled.wrappedBuffer("20210530-10:15:30".getBytes(StandardCharsets.US_ASCII)))
-        DateUtils.parseTimestamp(byteBufComposer, 0, byteBufComposer.storedEndIndex + 1, timestampParser)
+        def buffer = Unpooled.wrappedBuffer("20210530-10:15:30".getBytes(StandardCharsets.US_ASCII))
+        DateUtils.parseTimestamp(buffer, timestampParser)
 
         when:
         timestampParser.reset()
@@ -90,11 +88,10 @@ class DateUtilsTest extends Specification {
 
     def "should not parse wrong timestamp"() {
         setup:
-        ByteBufComposer byteBufComposer = new ByteBufComposer(1)
-        byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(timestamp.getBytes(StandardCharsets.US_ASCII)))
+        def buffer = Unpooled.wrappedBuffer(timestamp.getBytes(StandardCharsets.US_ASCII))
 
         when:
-        DateUtils.parseTimestamp(byteBufComposer, 0, byteBufComposer.storedEndIndex + 1, new DateUtils.TimestampParser())
+        DateUtils.parseTimestamp(buffer, new DateUtils.TimestampParser())
 
         then:
         thrown(exception)

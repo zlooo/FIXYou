@@ -60,9 +60,9 @@ class MessageDecoderTest extends Specification {
                 decodedFixMessage.getLongValue(FixConstants.CHECK_SUM_FIELD_NUMBER) == 21
             }
         })
-        messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
         messageDecoder.byteBufComposer.storedStartIndex == ByteBufComposer.INITIAL_VALUE
         messageDecoder.byteBufComposer.storedEndIndex == ByteBufComposer.INITIAL_VALUE
+        messageDecoder.byteBufComposer.readerIndex() == 0
         Assertions.assertThat(messageDecoder.byteBufComposer.components).containsOnly(new ByteBufComposer.Component())
         0 * _
     }
@@ -76,7 +76,6 @@ class MessageDecoderTest extends Specification {
 
         then:
         encodedMessage.refCnt() == 1
-        messageDecoder.@state == MessageDecoder.State.DECODING
         fixMessage.isValueSet(FixConstants.BEGIN_STRING_FIELD_NUMBER)
         fixMessage.isValueSet(56)
         fixMessage.getLongValue(9) == 28
@@ -87,6 +86,7 @@ class MessageDecoderTest extends Specification {
                   .containsOnlyOnce(expectedComponent)
                   .contains(expectedComponent, Index.atIndex(0))
                   .containsOnly(expectedComponent, new ByteBufComposer.Component())
+        messageDecoder.byteBufComposer.readerIndex() == encodedMessage.writerIndex()
         0 * _
     }
 
@@ -113,8 +113,8 @@ class MessageDecoderTest extends Specification {
         })
         messageDecoder.byteBufComposer.storedStartIndex == ByteBufComposer.INITIAL_VALUE
         messageDecoder.byteBufComposer.storedEndIndex == ByteBufComposer.INITIAL_VALUE
+        messageDecoder.byteBufComposer.readerIndex() == 0
         Assertions.assertThat(messageDecoder.byteBufComposer.components).containsOnly(new ByteBufComposer.Component())
-        messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
         0 * _
     }
 
@@ -129,10 +129,14 @@ class MessageDecoderTest extends Specification {
 
         when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessage1Part1)
+
+        then:
+        messageDecoder.byteBufComposer.readerIndex() == encodedMessage1Part1.writerIndex()
+
+        when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessage1Part2)
 
         then:
-        messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
         1 * channelHandlerContext.fireChannelRead({
             verifyAll(it, FixMessage) { decodedFixMessage ->
                 decodedFixMessage.is(fixMessage)
@@ -148,10 +152,16 @@ class MessageDecoderTest extends Specification {
         encodedMessage2Part2.refCnt() == 1
         messageDecoder.byteBufComposer.storedStartIndex == ByteBufComposer.INITIAL_VALUE
         messageDecoder.byteBufComposer.storedEndIndex == ByteBufComposer.INITIAL_VALUE
+        messageDecoder.byteBufComposer.readerIndex() == 0
         Assertions.assertThat(messageDecoder.byteBufComposer.components).containsOnly(new ByteBufComposer.Component())
 
         when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessage2Part1)
+
+        then:
+        messageDecoder.byteBufComposer.readerIndex() == encodedMessage2Part1.writerIndex()
+
+        when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessage2Part2)
 
         then:
@@ -159,7 +169,6 @@ class MessageDecoderTest extends Specification {
         encodedMessage1Part2.refCnt() == 0
         encodedMessage2Part1.refCnt() == 0
         encodedMessage2Part2.refCnt() == 0
-        messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
         1 * channelHandlerContext.fireChannelRead({
             verifyAll(it, FixMessage) { decodedFixMessage ->
                 decodedFixMessage.is(fixMessage)
@@ -170,31 +179,33 @@ class MessageDecoderTest extends Specification {
             }
         })
         Assertions.assertThat(messageDecoder.byteBufComposer.components).containsOnly(new ByteBufComposer.Component())
+        messageDecoder.byteBufComposer.readerIndex() == 0
         0 * _
     }
 
     def "should reset state"() {
         setup:
-        messageDecoder.@state = MessageDecoder.State.DECODING
         fixMessage.retain() //that's because it's going to be released when fixMessageParser is being reset
+        fixMessage.setLongValue(9, 666)
 
         when:
         messageDecoder.reset()
 
         then:
-        messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
+        noExceptionThrown()
+        !fixMessage.isValueSet(9) //the only expected result here is reset of fix message
     }
 
     def "should reset state when channel becomes active"() {
         setup:
-        messageDecoder.@state = MessageDecoder.State.DECODING
         fixMessage.retain() //that's because it's going to be released when fixMessageParser is being reset
+        fixMessage.setLongValue(9, 666)
 
         when:
         messageDecoder.channelActive(channelHandlerContext)
 
         then:
-        messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
+        !fixMessage.isValueSet(9) //the only expected result here is reset of fix message
         1 * channelHandlerContext.fireChannelActive()
         0 * _
     }
@@ -241,8 +252,8 @@ class MessageDecoderTest extends Specification {
         encodedMessage.refCnt() == 0
         messageDecoder.byteBufComposer.storedStartIndex == ByteBufComposer.INITIAL_VALUE
         messageDecoder.byteBufComposer.storedEndIndex == ByteBufComposer.INITIAL_VALUE
+        messageDecoder.byteBufComposer.readerIndex() == 0
         Assertions.assertThat(messageDecoder.byteBufComposer.components).containsOnly(new ByteBufComposer.Component())
-        messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
         0 * _
     }
 
@@ -254,6 +265,11 @@ class MessageDecoderTest extends Specification {
 
         when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessagePart1)
+
+        then:
+        messageDecoder.byteBufComposer.readerIndex()==encodedMessagePart1.writerIndex()
+
+        then:
         messageDecoder.channelRead(channelHandlerContext, encodedMessagePart2)
 
         then:
@@ -279,8 +295,8 @@ class MessageDecoderTest extends Specification {
         encodedMessagePart2.refCnt() == 0
         messageDecoder.byteBufComposer.storedStartIndex == ByteBufComposer.INITIAL_VALUE
         messageDecoder.byteBufComposer.storedEndIndex == ByteBufComposer.INITIAL_VALUE
+        messageDecoder.byteBufComposer.readerIndex() == 0
         Assertions.assertThat(messageDecoder.byteBufComposer.components).containsOnly(new ByteBufComposer.Component())
-        messageDecoder.@state == MessageDecoder.State.READY_TO_DECODE
         0 * _
     }
 
@@ -292,12 +308,20 @@ class MessageDecoderTest extends Specification {
 
         when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessagePart1)
+
+        then:
+        1 * channelHandlerContext.fireChannelRead(fixMessage) >> channelHandlerContext
+        encodedMessagePart1.refCnt() == 1
+        messageDecoder.byteBufComposer.readerIndex() == encodedMessagePart1.writerIndex()
+
+        when:
         messageDecoder.channelRead(channelHandlerContext, encodedMessagePart2)
 
         then:
-        2 * channelHandlerContext.fireChannelRead(fixMessage) >> channelHandlerContext
+        1 * channelHandlerContext.fireChannelRead(fixMessage) >> channelHandlerContext
         encodedMessagePart1.refCnt() == 0
         encodedMessagePart2.refCnt() == 0
+        messageDecoder.byteBufComposer.readerIndex() == 0
     }
 
     def "should close channel when byte buf composer is full"() {

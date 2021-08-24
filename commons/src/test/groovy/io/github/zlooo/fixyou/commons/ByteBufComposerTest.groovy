@@ -631,14 +631,104 @@ class ByteBufComposerTest extends Specification {
         Assertions.assertThat(composer.components).containsOnly(EMPTY_COMPONENT)
     }
 
+    def "should do for each byte"() {
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5, 6, 7] as byte[]))
+        composer.readerIndex(2)
+        ByteProcessor byteProcessor = new ByteProcessor() {
+
+            private List<Byte> bytesProcessed = []
+
+            @Override
+            boolean process(byte value) throws Exception {
+                bytesProcessed.add(value)
+                return value < 6
+            }
+        }
+
+        when:
+        def bytesRead = composer.forEachByte(byteProcessor)
+
+        then:
+        bytesRead == byteProcessor.bytesProcessed.size()
+        Assertions.assertThat(byteProcessor.bytesProcessed).containsExactly(3 as Byte, 4 as Byte, 5 as Byte, 6 as Byte)
+    }
+
+    def "should do for each byte with single component buffer reaching end"() {
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5, 6, 7] as byte[]))
+        composer.releaseData(0, 0)
+        ByteProcessor byteProcessor = new ByteProcessor() {
+
+            private List<Byte> bytesProcessed = []
+
+            @Override
+            boolean process(byte value) throws Exception {
+                bytesProcessed.add(value)
+                return true
+            }
+        }
+
+        when:
+        def bytesRead = composer.forEachByte(byteProcessor)
+
+        then:
+        bytesRead == byteProcessor.bytesProcessed.size()
+        Assertions.assertThat(byteProcessor.bytesProcessed).containsExactly(2 as Byte, 3 as Byte, 4 as Byte, 5 as Byte, 6 as Byte, 7 as Byte)
+    }
+
+    def "should do for each byte across components"() {
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([5, 6, 7] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([8, 9, 10] as byte[]))
+        ByteProcessor byteProcessor = new ByteProcessor() {
+
+            private List<Byte> bytesProcessed = []
+
+            @Override
+            boolean process(byte value) throws Exception {
+                bytesProcessed.add(value)
+                return value < 9
+            }
+        }
+
+        when:
+        def bytesRead = composer.forEachByte(byteProcessor)
+
+        then:
+        bytesRead == byteProcessor.bytesProcessed.size()
+        Assertions.assertThat(byteProcessor.bytesProcessed).containsExactly(1 as Byte, 2 as Byte, 3 as Byte, 4 as Byte, 5 as Byte, 6 as Byte, 7 as Byte, 8 as Byte, 9 as Byte)
+    }
+
+    def "should do for each byte reaching end of buffer"() {
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([5, 6, 7] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([8, 9, 10] as byte[]))
+        ByteProcessor byteProcessor = new ByteProcessor() {
+
+            private List<Byte> bytesProcessed = []
+
+            @Override
+            boolean process(byte value) throws Exception {
+                bytesProcessed.add(value)
+                return true
+            }
+        }
+
+        when:
+        def bytesRead = composer.forEachByte(byteProcessor)
+
+        then:
+        bytesRead == byteProcessor.bytesProcessed.size()
+        Assertions.assertThat(byteProcessor.bytesProcessed).containsExactly(1 as Byte, 2 as Byte, 3 as Byte, 4 as Byte, 5 as Byte, 6 as Byte, 7 as Byte, 8 as Byte, 9 as Byte, 10 as Byte)
+    }
+
     private byte[] resize(byte[] source, length) {
         byte[] array = new byte[length]
         System.arraycopy(source, 0, array, 0, source.length)
         return array
-    }
-
-    List components(int startingIndex, int endingIndex) {
-        (startingIndex..endingIndex).collect { index -> new ByteBufComposer.Component(startIndex: index, endIndex: index, buffer: Unpooled.wrappedBuffer([index] as byte[])) }
     }
 
     private ByteProcessor iop(byte valueToFind) {
