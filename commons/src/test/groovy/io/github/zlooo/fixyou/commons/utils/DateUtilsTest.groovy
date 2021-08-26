@@ -39,6 +39,7 @@ class DateUtilsTest extends Specification {
         Instant.parse("2023-12-03T10:15:30.999Z") | "20231203-10:15:30"     | false
         Instant.parse("2023-12-03T10:15:30.999Z") | "20231203-10:15:30.999" | true
         Instant.parse("2021-08-31T05:59:20.808Z") | "20210831-05:59:20.808" | true
+        Instant.parse("2024-08-31T05:59:20.808Z") | "20240831-05:59:20.808" | true
     }
 
     def "should parse timestamp"() {
@@ -67,6 +68,7 @@ class DateUtilsTest extends Specification {
         "20231203-10:15:30"     | Instant.parse("2023-12-03T10:15:30.000Z").toEpochMilli()
         "20231203-10:15:30.999" | Instant.parse("2023-12-03T10:15:30.999Z").toEpochMilli()
         "20210831-05:59:20.808" | Instant.parse("2021-08-31T05:59:20.808Z").toEpochMilli()
+        "20240831-05:59:20.808" | Instant.parse("2024-08-31T05:59:20.808Z").toEpochMilli()
     }
 
     def "should reset timestamp parser"() {

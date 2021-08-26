@@ -28,14 +28,31 @@ class FieldValueParserTest extends Specification {
         buf("garbage123garbage|") || 123
     }
 
+    def "should parse long"() {
+        setup:
+        def longHolder = new ValueHolders.LongHolder()
+
+        when:
+        FieldValueParser.parseLong(source, longHolder)
+
+        then:
+        longHolder.getValue() == result.abs()
+        longHolder.isNegative() == result < 0
+
+        where:
+        source                    || result
+        buf("-123|")              || -123L
+        buf("garbage123garbage|") || 123L
+    }
+
     def "should parse boolean"() {
         expect:
         FieldValueParser.parseBoolean(source) == expectedValue
 
         where:
-        source           || expectedValue
+        source       || expectedValue
         buf("Ytest") || true
-        buf("N")         || false
+        buf("N")     || false
     }
 
     def "should not parse garbage value as boolean"() {
@@ -54,14 +71,14 @@ class FieldValueParserTest extends Specification {
         FieldValueParser.parseChar(source) == expectedValue
 
         where:
-        source      || expectedValue
+        source   || expectedValue
         buf("t") || 't' as char
         buf("e") || 'e' as char
         buf("s") || 's' as char
         buf("t") || 't' as char
-        buf("1")  || '1' as char
-        buf("2")  || '2' as char
-        buf("3")  || '3' as char
+        buf("1") || '1' as char
+        buf("2") || '2' as char
+        buf("3") || '3' as char
     }
 
     def "should parse double"() {
