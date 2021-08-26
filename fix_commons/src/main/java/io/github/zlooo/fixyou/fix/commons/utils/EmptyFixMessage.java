@@ -4,6 +4,7 @@ import com.carrotsearch.hppcrt.IntCollection;
 import com.carrotsearch.hppcrt.sets.IntHashSet;
 import io.github.zlooo.fixyou.model.FixMessage;
 import io.github.zlooo.fixyou.model.FixSpec;
+import io.netty.buffer.ByteBuf;
 
 /**
  * Empty, fake implementation of fix message. Can be used as a placeholder
@@ -79,7 +80,17 @@ public class EmptyFixMessage implements FixMessage {
     }
 
     @Override
+    public void setCharSequenceValue(int fieldNumber, ByteBuf asciiByteBuffer) {
+
+    }
+
+    @Override
     public void setCharSequenceValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, CharSequence newValue) {
+
+    }
+
+    @Override
+    public void setCharSequenceValue(int fieldNumber, int groupNumber, byte repetitionIndex, byte parentRepetitionIndex, ByteBuf asciiByteBuffer) {
 
     }
 

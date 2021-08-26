@@ -23,16 +23,10 @@ import lombok.extern.slf4j.Slf4j;
 @ToString
 class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable {
 
-    private static enum State {
-        READY_TO_DECODE,
-        DECODING
-    }
-
     private final FixMessage fixMessage;
     private final ByteBufComposer byteBufComposer = new ByteBufComposer(DefaultConfiguration.BYTE_BUF_COMPOSER_DEFAULT_COMPONENT_NUMBER);
     private final FixMessageParser fixMessageParser;
     private final FixSpec fixSpec;
-    private State state = State.READY_TO_DECODE;
 
     public MessageDecoder(FixSpec fixSpec, ObjectPool<Region> regionObjectPool) {
         this.fixSpec = fixSpec;
@@ -51,14 +45,9 @@ class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable 
             } else {
                 try {
                     while (fixMessageParser.canContinueParsing()) {
-                        if (state == State.READY_TO_DECODE) {
-                            fixMessageParser.startParsing();
-                        }
                         fixMessageParser.parseFixMsgBytes();
                         if (fixMessageParser.isDone()) {
                             messageDecoded(ctx);
-                        } else {
-                            state = State.DECODING;
                         }
                     }
                 } finally {
@@ -77,7 +66,6 @@ class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable 
         byteBufComposer.releaseData(0, byteBufComposer.readerIndex() - 1);
         ctx.fireChannelRead(fixMessage);
         fixMessage.reset();
-        state = State.READY_TO_DECODE;
     }
 
     @Override
@@ -88,7 +76,6 @@ class MessageDecoder extends ChannelInboundHandlerAdapter implements Resettable 
 
     @Override
     public void reset() {
-        this.state = State.READY_TO_DECODE;
         this.fixMessageParser.reset();
     }
 }

@@ -49,7 +49,6 @@ class SimplifiedMessageDecoder extends ChannelInboundHandlerAdapter {
                  */
                 byteBufComposer.addByteBuf(in);
                 final FixMessageParser fixMessageParser = new FixMessageParser(byteBufComposer, LOGON_ONLY_SPEC, fixMessage);
-                fixMessageParser.startParsing();
                 fixMessageParser.parseFixMsgBytes();
                 if (fixMessageParser.isDone()) {
                     if (log.isTraceEnabled()) {

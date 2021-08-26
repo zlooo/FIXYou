@@ -26,6 +26,7 @@ public class ByteBufComposer implements Resettable {
 
     public static final int NOT_FOUND = -1;
     private static final int INITIAL_VALUE = -1;
+    private static final int END_OF_BUFFER_REACHED = -1;
     private static final String IOOBE_MESSAGE = "This instance does not contain data for index ";
     private static final ByteProcessor SOH_FINDER = new ByteProcessor.IndexOfProcessor((byte) 1);
     @ToString.Exclude
@@ -184,6 +185,33 @@ public class ByteBufComposer implements Resettable {
     public byte getByte(int index) {
         final Component component = ArrayUtils.getElementAt(components, findReaderComponentIndex(index));
         return component.getBuffer().getByte(index - component.offset);
+    }
+
+    public int forEachByte(ByteProcessor byteProcessor) {
+        if (storedEndIndex == readerIndex) {
+            return 0;
+        }
+        int readerComponentIndex = findReaderComponentIndex(readerIndex);
+        int bytesRead = 0;
+        Component component = ArrayUtils.getElementAt(components, readerComponentIndex++);
+        final int bufferStartIndex = readerIndex - component.offset;
+        ByteBuf buffer = component.getBuffer();
+        int forEachByteResult = buffer.forEachByte(bufferStartIndex, buffer.writerIndex() - bufferStartIndex, byteProcessor);
+        if (forEachByteResult == END_OF_BUFFER_REACHED) {
+            do {
+                bytesRead += (component.endIndex - component.startIndex + 1); //+1 because indexes are inclusive
+                component = ArrayUtils.getElementAt(components, toArrayIndex(readerComponentIndex++));
+                if (INITIAL_VALUE < component.endIndex && component.endIndex <= storedEndIndex) {
+                    buffer = component.buffer;
+                    forEachByteResult = buffer.forEachByte(byteProcessor);
+                } else {
+                    break;
+                }
+            } while (forEachByteResult == END_OF_BUFFER_REACHED);
+            return bytesRead + forEachByteResult + 1; //+1 because result of forEachByte is last visited INDEX, not number of bytes visited
+        } else {
+            return forEachByteResult - bufferStartIndex + 1;
+        }
     }
 
     private int findReaderComponentIndex(int index) {

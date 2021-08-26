@@ -29,7 +29,8 @@ public class DateUtilsPerformanceTest {
 
     private final ByteBuf byteBuf = Unpooled.buffer(BUF_LENGTH, BUF_LENGTH);
     private final char[] tempCharBuffer = new char[BUF_LENGTH];
-    private final ByteBufComposer valueToParse = new ByteBufComposer(1);
+    private final ByteBufComposer valueToParseAsComposer = new ByteBufComposer(1);
+    private final ByteBuf valueToParseAsByteBuf = Unpooled.directBuffer();
     private final ReusableCharArray reusableCharArray = new ReusableCharArray();
     private final DateUtils.TimestampParser timestampParser = new DateUtils.TimestampParser();
     private long valueToWrite;
@@ -40,7 +41,9 @@ public class DateUtilsPerformanceTest {
         valueToWrite = System.currentTimeMillis();
         final ByteBuf bufferToParse = Unpooled.directBuffer(BUF_LENGTH);
         bufferToParse.writeCharSequence(UTC_TIMESTAMP_NO_MILLIS_FORMATTER.format(Instant.ofEpochMilli(valueToWrite).atZone(ZoneOffset.UTC)), StandardCharsets.US_ASCII);
-        valueToParse.addByteBuf(bufferToParse);
+        valueToParseAsByteBuf.writeBytes(bufferToParse);
+        bufferToParse.readerIndex(0);
+        valueToParseAsComposer.addByteBuf(bufferToParse);
         clock = Clock.fixed(Instant.ofEpochMilli(valueToWrite), ZoneOffset.UTC);
     }
 
@@ -62,7 +65,7 @@ public class DateUtilsPerformanceTest {
     @Benchmark
     @BenchmarkMode(Mode.Throughput)
     public void parseViaDateFormatterTest(Blackhole blackhole) {
-        readChars(valueToParse, 0, BUF_LENGTH, byteBuf, tempCharBuffer);
+        readChars(valueToParseAsComposer, 0, BUF_LENGTH, byteBuf, tempCharBuffer);
         reusableCharArray.setCharArray(tempCharBuffer);
         blackhole.consume(UTC_TIMESTAMP_NO_MILLIS_FORMATTER.parse(reusableCharArray, LocalDateTime::from).toInstant(ZoneOffset.UTC).toEpochMilli());
     }
@@ -71,7 +74,8 @@ public class DateUtilsPerformanceTest {
     @BenchmarkMode(Mode.Throughput)
     public void parseViaDateUtilsTest(Blackhole blackhole) {
         timestampParser.reset();
-        blackhole.consume(DateUtils.parseTimestamp(valueToParse, 0, BUF_LENGTH, timestampParser));
+        blackhole.consume(DateUtils.parseTimestamp(valueToParseAsByteBuf, timestampParser));
+        valueToParseAsByteBuf.readerIndex(0);
     }
 
     private static void readChars(ByteBufComposer source, int srcIndex, int length, ByteBuf tempBuffer, char[] destination) {

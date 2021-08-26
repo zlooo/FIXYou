@@ -39,15 +39,15 @@ class DateUtilsTest extends Specification {
         Instant.parse("2023-12-03T10:15:30.999Z") | "20231203-10:15:30"     | false
         Instant.parse("2023-12-03T10:15:30.999Z") | "20231203-10:15:30.999" | true
         Instant.parse("2021-08-31T05:59:20.808Z") | "20210831-05:59:20.808" | true
+        Instant.parse("2024-08-31T05:59:20.808Z") | "20240831-05:59:20.808" | true
     }
 
     def "should parse timestamp"() {
         setup:
-        ByteBufComposer byteBufComposer = new ByteBufComposer(1)
-        byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(timestamp.getBytes(StandardCharsets.US_ASCII)))
+        def buffer = Unpooled.wrappedBuffer(timestamp.getBytes(StandardCharsets.US_ASCII))
 
         expect:
-        DateUtils.parseTimestamp(byteBufComposer, 0, byteBufComposer.storedEndIndex + 1, new DateUtils.TimestampParser()) == expectedResult
+        DateUtils.parseTimestamp(buffer,new DateUtils.TimestampParser()) == expectedResult
 
         where:
         timestamp               | expectedResult
@@ -68,15 +68,15 @@ class DateUtilsTest extends Specification {
         "20231203-10:15:30"     | Instant.parse("2023-12-03T10:15:30.000Z").toEpochMilli()
         "20231203-10:15:30.999" | Instant.parse("2023-12-03T10:15:30.999Z").toEpochMilli()
         "20210831-05:59:20.808" | Instant.parse("2021-08-31T05:59:20.808Z").toEpochMilli()
+        "20240831-05:59:20.808" | Instant.parse("2024-08-31T05:59:20.808Z").toEpochMilli()
     }
 
     def "should reset timestamp parser"() {
         setup:
         def timestampParser = new DateUtils.TimestampParser()
         def freshParser = new DateUtils.TimestampParser()
-        ByteBufComposer byteBufComposer = new ByteBufComposer(1)
-        byteBufComposer.addByteBuf(Unpooled.wrappedBuffer("20210530-10:15:30".getBytes(StandardCharsets.US_ASCII)))
-        DateUtils.parseTimestamp(byteBufComposer, 0, byteBufComposer.storedEndIndex + 1, timestampParser)
+        def buffer = Unpooled.wrappedBuffer("20210530-10:15:30".getBytes(StandardCharsets.US_ASCII))
+        DateUtils.parseTimestamp(buffer, timestampParser)
 
         when:
         timestampParser.reset()
@@ -90,11 +90,10 @@ class DateUtilsTest extends Specification {
 
     def "should not parse wrong timestamp"() {
         setup:
-        ByteBufComposer byteBufComposer = new ByteBufComposer(1)
-        byteBufComposer.addByteBuf(Unpooled.wrappedBuffer(timestamp.getBytes(StandardCharsets.US_ASCII)))
+        def buffer = Unpooled.wrappedBuffer(timestamp.getBytes(StandardCharsets.US_ASCII))
 
         when:
-        DateUtils.parseTimestamp(byteBufComposer, 0, byteBufComposer.storedEndIndex + 1, new DateUtils.TimestampParser())
+        DateUtils.parseTimestamp(buffer, new DateUtils.TimestampParser())
 
         then:
         thrown(exception)

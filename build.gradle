@@ -91,6 +91,7 @@ subprojects {
         integrationTestImplementation group: 'org.assertj', name: 'assertj-core', version: "$assertJVersion"
         integrationTestImplementation group: 'org.springframework', name: 'spring-test', version: "$springVersion"
         integrationTestImplementation group: 'ch.qos.logback', name: 'logback-classic', version: "$logbackClassicVersion"
+        jmhAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
         jmhAnnotationProcessor group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: "$jmhVersion"
     }
 

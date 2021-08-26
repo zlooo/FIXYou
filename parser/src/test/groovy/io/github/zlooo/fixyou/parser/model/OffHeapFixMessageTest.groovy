@@ -4,12 +4,15 @@ import io.github.zlooo.fixyou.DefaultConfiguration
 import io.github.zlooo.fixyou.commons.memory.RegionPool
 import io.github.zlooo.fixyou.commons.utils.Comparators
 import io.github.zlooo.fixyou.utils.UnsafeAccessor
+import io.netty.buffer.Unpooled
+import io.netty.util.AsciiString
 import net.bytebuddy.utility.RandomString
 import org.assertj.core.api.Assertions
 import spock.lang.Shared
 import spock.lang.Specification
 import sun.misc.Unsafe
 
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -249,6 +252,29 @@ class OffHeapFixMessageTest extends Specification {
         '1234abc'.chars | 4      | '1234'
         '1234abc'.chars | 5      | '1234a'
         '/()*HHa'.chars | 7      | '/()*HHa'
+    }
+
+    def "should set char byte buf value"() {
+        setup:
+        def address = fixMessage.currentRegion().getStartingAddress()
+
+        when:
+        fixMessage.setCharSequenceValue(1, value)
+
+        then:
+        UNSAFE.getChar(address) == value.capacity()
+        value.array().eachWithIndex { byte letter, int index ->
+            assert UNSAFE.getChar(address + (index + 1) * 2) == AsciiString.b2c(letter)
+        }
+        fixMessage.fieldNumberToAddress.get(1) == address
+        fixMessage.fieldNumberToAddress.size() == 1
+        fixMessage.fieldsSet.get(1)
+        fixMessage.repeatingGroupAddresses.isEmpty()
+
+        where:
+        value <<
+        [Unpooled.wrappedBuffer('a'.getBytes(StandardCharsets.US_ASCII)), Unpooled.wrappedBuffer('Aa'.getBytes(StandardCharsets.US_ASCII)), Unpooled.wrappedBuffer('1234abc'.getBytes(StandardCharsets.US_ASCII)), Unpooled
+                .wrappedBuffer('/()*HHa'.getBytes(StandardCharsets.US_ASCII))]
     }
 
     def "should set double value"() {

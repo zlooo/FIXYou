@@ -130,6 +130,14 @@ class ByteBufComposerTest extends Specification {
         3          | 3
     }
 
+    def "should not allow to release if indexes do not check out"() {
+        when:
+        composer.releaseData(10, 9)
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
     def "should release beginning of component"() {
         setup:
         def bufferToAdd1 = Unpooled.wrappedBuffer([1, 2, 3, 4, 5] as byte[])
@@ -584,6 +592,28 @@ class ByteBufComposerTest extends Specification {
         128 as byte   | ByteBufComposer.NOT_FOUND
     }
 
+    def "should find index of closest SOH"() {
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer([2, 3, 4, 1, 5] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([6, 1, 7, 8] as byte[]))
+        composer.readerIndex(readerIndex)
+
+        expect:
+        composer.indexOfClosestSOH() == expectedValue
+
+        where:
+        readerIndex | expectedValue
+        0           | 3
+        1           | 3
+        2           | 3
+        3           | 3
+        4           | 6
+        5           | 6
+        6           | 6
+        7           | ByteBufComposer.NOT_FOUND
+        8           | ByteBufComposer.NOT_FOUND
+    }
+
     def "should find index of closest when reader index is moved"() {
         setup:
         composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 1, 2, 3] as byte[]))
@@ -631,14 +661,132 @@ class ByteBufComposerTest extends Specification {
         Assertions.assertThat(composer.components).containsOnly(EMPTY_COMPONENT)
     }
 
+    def "should do for each byte"() {
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5, 6, 7] as byte[]))
+        composer.readerIndex(2)
+        ByteProcessor byteProcessor = new ByteProcessor() {
+
+            private List<Byte> bytesProcessed = []
+
+            @Override
+            boolean process(byte value) throws Exception {
+                bytesProcessed.add(value)
+                return value < 6
+            }
+        }
+
+        when:
+        def bytesRead = composer.forEachByte(byteProcessor)
+
+        then:
+        bytesRead == byteProcessor.bytesProcessed.size()
+        Assertions.assertThat(byteProcessor.bytesProcessed).containsExactly(3 as Byte, 4 as Byte, 5 as Byte, 6 as Byte)
+    }
+
+    def "should do for each byte with single component buffer reaching end"() {
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4, 5, 6, 7] as byte[]))
+        composer.releaseData(0, 0)
+        ByteProcessor byteProcessor = simpleTestByteBufProcessor()
+
+        when:
+        def bytesRead = composer.forEachByte(byteProcessor)
+
+        then:
+        bytesRead == byteProcessor.bytesProcessed.size()
+        Assertions.assertThat(byteProcessor.bytesProcessed).containsExactly(2 as Byte, 3 as Byte, 4 as Byte, 5 as Byte, 6 as Byte, 7 as Byte)
+    }
+
+    def "should do for each byte across components"() {
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([5, 6, 7] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([8, 9, 10] as byte[]))
+        ByteProcessor byteProcessor = new ByteProcessor() {
+
+            private List<Byte> bytesProcessed = []
+
+            @Override
+            boolean process(byte value) throws Exception {
+                bytesProcessed.add(value)
+                return value < 9
+            }
+        }
+
+        when:
+        def bytesRead = composer.forEachByte(byteProcessor)
+
+        then:
+        bytesRead == byteProcessor.bytesProcessed.size()
+        Assertions.assertThat(byteProcessor.bytesProcessed).containsExactly(1 as Byte, 2 as Byte, 3 as Byte, 4 as Byte, 5 as Byte, 6 as Byte, 7 as Byte, 8 as Byte, 9 as Byte)
+    }
+
+    def "should do for each byte reaching end of buffer"() {
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([5, 6, 7] as byte[]))
+        composer.addByteBuf(Unpooled.wrappedBuffer([8, 9, 10] as byte[]))
+        ByteProcessor byteProcessor = simpleTestByteBufProcessor()
+
+        when:
+        def bytesRead = composer.forEachByte(byteProcessor)
+
+        then:
+        bytesRead == byteProcessor.bytesProcessed.size()
+        Assertions.assertThat(byteProcessor.bytesProcessed).containsExactly(1 as Byte, 2 as Byte, 3 as Byte, 4 as Byte, 5 as Byte, 6 as Byte, 7 as Byte, 8 as Byte, 9 as Byte, 10 as Byte)
+    }
+
+    def "should do nothing for each byte if reader index points to buffer end"() {
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4] as byte[]))
+        composer.readerIndex(composer.storedEndIndex)
+        ByteProcessor byteProcessor = simpleTestByteBufProcessor()
+
+        when:
+        def bytesRead = composer.forEachByte(byteProcessor)
+
+        then:
+        bytesRead == 0
+        Assertions.assertThat(byteProcessor.bytesProcessed).isEmpty()
+    }
+
+    def "should check if reader index is equal or beyond stored end index"() {
+        setup:
+        composer.addByteBuf(Unpooled.wrappedBuffer([1, 2, 3, 4] as byte[]))
+        composer.readerIndex(readerIndex)
+
+        expect:
+        composer.readerIndexBeyondStoredEnd() == expectedResult
+
+        where:
+        readerIndex | expectedResult
+        0           | false
+        1           | false
+        2           | false
+        3           | true
+        4           | true
+        5           | true
+    }
+
+    private ByteProcessor simpleTestByteBufProcessor() {
+        ByteProcessor byteProcessor = new ByteProcessor() {
+
+            private List<Byte> bytesProcessed = []
+
+            @Override
+            boolean process(byte value) throws Exception {
+                bytesProcessed.add(value)
+                return true
+            }
+        }
+        return byteProcessor
+    }
+
     private byte[] resize(byte[] source, length) {
         byte[] array = new byte[length]
         System.arraycopy(source, 0, array, 0, source.length)
         return array
-    }
-
-    List components(int startingIndex, int endingIndex) {
-        (startingIndex..endingIndex).collect { index -> new ByteBufComposer.Component(startIndex: index, endIndex: index, buffer: Unpooled.wrappedBuffer([index] as byte[])) }
     }
 
     private ByteProcessor iop(byte valueToFind) {

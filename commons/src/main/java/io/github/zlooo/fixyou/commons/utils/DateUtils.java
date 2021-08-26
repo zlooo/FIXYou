@@ -5,6 +5,7 @@ import io.github.zlooo.fixyou.utils.AsciiCodes;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ByteProcessor;
+import lombok.Getter;
 import lombok.experimental.UtilityClass;
 
 import java.time.format.DateTimeFormatter;
@@ -120,14 +121,13 @@ public class DateUtils {
         return sumOfBytes;
     }
 
-    public static long parseTimestamp(ByteBufComposer byteBuf, int srcIndex, int length, TimestampParser timestampParser) {
-        final ByteBuf bytes = Unpooled.buffer(length, length);
-        byteBuf.getBytes(srcIndex, length, bytes);
-        bytes.forEachByte(timestampParser);
+    public static long parseTimestamp(ByteBuf byteBuf, TimestampParser timestampParser) {
+        byteBuf.forEachByte(timestampParser);
         return timestampParser.result;
     }
 
     public static final class TimestampParser implements ByteProcessor {
+        @Getter
         private long result = BEGINNING_OF_MIN_YEAR;
         private int temp = 0;
         private byte counter = 1;
