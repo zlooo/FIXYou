@@ -7,5 +7,5 @@ dependencies {
 }
 
 jmh{
-    duplicateClassesStrategy = 'warn'
+    duplicateClassesStrategy = DuplicatesStrategy.WARN
 }
