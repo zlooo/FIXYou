@@ -14,4 +14,6 @@ public class LogoutTexts {
             new char[]{'I', 'n', 'c', 'o', 'r', 'r', 'e', 'c', 't', ' ', 'S', 'e', 'n', 'd', 'e', 'r', 'C', 'o', 'm', 'p', 'I', 'D', ' ', 'o', 'r', ' ', 'T', 'a', 'r', 'g', 'e',
                     't', 'C', 'o', 'm', 'p', 'I', 'D'};
     public static final char[] INVALID_LOGON_MESSAGE = new char[]{'I', 'n', 'v', 'a', 'l', 'i', 'd', ' ', 'l', 'o', 'g', 'o', 'n', ' ', 'm', 'e', 's', 's', 'a', 'g', 'e'};
+    public static final char[] LOGON_OUTSIDE_SESSION_ACTIVE_TIME =
+            new char[]{'L', 'o', 'g', 'o', 'n', ' ', 'o', 'u', 't', 's', 'i', 'd', 'e', ' ', 's', 'e', 's', 's', 'i', 'o', 'n', ' ', 'a', 'c', 't', 'i', 'v', 'e', ' ', 't', 'i', 'm', 'e'};
 }

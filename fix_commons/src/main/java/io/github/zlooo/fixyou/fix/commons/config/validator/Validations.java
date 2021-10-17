@@ -3,6 +3,7 @@ package io.github.zlooo.fixyou.fix.commons.config.validator;
 import io.github.zlooo.fixyou.FIXYouConfiguration;
 import io.github.zlooo.fixyou.FixConstants;
 import io.github.zlooo.fixyou.session.SessionConfig;
+import io.github.zlooo.fixyou.session.StartStopConfig;
 import lombok.experimental.UtilityClass;
 
 import java.util.Set;
@@ -45,6 +46,25 @@ class Validations {
             }
             if (sslConfiguration.getPrivateKeyFilePath() == null || sslConfiguration.getPrivateKeyFilePath().trim().isEmpty()) {
                 errorMessages.add("Private key file cannot be empty");
+            }
+        }
+    }
+
+    static void checkSessionStartStop(Set<String> errorMessages, StartStopConfig startStopConfig) {
+        if (startStopConfig != StartStopConfig.INFINITE) {
+            boolean timeSet = true;
+            if (startStopConfig.getStartTime() == null || startStopConfig.getStopTime() == null) {
+                errorMessages.add("Start and stop times are mandatory");
+                timeSet = false;
+            }
+            if (startStopConfig.getStartDay() != null && startStopConfig.getStopDay() != null) {
+                if (!timeSet) {
+                    errorMessages.add("If start and stop days are set, times need to be set as well");
+                }
+            } else if (startStopConfig.getStartDay() == null && startStopConfig.getStopDay() == null) {
+                //nothing to do that's fine
+            } else {
+                errorMessages.add("Invalid start/stop day configuration, either both or none should be present");
             }
         }
     }

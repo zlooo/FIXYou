@@ -32,6 +32,7 @@ class AcceptorConfigValidator implements ConfigValidator {
         Validations.checkPersistence(errorMessages, sessionConfig);
         Validations.positive(errorMessages, sessionConfig.getHeartbeatInterval(), SessionConfig.Fields.heartbeatInterval);
         Validations.checkEncryptMethod(errorMessages, sessionConfig.getEncryptMethod());
+        Validations.checkSessionStartStop(errorMessages, sessionConfig.getStartStopConfig());
         return errorMessages;
     }
 }

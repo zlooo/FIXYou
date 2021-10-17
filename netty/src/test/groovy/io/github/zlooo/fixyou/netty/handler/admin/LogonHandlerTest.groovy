@@ -18,19 +18,27 @@ import io.github.zlooo.fixyou.netty.utils.PipelineUtils
 import io.github.zlooo.fixyou.session.*
 import io.netty.channel.*
 import io.netty.util.Attribute
+import io.netty.util.concurrent.EventExecutor
+import io.netty.util.concurrent.ScheduledFuture
 import spock.lang.Specification
 
+import java.time.Clock
+import java.time.DayOfWeek
 import java.time.Instant
+import java.time.ZoneOffset
+import java.util.concurrent.Callable
 import java.util.concurrent.TimeUnit
 
 class LogonHandlerTest extends Specification {
 
+    public static final Instant NOW = Instant.parse("2021-10-10T10:15:30.574Z")
+    //Sunday
     private io.github.zlooo.fixyou.fix.commons.Authenticator authenticator = Mock()
     private SessionRegistry sessionRegistry = Mock()
     private ChannelHandler preMessageValidatorHandler = Mock()
     private ChannelHandler postMessageValidatorHandler = Mock()
     private DefaultObjectPool<FixMessage> fixMessageObjectPool = Mock()
-    private LogonHandler logonHandler = new LogonHandler(authenticator, sessionRegistry, preMessageValidatorHandler, postMessageValidatorHandler, fixMessageObjectPool)
+    private LogonHandler logonHandler = new LogonHandler(authenticator, sessionRegistry, preMessageValidatorHandler, postMessageValidatorHandler, fixMessageObjectPool, Clock.fixed(NOW, ZoneOffset.UTC))
     private ChannelHandlerContext channelHandlerContext = Mock()
     private Channel channel = Mock()
     private SessionID sessionID = new SessionID("beginString", "senderCompId", "targetCompId")
@@ -357,6 +365,115 @@ class LogonHandlerTest extends Specification {
 
         cleanup:
         reject?.close()
+    }
+
+    def "should schedule session logout when session is not infinite"() {
+        setup:
+        sessionState = new NettyHandlerAwareSessionState(
+                SessionConfig.builder().validationConfig(ValidationConfig.builder().validate(true).build()).consolidateFlushes(false).sessionStateListener(sessionStateListener)
+                             .startStopConfig(StartStopConfig.builder().startTime(startTime).startDay(startDay).stopTime(stopTime).stopDay(stopDay).build()).build(),
+                sessionID,
+                TestSpec.INSTANCE)
+        setup()
+        SessionID sessionID = new SessionID("beginString", "targetCompId", "senderCompId")
+        ChannelPipeline channelPipeline = Mock()
+        Attribute sessionAttribute = Mock()
+        ChannelFuture channelFuture = Mock()
+        ChannelFuture channelFuture2 = Mock()
+        FixMessage logonResponse = new SimpleFixMessage()
+        sessionState.logonSent = false
+        sessionState.logoutSent = false
+        FixMessage logoutMessage = new SimpleFixMessage()
+        EventExecutor executor = Mock()
+
+        when:
+        logonHandler.handleMessage(fixMessage, channelHandlerContext)
+
+        then:
+        fixMessage.refCnt() == 0
+        1 * sessionRegistry.getStateForSession(sessionID) >> sessionState
+        1 * channelHandlerContext.executor() >> executor
+        1 * executor.schedule(_ as Callable, scheduleTime, TimeUnit.MILLISECONDS) >> { args ->
+            args[0].call()
+            return Mock(ScheduledFuture)
+        }
+        logoutMessage.getCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).chars == FixConstants.LOGOUT
+        !logoutMessage.isValueSet(FixConstants.TEXT_FIELD_NUMBER)
+        1 * channelHandlerContext.writeAndFlush(logoutMessage) >> channelFuture2
+        1 * channelFuture2.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture2
+        1 * channelFuture2.addListener(FixChannelListeners.LOGOUT_SENT) >> channelFuture2
+        1 * authenticator.isAuthenticated(fixMessage) >> true
+        !sessionState.logoutSent //! because FixChannelListeners.LOGOUT_SENT has not been executed
+        1 * channelHandlerContext.pipeline() >> channelPipeline
+        1 * channelPipeline.get(Handlers.SESSION.getName())
+        2 * channelHandlerContext.channel() >> channel
+        interaction {
+            sessionHandlersAddedToPipelineAssertions(channelPipeline, sessionAttribute, 15)
+        }
+        2 * fixMessageObjectPool.getAndRetain() >> logoutMessage >> logonResponse
+        1 * channelHandlerContext.writeAndFlush(logonResponse) >> channelFuture
+        1 * channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture
+        1 * channelFuture.addListener(FixChannelListeners.LOGON_SENT) >> channelFuture
+        logonResponse.getCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).chars == FixConstants.LOGON
+        logonResponse.getLongValue(FixConstants.ENCRYPT_METHOD_FIELD_NUMBER) == 0L
+        logonResponse.getLongValue(FixConstants.HEARTBEAT_INTERVAL_FIELD_NUMBER) == 15L
+        logonResponse.getCharSequenceValue(FixConstants.DEFAULT_APP_VERSION_ID_FIELD_NUMBER).chars == ApplicationVersionID.FIX50SP2.value
+        1 * sessionStateListener.logOn(sessionState)
+        1 * sessionHandler.getSessionState() >> sessionState
+        1 * channelHandlerContext.pipeline() >> channelPipeline
+        1 * channelPipeline.context(Handlers.SESSION.getName()) >> sessionHandlerContext
+        1 * nmfCtx.setDelegate(sessionHandlerContext) >> nmfCtx
+        1 * sessionHandler.channelRead(nmfCtx, fixMessage)
+        sessionState.channel == channel
+        0 * _
+
+        where:
+        startTime                                               | startDay           | stopTime                                                 | stopDay           | scheduleTime
+        NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(1) | null               | NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(21) | null              | NOW.atOffset(ZoneOffset.UTC).withHour(21).toInstant().toEpochMilli() -
+        NOW.toEpochMilli()
+        NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(1) | DayOfWeek.SATURDAY | NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(21) | DayOfWeek.SUNDAY  |
+        NOW.atOffset(ZoneOffset.UTC).withHour(21).toInstant().toEpochMilli() - NOW.toEpochMilli()
+        NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(1) | DayOfWeek.SATURDAY | NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(21) | DayOfWeek.TUESDAY |
+        NOW.atOffset(ZoneOffset.UTC).withHour(21).plusDays(2).toInstant().toEpochMilli() - NOW.toEpochMilli()
+    }
+
+    def "should logout immediately when session is started outside active time"() {
+        setup:
+        sessionState = new NettyHandlerAwareSessionState(
+                SessionConfig.builder().validationConfig(ValidationConfig.builder().validate(true).build()).consolidateFlushes(false).sessionStateListener(sessionStateListener)
+                             .startStopConfig(StartStopConfig.builder().startTime(startTime).startDay(startDay).stopTime(stopTime).stopDay(stopDay).build()).build(),
+                sessionID,
+                TestSpec.INSTANCE)
+        setup()
+        SessionID sessionID = new SessionID("beginString", "targetCompId", "senderCompId")
+        ChannelFuture channelFuture2 = Mock()
+        sessionState.logonSent = false
+        sessionState.logoutSent = false
+        FixMessage logoutMessage = new SimpleFixMessage()
+
+        when:
+        logonHandler.handleMessage(fixMessage, channelHandlerContext)
+
+        then:
+        fixMessage.refCnt() == 0
+        1 * sessionRegistry.getStateForSession(sessionID) >> sessionState
+        1 * fixMessageObjectPool.getAndRetain() >> logoutMessage
+        logoutMessage.getCharSequenceValue(FixConstants.MESSAGE_TYPE_FIELD_NUMBER).chars == FixConstants.LOGOUT
+        logoutMessage.getCharSequenceValue(FixConstants.TEXT_FIELD_NUMBER).chars == LogoutTexts.LOGON_OUTSIDE_SESSION_ACTIVE_TIME
+        1 * channelHandlerContext.writeAndFlush(logoutMessage) >> channelFuture2
+        1 * channelFuture2.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE) >> channelFuture2
+        1 * channelFuture2.addListener(FixChannelListeners.LOGOUT_SENT) >> channelFuture2
+        !sessionState.logoutSent //! because FixChannelListeners.LOGOUT_SENT has not been executed
+        0 * _
+
+        where:
+        startTime                                                | startDay         | stopTime                                                 | stopDay           | scheduleTime
+        NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(1)  | DayOfWeek.MONDAY | NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(21) | DayOfWeek.TUESDAY |
+        NOW.atOffset(ZoneOffset.UTC).withHour(21).plusDays(2).toInstant().toEpochMilli() - NOW.toEpochMilli()
+        NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(12) | null             | NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(21) | null              |
+        NOW.atOffset(ZoneOffset.UTC).withHour(21).toInstant().toEpochMilli() - NOW.toEpochMilli()
+        NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(12) | DayOfWeek.SUNDAY | NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(21) | DayOfWeek.FRIDAY  |
+        NOW.atOffset(ZoneOffset.UTC).withHour(21).toInstant().toEpochMilli() - NOW.toEpochMilli()
     }
 
     void sessionHandlersAddedToPipelineAssertions(ChannelPipeline channelPipeline, Attribute sessionAttribute, long heartbeatInterval) {

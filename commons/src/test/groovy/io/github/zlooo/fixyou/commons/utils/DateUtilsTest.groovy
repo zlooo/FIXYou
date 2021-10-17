@@ -1,12 +1,15 @@
 package io.github.zlooo.fixyou.commons.utils
 
-import io.github.zlooo.fixyou.commons.ByteBufComposer
+
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
+import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalDate
+import java.time.OffsetTime
 
 class DateUtilsTest extends Specification {
 
@@ -47,7 +50,7 @@ class DateUtilsTest extends Specification {
         def buffer = Unpooled.wrappedBuffer(timestamp.getBytes(StandardCharsets.US_ASCII))
 
         expect:
-        DateUtils.parseTimestamp(buffer,new DateUtils.TimestampParser()) == expectedResult
+        DateUtils.parseTimestamp(buffer, new DateUtils.TimestampParser()) == expectedResult
 
         where:
         timestamp               | expectedResult
@@ -102,5 +105,28 @@ class DateUtilsTest extends Specification {
         timestamp                  | exception
         "20210831-05:59:20.808123" | IndexOutOfBoundsException
         "20213031-05:59:20.808"    | IllegalArgumentException
+    }
+
+    def "should convert to epoch millis"() {
+        setup:
+        //Sunday
+        def instant = LocalDate.parse("2021-10-10")
+
+        expect:
+        DateUtils.epochMillis(instant, dayOfWeek, offsetTime, previousDay) == expected.toEpochMilli()
+
+        where:
+        dayOfWeek         | offsetTime                             | previousDay || expected
+        null              | OffsetTime.parse("17:34:24.789+01:00") | false       || Instant.parse("2021-10-10T16:34:24.789Z")
+        DayOfWeek.SUNDAY  | OffsetTime.parse("17:34:24.789+01:00") | false       || Instant.parse("2021-10-10T16:34:24.789Z")
+        null              | OffsetTime.parse("03:34:24.789+01:00") | false       || Instant.parse("2021-10-10T02:34:24.789Z")
+        DayOfWeek.SUNDAY  | OffsetTime.parse("03:34:24.789+01:00") | false       || Instant.parse("2021-10-10T02:34:24.789Z")
+        DayOfWeek.TUESDAY | OffsetTime.parse("03:34:24.789+01:00") | false       || Instant.parse("2021-10-12T02:34:24.789Z")
+
+        null              | OffsetTime.parse("17:34:24.789+01:00") | true        || Instant.parse("2021-10-10T16:34:24.789Z")
+        DayOfWeek.SUNDAY  | OffsetTime.parse("17:34:24.789+01:00") | true        || Instant.parse("2021-10-10T16:34:24.789Z")
+        null              | OffsetTime.parse("03:34:24.789+01:00") | true        || Instant.parse("2021-10-10T02:34:24.789Z")
+        DayOfWeek.SUNDAY  | OffsetTime.parse("03:34:24.789+01:00") | true        || Instant.parse("2021-10-10T02:34:24.789Z")
+        DayOfWeek.TUESDAY | OffsetTime.parse("03:34:24.789+01:00") | true        || Instant.parse("2021-10-05T02:34:24.789Z")
     }
 }

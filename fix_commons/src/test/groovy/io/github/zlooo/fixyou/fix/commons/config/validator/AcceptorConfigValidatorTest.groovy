@@ -4,8 +4,12 @@ import io.github.zlooo.fixyou.FIXYouConfiguration
 import io.github.zlooo.fixyou.FixConstants
 import io.github.zlooo.fixyou.session.MessageStore
 import io.github.zlooo.fixyou.session.SessionConfig
+import io.github.zlooo.fixyou.session.StartStopConfig
 import org.assertj.core.api.Assertions
 import spock.lang.Specification
+
+import java.time.DayOfWeek
+import java.time.OffsetTime
 
 class AcceptorConfigValidatorTest extends Specification {
 
@@ -39,14 +43,23 @@ class AcceptorConfigValidatorTest extends Specification {
         Assertions.assertThat(configValidator.validateSessionConfig(config)).containsOnly(errorMessages.<String> toArray([] as String[]))
 
         where:
-        config                                                                             | errorMessages
-        SessionConfig.builder().build()                                                    | []
-        SessionConfig.builder().encryptMethod(FixConstants.ENCRYPTION_METHOD_DES).build()  | [Messages.encryptionNotSupported()]
-        SessionConfig.builder().heartbeatInterval(-666).build()                            | [Messages.positive(SessionConfig.Fields.heartbeatInterval)]
-        SessionConfig.builder().persistent(false).build()                                  | []
-        SessionConfig.builder().persistent(false).messageStore(Mock(MessageStore)).build() | []
-        SessionConfig.builder().persistent(true).messageStore(Mock(MessageStore)).build()  | []
-        SessionConfig.builder().persistent(true).build()                                   | [Messages.noPersistence()]
-
+        config                                                                                                                                                                                         | errorMessages
+        SessionConfig.builder().build()                                                                                                                                                                | []
+        SessionConfig.builder().encryptMethod(FixConstants.ENCRYPTION_METHOD_DES).build()                                                                                                              | [Messages.encryptionNotSupported()]
+        SessionConfig.builder().heartbeatInterval(-666).build()                                                                                                                                        |
+        [Messages.positive(SessionConfig.Fields.heartbeatInterval)]
+        SessionConfig.builder().persistent(false).build()                                                                                                                                              | []
+        SessionConfig.builder().persistent(false).messageStore(Mock(MessageStore)).build()                                                                                                             | []
+        SessionConfig.builder().persistent(true).messageStore(Mock(MessageStore)).build()                                                                                                              | []
+        SessionConfig.builder().persistent(true).build()                                                                                                                                               | [Messages.noPersistence()]
+        SessionConfig.builder().startStopConfig(StartStopConfig.INFINITE).build()                                                                                                                      | []
+        SessionConfig.builder().startStopConfig(StartStopConfig.builder().build()).build()                                                                                                             | [Messages.startStopTimes()]
+        SessionConfig.builder().startStopConfig(StartStopConfig.builder().startDay(DayOfWeek.MONDAY).build()).build()                                                                                  |
+        [Messages.startStopTimes(), Messages.startStopDays()]
+        SessionConfig.builder().startStopConfig(StartStopConfig.builder().startDay(DayOfWeek.MONDAY).stopDay(DayOfWeek.TUESDAY).build()).build()                                                       |
+        [Messages.startStopTimes(), Messages.startStopDaysNoTime()]
+        SessionConfig.builder().startStopConfig(StartStopConfig.builder().startTime(OffsetTime.now()).stopTime(OffsetTime.now()).build()).build()                                                      | []
+        SessionConfig.builder().startStopConfig(StartStopConfig.builder().startTime(OffsetTime.now()).stopTime(OffsetTime.now()).startDay(DayOfWeek.MONDAY).build()).build()                           | [Messages.startStopDays()]
+        SessionConfig.builder().startStopConfig(StartStopConfig.builder().startTime(OffsetTime.now()).stopTime(OffsetTime.now()).startDay(DayOfWeek.MONDAY).stopDay(DayOfWeek.MONDAY).build()).build() | []
     }
 }

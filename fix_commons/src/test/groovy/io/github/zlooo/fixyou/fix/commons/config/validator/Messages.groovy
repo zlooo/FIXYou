@@ -49,4 +49,16 @@ class Messages {
     static String noPrivateKeyFile() {
         "Private key file cannot be empty"
     }
+
+    static String startStopTimes() {
+        "Start and stop times are mandatory"
+    }
+
+    static String startStopDays() {
+        "Invalid start/stop day configuration, either both or none should be present"
+    }
+
+    static String startStopDaysNoTime(){
+        "If start and stop days are set, times need to be set as well"
+    }
 }
