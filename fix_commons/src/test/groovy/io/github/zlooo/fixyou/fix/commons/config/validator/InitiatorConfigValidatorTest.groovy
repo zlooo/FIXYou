@@ -48,12 +48,16 @@ class InitiatorConfigValidatorTest extends Specification {
         SessionConfig.builder().port(666).host("10.0.0.1").persistent(false).startStopConfig(StartStopConfig.INFINITE).build()                                                                                            | []
         SessionConfig.builder().port(666).host("10.0.0.1").persistent(false).startStopConfig(StartStopConfig.builder().build()).build()                                                                                   |
         [Messages.startStopTimes()]
+        SessionConfig.builder().port(666).host("10.0.0.1").persistent(false).startStopConfig(StartStopConfig.builder().startTime(OffsetTime.now()).build()).build()                                                       |
+        [Messages.startStopTimes()]
         SessionConfig.builder().port(666).host("10.0.0.1").persistent(false).startStopConfig(StartStopConfig.builder().startDay(DayOfWeek.MONDAY).build()).build()                                                        |
         [Messages.startStopTimes(), Messages.startStopDays()]
         SessionConfig.builder().port(666).host("10.0.0.1").persistent(false).startStopConfig(StartStopConfig.builder().startDay(DayOfWeek.MONDAY).stopDay(DayOfWeek.TUESDAY).build()).build()                             |
         [Messages.startStopTimes(), Messages.startStopDaysNoTime()]
         SessionConfig.builder().port(666).host("10.0.0.1").persistent(false).startStopConfig(StartStopConfig.builder().startTime(OffsetTime.now()).stopTime(OffsetTime.now()).build()).build()                            | []
         SessionConfig.builder().port(666).host("10.0.0.1").persistent(false).startStopConfig(StartStopConfig.builder().startTime(OffsetTime.now()).stopTime(OffsetTime.now()).startDay(DayOfWeek.MONDAY).build()).build() |
+        [Messages.startStopDays()]
+        SessionConfig.builder().port(666).host("10.0.0.1").persistent(false).startStopConfig(StartStopConfig.builder().startTime(OffsetTime.now()).stopTime(OffsetTime.now()).stopDay(DayOfWeek.MONDAY).build()).build()  |
         [Messages.startStopDays()]
         SessionConfig.builder().port(666).host("10.0.0.1").persistent(false)
                      .startStopConfig(StartStopConfig.builder().startTime(OffsetTime.now()).stopTime(OffsetTime.now()).startDay(DayOfWeek.MONDAY).stopDay(DayOfWeek.MONDAY).build()).build()                              | []

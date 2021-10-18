@@ -34,11 +34,15 @@ class LogonHandlerOperations {
             final long sessionStartTime = DateUtils.epochMillis(date, startStopConfig.getStartDay(), startStopConfig.getStartTime(), true);
             final DayOfWeek stopDay = startStopConfig.getStopDay();
             long sessionStopTime = DateUtils.epochMillis(date, stopDay, startStopConfig.getStopTime(), true);
+            final long previousSessionStopTime;
             if (sessionStopTime < sessionStartTime) {
+                previousSessionStopTime = sessionStopTime;
                 sessionStopTime += stopDay == null ? DateUtils.MILLIS_IN_DAY : DateUtils.MILLIS_IN_WEEK;
+            } else {
+                previousSessionStopTime = 0;
             }
             final long nowMillis = clock.millis();
-            if (sessionStopTime < nowMillis || sessionStartTime > nowMillis) {
+            if (sessionStopTime < nowMillis || (sessionStartTime > nowMillis && nowMillis > previousSessionStopTime)) {
                 ctx.writeAndFlush(FixMessageUtils.toLogoutMessage(fixMessageObjectPool.getAndRetain(), LogoutTexts.LOGON_OUTSIDE_SESSION_ACTIVE_TIME))
                    .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
                    .addListener(FixChannelListeners.LOGOUT_SENT);

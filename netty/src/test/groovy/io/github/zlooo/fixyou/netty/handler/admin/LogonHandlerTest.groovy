@@ -428,12 +428,14 @@ class LogonHandlerTest extends Specification {
         0 * _
 
         where:
-        startTime                                               | startDay           | stopTime                                                 | stopDay           | scheduleTime
-        NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(1) | null               | NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(21) | null              | NOW.atOffset(ZoneOffset.UTC).withHour(21).toInstant().toEpochMilli() -
+        startTime                                                | startDay           | stopTime                                                 | stopDay           | scheduleTime
+        NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(1)  | null               | NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(21) | null              | NOW.atOffset(ZoneOffset.UTC).withHour(21).toInstant().toEpochMilli() -
         NOW.toEpochMilli()
-        NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(1) | DayOfWeek.SATURDAY | NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(21) | DayOfWeek.SUNDAY  |
+        NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(16) | null               | NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(15) | null              |
+        NOW.atOffset(ZoneOffset.UTC).withHour(15).plusDays(1).toInstant().toEpochMilli() - NOW.toEpochMilli()
+        NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(1)  | DayOfWeek.SATURDAY | NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(21) | DayOfWeek.SUNDAY  |
         NOW.atOffset(ZoneOffset.UTC).withHour(21).toInstant().toEpochMilli() - NOW.toEpochMilli()
-        NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(1) | DayOfWeek.SATURDAY | NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(21) | DayOfWeek.TUESDAY |
+        NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(1)  | DayOfWeek.SATURDAY | NOW.atOffset(ZoneOffset.UTC).toOffsetTime().withHour(21) | DayOfWeek.TUESDAY |
         NOW.atOffset(ZoneOffset.UTC).withHour(21).plusDays(2).toInstant().toEpochMilli() - NOW.toEpochMilli()
     }
 
