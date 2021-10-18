@@ -28,4 +28,6 @@ public class SessionConfig {
     private List<SessionStateListener> sessionStateListeners;
     @Builder.Default
     private ValidationConfig validationConfig = ValidationConfig.DEFAULT;
+    @Builder.Default
+    private StartStopConfig startStopConfig = StartStopConfig.INFINITE;
 }

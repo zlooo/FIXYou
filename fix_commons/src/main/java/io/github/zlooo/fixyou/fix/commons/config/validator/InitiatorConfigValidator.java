@@ -32,6 +32,7 @@ class InitiatorConfigValidator implements ConfigValidator {
             errorMessages.add("Invalid host provided");
         }
         Validations.checkPersistence(errorMessages, sessionConfig);
+        Validations.checkSessionStartStop(errorMessages, sessionConfig.getStartStopConfig());
         return errorMessages;
     }
 }

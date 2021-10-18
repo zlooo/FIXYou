@@ -50,7 +50,7 @@ class FIXYouNettyInitiator extends AbstractFIXYouNetty {
                     PipelineUtils.addRequiredHandlersToPipeline(channel, sessionState, fixYouNettyComponent.beforeSessionMessageValidatorHandler(), fixYouNettyComponent.afterSessionMessageValidatorHandler(), heartbeatInterval,
                                                                 Handlers.SESSION);
                     final FixMessage logonMessage =
-                            FixMessageUtils.toLogonMessage((FixMessage) fixYouNettyComponent.fixMessageObjectPool().getAndRetain(), sessionState.getFixSpec().applicationVersionId().getValue(), sessionConfig.getEncryptMethod(),
+                            FixMessageUtils.toLogonMessage(fixYouNettyComponent.fixMessageObjectPool().getAndRetain(), sessionState.getFixSpec().applicationVersionId().getValue(), sessionConfig.getEncryptMethod(),
                                                            heartbeatInterval, false);
                     final Map<String, Resettable> resettables = sessionState.getResettables();
                     final ChannelOutboundHandler sessionHandler = (ChannelOutboundHandler) resettables.get(NettyResettablesNames.SESSION);

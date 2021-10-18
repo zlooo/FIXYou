@@ -1,14 +1,16 @@
 package io.github.zlooo.fixyou.commons.utils;
 
-import io.github.zlooo.fixyou.commons.ByteBufComposer;
 import io.github.zlooo.fixyou.utils.AsciiCodes;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.util.ByteProcessor;
 import lombok.Getter;
 import lombok.experimental.UtilityClass;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.OffsetTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 
 /**
  * Yeah, this class looks like shit, but at least it's faster than {@link DateTimeFormatter}. See
@@ -18,10 +20,12 @@ import java.time.format.DateTimeFormatter;
 @UtilityClass
 public class DateUtils {
 
+    public static final long MILLIS_IN_DAY = 86400000L;
+    public static final long MILLIS_IN_WEEK = 7 * MILLIS_IN_DAY;
+    private static final long NANOS_IN_MILLI = 1000000L;
     private static final long MILLIS_IN_SECOND = 1000L;
     private static final long MILLIS_IN_MINUTE = 60000L;
     private static final long MILLIS_IN_HOUR = 3600000L;
-    private static final long MILLIS_IN_DAY = 86400000L;
     private static final long MILLIS_IN_MONTH_28 = 2419200000L;
     private static final long MILLIS_IN_MONTH_29 = 2505600000L;
     private static final long MILLIS_IN_MONTH_30 = 2592000000L;
@@ -124,6 +128,17 @@ public class DateUtils {
     public static long parseTimestamp(ByteBuf byteBuf, TimestampParser timestampParser) {
         byteBuf.forEachByte(timestampParser);
         return timestampParser.result;
+    }
+
+    public static long epochMillis(LocalDate baseDate, DayOfWeek dayOfWeek, OffsetTime time, boolean previousDay) {
+        final LocalDate date;
+        if (dayOfWeek != null) {
+            //TODO consider doing this part myself, I bet this code is slow and generates lots of garbage
+            date = (LocalDate) (previousDay ? TemporalAdjusters.previousOrSame(dayOfWeek) : TemporalAdjusters.nextOrSame(dayOfWeek)).adjustInto(baseDate);
+        } else {
+            date = baseDate;
+        }
+        return (date.toEpochDay() * MILLIS_IN_DAY) + (time.toLocalTime().toNanoOfDay() / NANOS_IN_MILLI) - (time.getOffset().getTotalSeconds() * MILLIS_IN_SECOND);
     }
 
     public static final class TimestampParser implements ByteProcessor {

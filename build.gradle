@@ -17,24 +17,24 @@ plugins {
 }
 
 ext {
-    nettyVersion = '4.1.44.Final'
-    slf4jVersion = '1.7.30'
-    lombokVersion = '1.18.10'
-    daggerVersion = '2.25.4'
+    nettyVersion = '4.1.68.Final'
+    slf4jVersion = '1.7.32'
+    lombokVersion = '1.18.20'
+    daggerVersion = '2.39.1'
     findbugsJsr305Version = '3.0.2'
     javaxInjectVersion = '1'
-    disruptorVersion = '3.4.2'
+    disruptorVersion = '3.4.4'
     hppcrtVersion = '0.7.5'
     //    test dependencies
     spockVersion = '2.0-groovy-3.0'
     assertJVersion = '3.14.0'
-    springVersion = '5.2.2.RELEASE'
-    byteBuddyVersion = '1.10.6'
-    objenesisVersion = '3.1'
-    quickfixVersion = '2.1.1'
-    logbackClassicVersion = '1.2.3'
+    springVersion = '5.3.10'
+    byteBuddyVersion = '1.11.19'
+    objenesisVersion = '3.2'
+    quickfixVersion = '2.3.0'
+    logbackClassicVersion = '1.2.6'
     transfixVersion = '1.0.2-alpha'
-    commonsLangVersion = '3.11'
+    commonsLangVersion = '3.12'
     jmhVersion = '1.25'
 }
 
@@ -77,9 +77,9 @@ subprojects {
 
     dependencies {
         compileOnly group: 'com.google.code.findbugs', name: 'jsr305', version: "$findbugsJsr305Version"
-        compileOnly "org.projectlombok:lombok:$lombokVersion"
-        annotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        annotationProcessor "com.google.dagger:dagger-compiler:$daggerVersion"
+        compileOnly "org.projectlombok:lombok:1.18.20"
+        annotationProcessor "org.projectlombok:lombok:1.18.20"
+        annotationProcessor "com.google.dagger:dagger-compiler:2.39.1"
         testImplementation platform("org.spockframework:spock-bom:$spockVersion")
         testImplementation group: 'org.spockframework', name: 'spock-core'
         testImplementation group: 'net.bytebuddy', name: 'byte-buddy', version: "$byteBuddyVersion"
@@ -91,7 +91,7 @@ subprojects {
         integrationTestImplementation group: 'org.assertj', name: 'assertj-core', version: "$assertJVersion"
         integrationTestImplementation group: 'org.springframework', name: 'spring-test', version: "$springVersion"
         integrationTestImplementation group: 'ch.qos.logback', name: 'logback-classic', version: "$logbackClassicVersion"
-        jmhAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
+        jmhAnnotationProcessor "org.projectlombok:lombok:1.18.20"
         jmhAnnotationProcessor group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: "$jmhVersion"
     }
 
